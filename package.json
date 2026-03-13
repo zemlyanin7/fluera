@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@epubjs-react-native/core": "^1.4.7",
+    "@nozbe/watermelondb": "^0.28.0",
     "@tamagui/animations-react-native": "^2.0.0-rc.25",
     "@tamagui/config": "^2.0.0-rc.25",
     "@tamagui/core": "^2.0.0-rc.25",
@@ -39,6 +40,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-decorators": "^7.29.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@testing-library/react-native": "^13.3.3",
     "@types/react": "~19.2.2",
