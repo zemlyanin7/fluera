@@ -1,3 +1,17 @@
-import { schemaMigrations } from '@nozbe/watermelondb/Schema/migrations'
+import { addColumns, schemaMigrations } from '@nozbe/watermelondb/Schema/migrations'
 
-export const migrations = schemaMigrations({ migrations: [] })
+export default schemaMigrations({
+  migrations: [
+    {
+      toVersion: 2,
+      steps: [
+        addColumns({
+          table: 'books',
+          columns: [
+            { name: 'last_position', type: 'string', isOptional: true },
+          ],
+        }),
+      ],
+    },
+  ],
+})

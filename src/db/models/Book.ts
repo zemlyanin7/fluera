@@ -22,4 +22,5 @@ export class Book extends Model {
   @field('difficulty') difficulty!: number | null
   @date('added_at') addedAt!: Date
   @date('last_read_at') lastReadAt!: Date
+  @field('last_position') lastPosition!: string | null
 }

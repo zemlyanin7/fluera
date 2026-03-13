@@ -1,6 +1,7 @@
 import { Database } from '@nozbe/watermelondb'
 import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite'
 import { schema } from './schema'
+import migrations from './migrations'
 import { Book } from './models/Book'
 import { Chapter } from './models/Chapter'
 import { WordStatus } from './models/WordStatus'
@@ -12,6 +13,7 @@ import { UserSettings } from './models/UserSettings'
 
 const adapter = new SQLiteAdapter({
   schema,
+  migrations,
   jsi: true,
   onSetUpError: (error) => {
     console.error('Database setup error:', error)
