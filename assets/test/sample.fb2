@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0">
+  <description>
+    <title-info>
+      <author><first-name>Test</first-name><last-name>Author</last-name></author>
+      <book-title>Test Book</book-title>
+      <lang>en</lang>
+    </title-info>
+  </description>
+  <body>
+    <section>
+      <title><p>Chapter One</p></title>
+      <p>The quick brown fox jumps over the lazy dog. This is a <emphasis>test</emphasis> of the FB2 reader.</p>
+      <p>Another paragraph with <strong>bold text</strong> and more words to test scrolling.</p>
+    </section>
+  </body>
+</FictionBook>
