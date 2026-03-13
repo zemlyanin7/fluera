@@ -1,5 +1,9 @@
 # Fluera — Development Rules
 
+## Язык общения
+
+Всё общение с пользователем ведётся на русском языке.
+
 ## Project Overview
 
 Fluera is a multilingual reader app for learning languages through reading. React Native (Expo) mobile app with Fastify backend.
