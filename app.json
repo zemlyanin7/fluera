@@ -1,34 +1,24 @@
 {
   "expo": {
     "name": "Fluera",
-    "slug": "Fluera",
-    "version": "1.0.0",
+    "slug": "fluera",
+    "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
+    "scheme": "fluera",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fluera.app"
     },
     "android": {
+      "package": "com.fluera.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+        "backgroundColor": "#6c63ff"
+      }
     },
     "plugins": [
-      "expo-router",
-      "expo-localization"
+      "expo-router"
     ]
   }
 }
