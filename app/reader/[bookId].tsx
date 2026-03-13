@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import * as FileSystem from 'expo-file-system';
 import { useBook } from '../../src/hooks/useBook';
 import { Fb2Reader } from '../../src/components/reader/Fb2Reader';
+import { EpubReader } from '../../src/components/reader/EpubReader';
 import { useSettingsStore } from '../../src/stores/settingsStore';
 
 export default function ReaderScreen() {
@@ -44,6 +45,17 @@ export default function ReaderScreen() {
     );
   }
 
+  if (book.format === 'epub') {
+    return (
+      <EpubReader
+        fileUri={book.filePath}
+        book={book}
+        bookLanguage={settings.bookLanguage}
+        nativeLanguage={settings.nativeLanguage}
+      />
+    );
+  }
+
   // Loading file content
   if (!content) {
     return (
@@ -64,7 +76,7 @@ export default function ReaderScreen() {
     );
   }
 
-  // EPUB reader will be added in Task 13
+  // Fallback for unsupported formats
   return (
     <YStack flex={1} justifyContent="center" alignItems="center">
       <Text fontSize="$6">{book.title}</Text>
