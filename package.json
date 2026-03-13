@@ -4,14 +4,15 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest"
   },
   "dependencies": {
     "@epubjs-react-native/core": "^1.4.7",
     "@nozbe/watermelondb": "^0.28.0",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@tamagui/animations-react-native": "^2.0.0-rc.25",
     "@tamagui/config": "^2.0.0-rc.25",
     "@tamagui/core": "^2.0.0-rc.25",
@@ -31,6 +32,7 @@
     "fast-xml-parser": "^5.5.5",
     "i18next": "^25.8.18",
     "react": "19.2.0",
+    "react-dom": "19.2.0",
     "react-i18next": "^16.5.8",
     "react-native": "0.83.2",
     "react-native-gesture-handler": "~2.30.0",
@@ -38,8 +40,7 @@
     "react-native-screens": "~4.23.0",
     "react-native-webview": "13.16.0",
     "tamagui": "^2.0.0-rc.25",
-    "zustand": "^5.0.11",
-    "@react-native-async-storage/async-storage": "^2.2.0"
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@babel/plugin-proposal-decorators": "^7.29.0",
