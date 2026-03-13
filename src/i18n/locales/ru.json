@@ -1,0 +1,56 @@
+{
+  "tabs": {
+    "library": "Библиотека",
+    "dictionary": "Словарь",
+    "stats": "Статистика",
+    "settings": "Настройки"
+  },
+  "library": {
+    "title": "Библиотека",
+    "empty": "Ваши книги появятся здесь",
+    "myBooks": "Мои книги",
+    "catalogs": "Каталоги",
+    "upload": "Загрузить"
+  },
+  "dictionary": {
+    "title": "Словарь",
+    "empty": "Ваши слова появятся здесь",
+    "review": "Повторить",
+    "exportAnki": "Экспорт в Anki"
+  },
+  "reader": {
+    "translation": {
+      "loading": "Перевожу...",
+      "error": "Не удалось перевести. Проверьте соединение и попробуйте снова.",
+      "rateLimited": "Слишком много запросов. Подождите немного.",
+      "addToDict": "В словарь",
+      "grammar": "Грамматика",
+      "tts": "Слушать"
+    },
+    "wordStatus": {
+      "new": "Новое",
+      "recognized": "Узнаю",
+      "familiar": "Знакомое",
+      "learned": "Выучено",
+      "known": "Знаю"
+    }
+  },
+  "settings": {
+    "title": "Настройки",
+    "language": "Язык интерфейса",
+    "bookLanguage": "Язык книг",
+    "nativeLanguage": "Язык перевода",
+    "theme": "Тема",
+    "themes": {
+      "light": "Светлая",
+      "dark": "Тёмная",
+      "sepia": "Сепия"
+    }
+  },
+  "common": {
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "delete": "Удалить",
+    "retry": "Повторить"
+  }
+}

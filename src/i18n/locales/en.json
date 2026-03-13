@@ -1,0 +1,56 @@
+{
+  "tabs": {
+    "library": "Library",
+    "dictionary": "Dictionary",
+    "stats": "Stats",
+    "settings": "Settings"
+  },
+  "library": {
+    "title": "Library",
+    "empty": "Your books will appear here",
+    "myBooks": "My Books",
+    "catalogs": "Catalogs",
+    "upload": "Upload"
+  },
+  "dictionary": {
+    "title": "Dictionary",
+    "empty": "Your words will appear here",
+    "review": "Review",
+    "exportAnki": "Export to Anki"
+  },
+  "reader": {
+    "translation": {
+      "loading": "Translating...",
+      "error": "Could not translate. Check connection and try again.",
+      "rateLimited": "Too many requests. Please wait a moment.",
+      "addToDict": "Add to dictionary",
+      "grammar": "Grammar",
+      "tts": "Listen"
+    },
+    "wordStatus": {
+      "new": "New",
+      "recognized": "Recognized",
+      "familiar": "Familiar",
+      "learned": "Learned",
+      "known": "Known"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Interface language",
+    "bookLanguage": "Book language",
+    "nativeLanguage": "Translation language",
+    "theme": "Theme",
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "sepia": "Sepia"
+    }
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "retry": "Retry"
+  }
+}

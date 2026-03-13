@@ -1,0 +1,56 @@
+{
+  "tabs": {
+    "library": "Biblioteka",
+    "dictionary": "Słownik",
+    "stats": "Statystyki",
+    "settings": "Ustawienia"
+  },
+  "library": {
+    "title": "Biblioteka",
+    "empty": "Twoje książki pojawią się tutaj",
+    "myBooks": "Moje książki",
+    "catalogs": "Katalogi",
+    "upload": "Wgraj"
+  },
+  "dictionary": {
+    "title": "Słownik",
+    "empty": "Twoje słowa pojawią się tutaj",
+    "review": "Powtórz",
+    "exportAnki": "Eksport do Anki"
+  },
+  "reader": {
+    "translation": {
+      "loading": "Tłumaczę...",
+      "error": "Nie udało się przetłumaczyć. Sprawdź połączenie i spróbuj ponownie.",
+      "rateLimited": "Zbyt wiele zapytań. Poczekaj chwilę.",
+      "addToDict": "Do słownika",
+      "grammar": "Gramatyka",
+      "tts": "Posłuchaj"
+    },
+    "wordStatus": {
+      "new": "Nowe",
+      "recognized": "Rozpoznane",
+      "familiar": "Znajome",
+      "learned": "Wyuczone",
+      "known": "Znane"
+    }
+  },
+  "settings": {
+    "title": "Ustawienia",
+    "language": "Język interfejsu",
+    "bookLanguage": "Język książek",
+    "nativeLanguage": "Język tłumaczenia",
+    "theme": "Motyw",
+    "themes": {
+      "light": "Jasny",
+      "dark": "Ciemny",
+      "sepia": "Sepia"
+    }
+  },
+  "common": {
+    "cancel": "Anuluj",
+    "save": "Zapisz",
+    "delete": "Usuń",
+    "retry": "Ponów"
+  }
+}
