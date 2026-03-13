@@ -9,13 +9,40 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@epubjs-react-native/core": "^1.4.7",
+    "@tamagui/animations-react-native": "^2.0.0-rc.25",
+    "@tamagui/config": "^2.0.0-rc.25",
+    "@tamagui/core": "^2.0.0-rc.25",
+    "@tamagui/font-inter": "^2.0.0-rc.25",
+    "@tamagui/themes": "^2.0.0-rc.25",
+    "@tanstack/react-query": "^5.90.21",
     "expo": "~55.0.6",
+    "expo-constants": "~55.0.7",
+    "expo-crypto": "~55.0.9",
+    "expo-dev-client": "~55.0.16",
+    "expo-document-picker": "~55.0.8",
+    "expo-file-system": "~55.0.10",
+    "expo-linking": "~55.0.7",
+    "expo-localization": "~55.0.8",
+    "expo-router": "~55.0.5",
     "expo-status-bar": "~55.0.4",
+    "fast-xml-parser": "^5.5.5",
+    "i18next": "^25.8.18",
     "react": "19.2.0",
-    "react-native": "0.83.2"
+    "react-i18next": "^16.5.8",
+    "react-native": "0.83.2",
+    "react-native-gesture-handler": "~2.30.0",
+    "react-native-safe-area-context": "~5.6.2",
+    "react-native-screens": "~4.23.0",
+    "react-native-webview": "13.16.0",
+    "tamagui": "^2.0.0-rc.25",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@testing-library/react-native": "^13.3.3",
     "@types/react": "~19.2.2",
+    "jest-expo": "^55.0.9",
     "typescript": "~5.9.2"
   },
   "private": true
