@@ -33,6 +33,11 @@
       "familiar": "Знакомое",
       "learned": "Выучено",
       "known": "Знаю"
+    },
+    "error": {
+      "bookNotFound": "Книга не найдена",
+      "fileMissing": "Файл книги отсутствует на устройстве",
+      "backToLibrary": "Назад в библиотеку"
     }
   },
   "settings": {

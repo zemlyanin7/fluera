@@ -33,6 +33,11 @@
       "familiar": "Znajome",
       "learned": "Wyuczone",
       "known": "Znane"
+    },
+    "error": {
+      "bookNotFound": "Nie znaleziono książki",
+      "fileMissing": "Brak pliku książki na urządzeniu",
+      "backToLibrary": "Powrót do biblioteki"
     }
   },
   "settings": {

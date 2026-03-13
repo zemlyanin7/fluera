@@ -33,6 +33,11 @@
       "familiar": "Familiar",
       "learned": "Learned",
       "known": "Known"
+    },
+    "error": {
+      "bookNotFound": "Book not found",
+      "fileMissing": "Book file is missing from device",
+      "backToLibrary": "Back to Library"
     }
   },
   "settings": {
