@@ -1,0 +1,8 @@
+.DS_Store
+node_modules/
+.superpowers/
+.expo/
+dist/
+*.tsbuildinfo
+.env
+.env.local
