@@ -16,6 +16,8 @@ interface SettingsState {
   setBookLanguage: (lang: string) => void
   setReaderTheme: (theme: ReaderTheme) => void
   setFontSize: (size: number) => void
+  setFontFamily: (fontFamily: string) => void
+  setLineHeight: (lineHeight: number) => void
   setShowWordColors: (show: boolean) => void
 }
 
@@ -34,6 +36,8 @@ export const useSettingsStore = create<SettingsState>()(
       setBookLanguage: (lang) => set({ bookLanguage: lang }),
       setReaderTheme: (theme) => set({ readerTheme: theme }),
       setFontSize: (size) => set({ fontSize: size }),
+      setFontFamily: (fontFamily) => set({ fontFamily }),
+      setLineHeight: (lineHeight) => set({ lineHeight }),
       setShowWordColors: (show) => set({ showWordColors: show }),
     }),
     {
