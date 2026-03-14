@@ -38,6 +38,15 @@
       "bookNotFound": "Книгу не знайдено",
       "fileMissing": "Файл книги відсутній на пристрої",
       "backToLibrary": "Назад до бібліотеки"
+    },
+    "settings": {
+      "fontSize": "Розмір шрифту",
+      "theme": "Тема",
+      "theme_light": "Світла",
+      "theme_dark": "Темна",
+      "theme_sepia": "Сепія",
+      "lineHeight": "Міжрядковий інтервал",
+      "fontFamily": "Шрифт"
     }
   },
   "settings": {

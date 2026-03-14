@@ -38,6 +38,15 @@
       "bookNotFound": "Nie znaleziono książki",
       "fileMissing": "Brak pliku książki na urządzeniu",
       "backToLibrary": "Powrót do biblioteki"
+    },
+    "settings": {
+      "fontSize": "Rozmiar czcionki",
+      "theme": "Motyw",
+      "theme_light": "Jasny",
+      "theme_dark": "Ciemny",
+      "theme_sepia": "Sepia",
+      "lineHeight": "Interlinia",
+      "fontFamily": "Czcionka"
     }
   },
   "settings": {

@@ -38,6 +38,15 @@
       "bookNotFound": "Book not found",
       "fileMissing": "Book file is missing from device",
       "backToLibrary": "Back to Library"
+    },
+    "settings": {
+      "fontSize": "Font Size",
+      "theme": "Theme",
+      "theme_light": "Light",
+      "theme_dark": "Dark",
+      "theme_sepia": "Sepia",
+      "lineHeight": "Line Height",
+      "fontFamily": "Font"
     }
   },
   "settings": {
