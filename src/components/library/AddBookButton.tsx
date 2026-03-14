@@ -1,6 +1,6 @@
 import React from 'react'
-import { Alert } from 'react-native'
-import { Button } from 'tamagui'
+import { Alert, Pressable, StyleSheet } from 'react-native'
+import { Text } from 'tamagui'
 import * as DocumentPicker from 'expo-document-picker'
 import { useTranslation } from 'react-i18next'
 import { BookImporter } from '../../services/library/BookImporter'
@@ -39,12 +39,26 @@ export function AddBookButton() {
   }
 
   return (
-    <Button
-      size="$4"
-      theme={"blue" as any}
+    <Pressable
+      style={({ pressed }) => [styles.button, pressed && styles.pressed]}
       onPress={handlePress}
     >
-      {t('library.addBook')}
-    </Button>
+      <Text color="#ffffff" fontSize="$4" fontWeight="600">
+        {t('library.addBook')}
+      </Text>
+    </Pressable>
   )
 }
+
+const styles = StyleSheet.create({
+  button: {
+    backgroundColor: '#6c63ff',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  pressed: {
+    opacity: 0.8,
+  },
+})

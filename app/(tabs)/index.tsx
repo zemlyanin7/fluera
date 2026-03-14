@@ -26,8 +26,9 @@ export default function LibraryScreen() {
 
   if (books.length === 0) {
     return (
-      <YStack flex={1} justifyContent="center" alignItems="center" padding="$6" gap="$4">
-        <Text fontSize="$7" textAlign="center">📚</Text>
+      <YStack flex={1} alignItems="center" padding="$6" gap="$4">
+        <YStack flex={1} />
+        <Text fontSize="$9" textAlign="center">📚</Text>
         <Text fontSize="$5" textAlign="center" color="$gray11">
           {t('library.emptyState.title')}
         </Text>
@@ -35,6 +36,7 @@ export default function LibraryScreen() {
           {t('library.emptyState.subtitle')}
         </Text>
         <AddBookButton />
+        <YStack flex={2} />
       </YStack>
     )
   }
