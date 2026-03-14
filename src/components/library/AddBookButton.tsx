@@ -41,7 +41,7 @@ export function AddBookButton() {
   return (
     <Button
       size="$4"
-      theme="blue"
+      theme={"blue" as any}
       onPress={handlePress}
     >
       {t('library.addBook')}

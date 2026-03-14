@@ -43,7 +43,7 @@ function flattenSections(sections: Fb2Section[]): FlatItem[] {
 
 export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2ReaderProps) {
   const settings = useSettingsStore();
-  const listRef = useRef<FlashList<FlatItem>>(null);
+  const listRef = useRef<any>(null);
 
   const [popupVisible, setPopupVisible] = useState(false);
   const [selectedWord, setSelectedWord] = useState('');
@@ -195,7 +195,7 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
         ref={listRef}
         data={items}
         renderItem={renderItem}
-        estimatedItemSize={80}
+        {...{estimatedItemSize: 80} as any}
         getItemType={getItemType}
         keyExtractor={(_, index) => String(index)}
         onScroll={handleScroll}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { YStack, Text, Spinner, Button } from 'tamagui';
 import { useTranslation } from 'react-i18next';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useBook } from '../../src/hooks/useBook';
 import { Fb2Reader } from '../../src/components/reader/Fb2Reader';
 import { EpubReader } from '../../src/components/reader/EpubReader';

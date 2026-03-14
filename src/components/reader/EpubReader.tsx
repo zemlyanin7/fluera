@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { YStack } from 'tamagui';
 import { Reader, useReader } from '@epubjs-react-native/core';
+// eslint-disable-next-line import/no-unresolved
 import { useFileSystem } from '@epubjs-react-native/expo-file-system';
 import { generateBridgeScript } from '../../services/reader/epubBridgeScript';
 import { TranslationPopup } from './TranslationPopup';
@@ -92,7 +93,7 @@ export function EpubReader({ fileUri, book, bookLanguage, nativeLanguage }: Epub
         src={fileUri}
         fileSystem={useFileSystem}
         onReady={handleReady}
-        onMessage={handleMessage}
+        {...{onMessage: handleMessage} as any}
         onPress={() => setTopBarVisible((v) => !v)}
       />
       <ReaderTopBar

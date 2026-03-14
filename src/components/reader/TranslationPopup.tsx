@@ -171,7 +171,7 @@ export function TranslationPopup({
                 </XStack>
 
                 {/* Save button */}
-                <Button size="$4" theme="active" onPress={handleSave}>
+                <Button size="$4" theme={"active" as any} onPress={handleSave}>
                   Save to Dictionary
                 </Button>
               </YStack>

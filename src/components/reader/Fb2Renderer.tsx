@@ -150,7 +150,7 @@ function InlineRenderer({
                 fontStyle={isItalic ? 'italic' : italic ? 'italic' : undefined}
                 fontWeight={isBold ? 'bold' : bold ? 'bold' : undefined}
                 fontSize={fontSize}
-                fontFamily={fontFamily}
+                fontFamily={fontFamily as any}
               >
                 <WordTappable
                   word={token.word}
@@ -198,7 +198,7 @@ export function Fb2ItemRenderer({
         fontWeight="bold"
         fontSize={fontSize + 4}
         lineHeight={lineHeight + 6}
-        fontFamily={fontFamily}
+        fontFamily={fontFamily as any}
         paddingVertical="$3"
         paddingHorizontal="$4"
       >
@@ -230,7 +230,7 @@ export function Fb2ItemRenderer({
         fontWeight="600"
         fontSize={fontSize + 2}
         lineHeight={lineHeight + 4}
-        fontFamily={fontFamily}
+        fontFamily={fontFamily as any}
         paddingVertical="$2"
         paddingHorizontal="$4"
       >

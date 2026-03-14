@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { YStack, XStack, Text, Button, Slider } from 'tamagui';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
@@ -62,7 +62,7 @@ export function ReaderSettingsSheet({ visible, onClose }: ReaderSettingsSheetPro
               {THEMES.map((theme) => (
                 <Button
                   key={theme} flex={1} size="$3"
-                  theme={settings.readerTheme === theme ? 'blue' : undefined}
+                  theme={settings.readerTheme === theme ? ("blue" as any) : undefined}
                   onPress={() => settings.setReaderTheme(theme)}
                 >
                   {t(`reader.settings.theme_${theme}`)}
@@ -91,7 +91,7 @@ export function ReaderSettingsSheet({ visible, onClose }: ReaderSettingsSheetPro
               {FONTS.map((font) => (
                 <Button
                   key={font} flex={1} size="$3"
-                  theme={settings.fontFamily === font ? 'blue' : undefined}
+                  theme={settings.fontFamily === font ? ("blue" as any) : undefined}
                   onPress={() => settings.setFontFamily(font)}
                 >
                   {font}

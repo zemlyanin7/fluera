@@ -4,7 +4,7 @@ import { YStack, Text } from 'tamagui'
 import { Q } from '@nozbe/watermelondb'
 import { useTranslation } from 'react-i18next'
 import { database } from '../../src/db'
-import Book from '../../src/db/models/Book'
+import { Book } from '../../src/db/models/Book'
 import { BookCard } from '../../src/components/library/BookCard'
 import { AddBookButton } from '../../src/components/library/AddBookButton'
 
