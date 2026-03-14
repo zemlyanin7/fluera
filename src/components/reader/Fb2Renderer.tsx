@@ -75,6 +75,8 @@ export interface Fb2RendererItem {
   fontSize?: number;
   lineHeight?: number;
   fontFamily?: string;
+  textColor?: string;      // NEW
+  backgroundColor?: string; // NEW (for future use)
 }
 
 // ─── Inline renderer helper ────────────────────────────────────────────────────
@@ -88,6 +90,7 @@ interface InlineRendererProps {
   fontFamily?: string;
   italic?: boolean;
   bold?: boolean;
+  textColor?: string;
 }
 
 function getWordColor(word: string, wordColors: Map<string, WordStatusValue>): string {
@@ -109,6 +112,7 @@ function InlineRenderer({
   fontFamily,
   italic = false,
   bold = false,
+  textColor,
 }: InlineRendererProps): React.ReactElement {
   const elements: React.ReactNode[] = [];
 
@@ -125,11 +129,12 @@ function InlineRenderer({
             sentenceContext={sentence}
             onWordTap={onWordTap}
             color={color}
+            textColor={textColor}
           />,
         );
         if (token.trailing) {
           elements.push(
-            <Text key={`${inlineIndex}-${tokenIndex}-space`} fontSize={fontSize}>
+            <Text key={`${inlineIndex}-${tokenIndex}-space`} fontSize={fontSize} color={textColor || undefined}>
               {token.trailing}
             </Text>,
           );
@@ -157,12 +162,13 @@ function InlineRenderer({
                   sentenceContext={sentence}
                   onWordTap={onWordTap}
                   color={color}
+                  textColor={textColor}
                 />
               </Text>,
             );
             if (token.trailing) {
               elements.push(
-                <Text key={`${inlineIndex}-${childIndex}-${tokenIndex}-space`} fontSize={fontSize}>
+                <Text key={`${inlineIndex}-${childIndex}-${tokenIndex}-space`} fontSize={fontSize} color={textColor || undefined}>
                   {token.trailing}
                 </Text>,
               );
@@ -190,6 +196,7 @@ export function Fb2ItemRenderer({
   fontSize = 16,
   lineHeight = 24,
   fontFamily,
+  textColor,
 }: Fb2RendererItem): React.ReactElement {
   // Section title (string item)
   if (typeof item === 'string') {
@@ -201,6 +208,7 @@ export function Fb2ItemRenderer({
         fontFamily={fontFamily as any}
         paddingVertical="$3"
         paddingHorizontal="$4"
+        color={textColor || undefined}
       >
         {item}
       </Text>
@@ -233,6 +241,7 @@ export function Fb2ItemRenderer({
         fontFamily={fontFamily as any}
         paddingVertical="$2"
         paddingHorizontal="$4"
+        color={textColor || undefined}
       >
         {fullText}
       </Text>
@@ -252,6 +261,7 @@ export function Fb2ItemRenderer({
             fontSize={fontSize}
             fontFamily={fontFamily}
             italic
+            textColor={textColor}
           />
         </XStack>
       </YStack>
@@ -275,6 +285,7 @@ export function Fb2ItemRenderer({
             fontSize={fontSize}
             fontFamily={fontFamily}
             italic
+            textColor={textColor}
           />
         </XStack>
       </YStack>
@@ -292,6 +303,7 @@ export function Fb2ItemRenderer({
           wordColors={wordColors}
           fontSize={fontSize}
           fontFamily={fontFamily}
+          textColor={textColor}
         />
       </XStack>
     </YStack>
