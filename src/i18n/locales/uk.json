@@ -29,6 +29,7 @@
     "exportAnki": "Експорт в Anki"
   },
   "reader": {
+    "loading": "Завантаження...",
     "translation": {
       "loading": "Перекладаю...",
       "error": "Не вдалося перекласти. Перевірте з'єднання та спробуйте знову.",
@@ -52,9 +53,10 @@
     "settings": {
       "fontSize": "Розмір шрифту",
       "theme": "Тема",
-      "theme_light": "Світла",
-      "theme_dark": "Темна",
-      "theme_sepia": "Сепія",
+      "dayTheme": "Денна тема ☀️",
+      "nightTheme": "Нічна тема 🌙",
+      "autoTheme": "Авто день / ніч",
+      "autoThemeSubtitle": "Слідувати за системою",
       "lineHeight": "Міжрядковий інтервал",
       "fontFamily": "Шрифт"
     }
@@ -64,12 +66,30 @@
     "language": "Мова інтерфейсу",
     "bookLanguage": "Мова книг",
     "nativeLanguage": "Мова перекладу",
-    "theme": "Тема",
     "themes": {
-      "light": "Світла",
+      "white": "Біла",
+      "sepia": "Сепія",
+      "parchment": "Пергамент",
+      "sage": "Шавлія",
       "dark": "Темна",
-      "sepia": "Сепія"
-    }
+      "amoled": "AMOLED",
+      "coffee": "Кавова",
+      "graphite": "Графіт"
+    },
+    "reading": "Читання",
+    "dayTheme": "Денна тема",
+    "nightTheme": "Нічна тема",
+    "autoTheme": "Авто день / ніч",
+    "autoThemeSubtitle": "Слідувати за системою",
+    "scrollMode": "Режим гортання",
+    "scrollModePaginated": "Посторінково",
+    "scrollModeScroll": "Скрол",
+    "fontSize": "Розмір шрифту",
+    "font": "Шрифт",
+    "fontSystem": "Системний",
+    "fontSerif": "Із засічками",
+    "fontSansSerif": "Без засічок",
+    "lineHeight": "Міжрядковий інтервал"
   },
   "common": {
     "cancel": "Скасувати",

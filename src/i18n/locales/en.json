@@ -29,6 +29,7 @@
     "exportAnki": "Export to Anki"
   },
   "reader": {
+    "loading": "Loading...",
     "translation": {
       "loading": "Translating...",
       "error": "Could not translate. Check connection and try again.",
@@ -50,12 +51,13 @@
       "backToLibrary": "Back to Library"
     },
     "settings": {
-      "fontSize": "Font Size",
+      "fontSize": "Font size",
       "theme": "Theme",
-      "theme_light": "Light",
-      "theme_dark": "Dark",
-      "theme_sepia": "Sepia",
-      "lineHeight": "Line Height",
+      "dayTheme": "Day theme ☀️",
+      "nightTheme": "Night theme 🌙",
+      "autoTheme": "Auto day / night",
+      "autoThemeSubtitle": "Follow system setting",
+      "lineHeight": "Line height",
       "fontFamily": "Font"
     }
   },
@@ -64,12 +66,30 @@
     "language": "Interface language",
     "bookLanguage": "Book language",
     "nativeLanguage": "Translation language",
-    "theme": "Theme",
     "themes": {
-      "light": "Light",
+      "white": "White",
+      "sepia": "Sepia",
+      "parchment": "Parchment",
+      "sage": "Sage",
       "dark": "Dark",
-      "sepia": "Sepia"
-    }
+      "amoled": "AMOLED",
+      "coffee": "Coffee",
+      "graphite": "Graphite"
+    },
+    "reading": "Reading",
+    "dayTheme": "Day theme",
+    "nightTheme": "Night theme",
+    "autoTheme": "Auto day / night",
+    "autoThemeSubtitle": "Follow system setting",
+    "scrollMode": "Page mode",
+    "scrollModePaginated": "Pages",
+    "scrollModeScroll": "Scroll",
+    "fontSize": "Font size",
+    "font": "Font",
+    "fontSystem": "System",
+    "fontSerif": "Serif",
+    "fontSansSerif": "Sans-serif",
+    "lineHeight": "Line height"
   },
   "common": {
     "cancel": "Cancel",

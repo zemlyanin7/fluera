@@ -29,6 +29,7 @@
     "exportAnki": "Экспорт в Anki"
   },
   "reader": {
+    "loading": "Загрузка...",
     "translation": {
       "loading": "Перевожу...",
       "error": "Не удалось перевести. Проверьте соединение и попробуйте снова.",
@@ -52,9 +53,10 @@
     "settings": {
       "fontSize": "Размер шрифта",
       "theme": "Тема",
-      "theme_light": "Светлая",
-      "theme_dark": "Тёмная",
-      "theme_sepia": "Сепия",
+      "dayTheme": "Дневная тема ☀️",
+      "nightTheme": "Ночная тема 🌙",
+      "autoTheme": "Авто день / ночь",
+      "autoThemeSubtitle": "Следовать за системой",
       "lineHeight": "Межстрочный интервал",
       "fontFamily": "Шрифт"
     }
@@ -64,12 +66,30 @@
     "language": "Язык интерфейса",
     "bookLanguage": "Язык книг",
     "nativeLanguage": "Язык перевода",
-    "theme": "Тема",
     "themes": {
-      "light": "Светлая",
+      "white": "Белая",
+      "sepia": "Сепия",
+      "parchment": "Пергамент",
+      "sage": "Шалфей",
       "dark": "Тёмная",
-      "sepia": "Сепия"
-    }
+      "amoled": "AMOLED",
+      "coffee": "Кофейная",
+      "graphite": "Графит"
+    },
+    "reading": "Чтение",
+    "dayTheme": "Дневная тема",
+    "nightTheme": "Ночная тема",
+    "autoTheme": "Авто день / ночь",
+    "autoThemeSubtitle": "Следовать за системой",
+    "scrollMode": "Режим листания",
+    "scrollModePaginated": "Постранично",
+    "scrollModeScroll": "Скролл",
+    "fontSize": "Размер шрифта",
+    "font": "Шрифт",
+    "fontSystem": "Системный",
+    "fontSerif": "С засечками",
+    "fontSansSerif": "Без засечек",
+    "lineHeight": "Межстрочный интервал"
   },
   "common": {
     "cancel": "Отмена",

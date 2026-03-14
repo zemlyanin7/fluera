@@ -29,6 +29,7 @@
     "exportAnki": "Eksport do Anki"
   },
   "reader": {
+    "loading": "Ładowanie...",
     "translation": {
       "loading": "Tłumaczę...",
       "error": "Nie udało się przetłumaczyć. Sprawdź połączenie i spróbuj ponownie.",
@@ -52,10 +53,11 @@
     "settings": {
       "fontSize": "Rozmiar czcionki",
       "theme": "Motyw",
-      "theme_light": "Jasny",
-      "theme_dark": "Ciemny",
-      "theme_sepia": "Sepia",
-      "lineHeight": "Interlinia",
+      "dayTheme": "Motyw dzienny ☀️",
+      "nightTheme": "Motyw nocny 🌙",
+      "autoTheme": "Auto dzień / noc",
+      "autoThemeSubtitle": "Podążaj za systemem",
+      "lineHeight": "Odstęp między wierszami",
       "fontFamily": "Czcionka"
     }
   },
@@ -64,12 +66,30 @@
     "language": "Język interfejsu",
     "bookLanguage": "Język książek",
     "nativeLanguage": "Język tłumaczenia",
-    "theme": "Motyw",
     "themes": {
-      "light": "Jasny",
+      "white": "Biały",
+      "sepia": "Sepia",
+      "parchment": "Pergamin",
+      "sage": "Szałwia",
       "dark": "Ciemny",
-      "sepia": "Sepia"
-    }
+      "amoled": "AMOLED",
+      "coffee": "Kawowy",
+      "graphite": "Grafitowy"
+    },
+    "reading": "Czytanie",
+    "dayTheme": "Motyw dzienny",
+    "nightTheme": "Motyw nocny",
+    "autoTheme": "Auto dzień / noc",
+    "autoThemeSubtitle": "Podążaj za systemem",
+    "scrollMode": "Tryb stron",
+    "scrollModePaginated": "Stronami",
+    "scrollModeScroll": "Przewijanie",
+    "fontSize": "Rozmiar czcionki",
+    "font": "Czcionka",
+    "fontSystem": "Systemowa",
+    "fontSerif": "Szeryfowa",
+    "fontSansSerif": "Bezszeryfowa",
+    "lineHeight": "Odstęp między wierszami"
   },
   "common": {
     "cancel": "Anuluj",
