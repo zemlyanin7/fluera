@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { database } from '../db';
-import * as FileSystem from 'expo-file-system';
 import type { Book } from '../db/models/Book';
 
 interface UseBookResult {
@@ -25,22 +24,17 @@ export function useBook(bookId: string | undefined): UseBookResult {
 
     async function loadBook() {
       try {
+        console.log('[useBook] Looking for book:', bookId);
         const booksCollection = database.get<Book>('books');
         const record = await booksCollection.find(bookId!);
+        console.log('[useBook] Found book:', record.title, 'path:', record.filePath);
 
         if (cancelled) return;
 
-        // Validate file exists on disk
-        const fileInfo = await FileSystem.getInfoAsync(record.filePath);
-        if (!fileInfo.exists) {
-          setError('file_missing');
-          setLoading(false);
-          return;
-        }
-
         setBook(record);
         setLoading(false);
-      } catch {
+      } catch (err) {
+        console.error('[useBook] Error loading book:', err);
         if (!cancelled) {
           setError('book_not_found');
           setLoading(false);

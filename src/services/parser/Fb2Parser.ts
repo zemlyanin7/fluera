@@ -72,10 +72,17 @@ export class Fb2Parser {
   }
 
   private static parseSectionsOrdered(nodes: Record<string, unknown>[]): Fb2Section[] {
-    return nodes
-      .filter((n) => 'section' in n)
-      .map((sectionNode) => {
-        const children = (sectionNode.section ?? []) as Record<string, unknown>[]
+    const sections: Fb2Section[] = []
+
+    // Parse direct block elements at this level (paragraphs outside sections)
+    const directParagraphs = Fb2Parser.parseBlockElements(nodes)
+    if (directParagraphs.length > 0) {
+      sections.push({ title: null, paragraphs: directParagraphs })
+    }
+
+    for (const node of nodes) {
+      if ('section' in node) {
+        const children = (node.section ?? []) as Record<string, unknown>[]
         const titleNode = children.find((c) => 'title' in c)
         let title: string | null = null
         if (titleNode) {
@@ -85,11 +92,25 @@ export class Fb2Parser {
             title = Fb2Parser.extractOrderedText((pNode.p ?? []) as Record<string, unknown>[])
           }
         }
-        return {
-          title,
-          paragraphs: Fb2Parser.parseBlockElements(children),
+
+        // Parse block elements directly in this section (not in nested sections)
+        const paragraphs = Fb2Parser.parseBlockElements(children)
+
+        if (paragraphs.length > 0) {
+          sections.push({ title, paragraphs })
         }
-      })
+
+        // Recursively parse nested sections — filter to only section nodes
+        // to avoid re-collecting the same block elements via parseBlockElements
+        const nestedSectionNodes = children.filter(c => 'section' in c)
+        if (nestedSectionNodes.length > 0) {
+          const nestedSections = Fb2Parser.parseSectionsOrdered(nestedSectionNodes)
+          sections.push(...nestedSections)
+        }
+      }
+    }
+
+    return sections
   }
 
   private static parseBlockElements(nodes: Record<string, unknown>[]): Fb2Paragraph[] {

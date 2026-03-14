@@ -55,8 +55,17 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
   const items = useMemo(() => {
     try {
       const parsed = Fb2Parser.parse(xml);
-      return flattenSections(parsed.sections);
-    } catch {
+      console.log('[Fb2Reader] Parsed:', {
+        title: parsed.title,
+        sectionsCount: parsed.sections.length,
+        firstSectionParagraphs: parsed.sections[0]?.paragraphs?.length,
+        firstPara: JSON.stringify(parsed.sections[0]?.paragraphs?.[0])?.slice(0, 200),
+      });
+      const flat = flattenSections(parsed.sections);
+      console.log('[Fb2Reader] Flattened items:', flat.length);
+      return flat;
+    } catch (err) {
+      console.error('[Fb2Reader] Parse error:', err);
       return [];
     }
   }, [xml]);

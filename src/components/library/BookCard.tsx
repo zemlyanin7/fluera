@@ -31,12 +31,12 @@ export function BookCard({ book }: BookCardProps) {
         <YStack
           width={60}
           height={90}
-          backgroundColor="$gray5"
+          backgroundColor="$borderColor"
           borderRadius="$2"
           justifyContent="center"
           alignItems="center"
         >
-          <Text fontSize="$2" color="$gray10">
+          <Text fontSize="$2" color="$textSecondary">
             {book.format.toUpperCase()}
           </Text>
         </YStack>
@@ -47,22 +47,22 @@ export function BookCard({ book }: BookCardProps) {
           <Text fontSize="$5" fontWeight="bold" numberOfLines={2}>
             {book.title}
           </Text>
-          <Text fontSize="$3" color="$gray10" numberOfLines={1}>
+          <Text fontSize="$3" color="$textSecondary" numberOfLines={1}>
             {book.author}
           </Text>
         </YStack>
 
         <XStack alignItems="center" gap="$2">
           {/* Progress bar */}
-          <YStack flex={1} height={4} backgroundColor="$gray5" borderRadius="$1">
+          <YStack flex={1} height={4} backgroundColor="$borderColor" borderRadius="$1">
             <YStack
               height={4}
               width={`${book.progress}%`}
-              backgroundColor="$blue10"
+              backgroundColor="$primary"
               borderRadius="$1"
             />
           </YStack>
-          <Text fontSize="$2" color="$gray10">
+          <Text fontSize="$2" color="$textSecondary">
             {Math.round(book.progress)}%
           </Text>
         </XStack>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Pressable, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { YStack, Text, Spinner, Button } from 'tamagui';
+import { YStack, Text, Spinner } from 'tamagui';
 import { useTranslation } from 'react-i18next';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useBook } from '../../src/hooks/useBook';
@@ -16,9 +17,13 @@ export default function ReaderScreen() {
   const settings = useSettingsStore();
   const [content, setContent] = useState<string | null>(null);
 
+  console.log('[ReaderScreen] bookId:', bookId, 'loading:', loading, 'error:', error, 'book:', book?.title);
+
   useEffect(() => {
-    if (book) {
-      FileSystem.readAsStringAsync(book.filePath).then(setContent);
+    if (book && book.format === 'fb2') {
+      FileSystem.readAsStringAsync(book.filePath)
+        .then(setContent)
+        .catch((err) => console.error('[ReaderScreen] Failed to read file:', err));
     }
   }, [book]);
 
@@ -33,14 +38,19 @@ export default function ReaderScreen() {
   if (error || !book) {
     return (
       <YStack flex={1} justifyContent="center" alignItems="center" padding="$4" gap="$4">
-        <Text fontSize="$6" color="$red10">
+        <Text fontSize="$6">
           {error === 'file_missing'
             ? t('reader.error.fileMissing')
             : t('reader.error.bookNotFound')}
         </Text>
-        <Button size="$4" onPress={() => router.back()}>
-          {t('reader.error.backToLibrary')}
-        </Button>
+        <Pressable
+          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
+          onPress={() => router.back()}
+        >
+          <Text fontSize="$4" color="$primary">
+            {t('reader.error.backToLibrary')}
+          </Text>
+        </Pressable>
       </YStack>
     );
   }
@@ -56,8 +66,8 @@ export default function ReaderScreen() {
     );
   }
 
-  // Loading file content
-  if (!content) {
+  // Loading file content for FB2
+  if (book.format === 'fb2' && !content) {
     return (
       <YStack flex={1} justifyContent="center" alignItems="center">
         <Spinner size="large" />
@@ -65,7 +75,7 @@ export default function ReaderScreen() {
     );
   }
 
-  if (book.format === 'fb2') {
+  if (book.format === 'fb2' && content) {
     return (
       <Fb2Reader
         xml={content}
@@ -80,7 +90,19 @@ export default function ReaderScreen() {
   return (
     <YStack flex={1} justifyContent="center" alignItems="center">
       <Text fontSize="$6">{book.title}</Text>
-      <Text fontSize="$4" color="$gray10">{book.format} reader coming soon</Text>
+      <Text fontSize="$4" color="$textSecondary">{book.format} reader coming soon</Text>
     </YStack>
   );
 }
+
+const styles = StyleSheet.create({
+  backButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+});
