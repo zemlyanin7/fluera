@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useTranslation } from 'react-i18next';
+import { useReaderTheme } from '../../hooks/useReaderTheme';
 import { WORD_STATUS_COLORS } from '../../utils/constants';
 import type { WordStatusValue } from '../../utils/types';
 
@@ -45,6 +46,7 @@ export function TranslationPopup({
   isPhrase, onClose, onSave, onStatusChange,
 }: TranslationPopupProps) {
   const { t } = useTranslation();
+  const readerTheme = useReaderTheme();
   const [state, setState] = useState<PopupState>('idle');
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<WordStatusValue>(1);
@@ -114,13 +116,13 @@ export function TranslationPopup({
   // Render context sentence with tapped word in bold
   const renderSentence = () => {
     const idx = sentence.toLowerCase().indexOf(word.toLowerCase());
-    if (idx === -1) return <Text fontSize={13} color="$textSecondary">{sentence}</Text>;
+    if (idx === -1) return <Text fontSize={13} color={readerTheme.colors.textSecondary}>{sentence}</Text>;
     const before = sentence.slice(0, idx);
     const match = sentence.slice(idx, idx + word.length);
     const after = sentence.slice(idx + word.length);
     return (
-      <Text fontSize={13} color="$textSecondary">
-        {before}<Text fontWeight="bold">{match}</Text>{after}
+      <Text fontSize={13} color={readerTheme.colors.textSecondary}>
+        {before}<Text fontWeight="bold" color={readerTheme.colors.text}>{match}</Text>{after}
       </Text>
     );
   };
@@ -137,14 +139,14 @@ export function TranslationPopup({
       {/* Sheet */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.sheetContainer, animatedStyle]}>
-          <YStack backgroundColor="$popupBg" borderTopLeftRadius={16} borderTopRightRadius={16} padding="$4" gap="$3">
+          <YStack backgroundColor={readerTheme.colors.popupBg} borderTopLeftRadius={16} borderTopRightRadius={16} padding="$4" gap="$3">
             {/* Drag handle */}
             <XStack justifyContent="center" paddingBottom="$1">
-              <YStack width={40} height={4} backgroundColor="$textMuted" borderRadius="$2" opacity={0.5} />
+              <YStack width={40} height={4} backgroundColor={readerTheme.colors.border} borderRadius="$2" opacity={0.5} />
             </XStack>
 
             {/* Word */}
-            <Text fontSize={22} fontWeight="bold">{word}</Text>
+            <Text fontSize={22} fontWeight="bold" color={readerTheme.colors.text}>{word}</Text>
 
             {/* Content by state */}
             {state === 'loading' && <Spinner size="small" />}
@@ -155,14 +157,14 @@ export function TranslationPopup({
                   style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
                   onPress={fetchTranslation}
                 >
-                  <Text fontSize={14} color="$primary">{t('common.retry')}</Text>
+                  <Text fontSize={14} color="#6c63ff">{t('common.retry')}</Text>
                 </Pressable>
               </YStack>
             )}
             {state === 'success' && result && (
               <YStack gap="$3">
-                <Text fontSize={17}>{result.translation}</Text>
-                {result.grammar ? <Text fontSize={13} color="$textSecondary">{result.grammar}</Text> : null}
+                <Text fontSize={17} color={readerTheme.colors.text}>{result.translation}</Text>
+                {result.grammar ? <Text fontSize={13} color={readerTheme.colors.textSecondary}>{result.grammar}</Text> : null}
                 {renderSentence()}
 
                 {/* Word status selector with labels */}
@@ -170,7 +172,7 @@ export function TranslationPopup({
                   {([1, 2, 3, 4, 5] as WordStatusValue[]).map((status) => {
                     const isSelected = selectedStatus === status;
                     const bgColor = WORD_STATUS_COLORS[status] === 'transparent'
-                      ? '$borderColor'
+                      ? readerTheme.colors.border
                       : WORD_STATUS_COLORS[status];
                     return (
                       <Pressable key={status} onPress={() => handleStatusChange(status)}>
@@ -181,14 +183,14 @@ export function TranslationPopup({
                             borderRadius={18}
                             backgroundColor={bgColor}
                             borderWidth={isSelected ? 3 : 0}
-                            borderColor="$primary"
+                            borderColor="#6c63ff"
                             justifyContent="center"
                             alignItems="center"
                             opacity={isSelected ? 1 : 0.7}
                           />
                           <Text
                             fontSize={10}
-                            color={isSelected ? '$color' : '$textMuted'}
+                            color={isSelected ? readerTheme.colors.text : readerTheme.colors.textSecondary}
                             fontWeight={isSelected ? '600' : '400'}
                           >
                             {t(`reader.wordStatus.${STATUS_KEYS[status]}`)}
