@@ -1,12 +1,15 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
-import { YStack } from 'tamagui';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
+import { useReaderTheme } from '../../hooks/useReaderTheme';
 import { Fb2Parser } from '../../services/parser/Fb2Parser';
 import { Fb2ItemRenderer } from './Fb2Renderer';
 import { TranslationPopup } from './TranslationPopup';
 import { ReaderTopBar } from './ReaderTopBar';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useWordStatusBatch } from '../../hooks/useWordStatusBatch';
+import { database } from '../../db';
 import type { Book } from '../../db/models/Book';
 import type { Fb2Paragraph, Fb2Section } from '../../services/parser/types';
 import type { WordStatusValue } from '../../utils/types';
@@ -23,6 +26,10 @@ interface Fb2ReaderProps {
 type FlatItem =
   | { type: 'section-title'; title: string }
   | { type: 'paragraph'; data: Fb2Paragraph };
+
+// ─── Constants ─────────────────────────────────────────────────────────────────
+
+const TOP_BAR_HEIGHT = 44;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -43,6 +50,8 @@ function flattenSections(sections: Fb2Section[]): FlatItem[] {
 
 export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2ReaderProps) {
   const settings = useSettingsStore();
+  const readerTheme = useReaderTheme();
+  const insets = useSafeAreaInsets();
   const listRef = useRef<any>(null);
 
   const [popupVisible, setPopupVisible] = useState(false);
@@ -87,6 +96,48 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
     return 0;
   }, [book.lastPosition]);
 
+  // ─── Position saving (debounced) ────────────────────────────────────────────
+  const firstVisibleIndex = useRef(initialScrollIndex);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const savePosition = useCallback(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        const idx = firstVisibleIndex.current;
+        const totalItems = items.length;
+        const pct = totalItems > 0 ? Math.min(100, (idx / totalItems) * 100) : 0;
+        await database.write(async () => {
+          await book.update((record) => {
+            record.lastPosition = JSON.stringify({ index: idx });
+            record.progress = pct;
+            record.lastReadAt = new Date();
+          });
+        });
+      } catch (err) {
+        console.warn('[Fb2Reader] Failed to save position:', err);
+      }
+    }, 1500);
+  }, [book, items.length]);
+
+  // Clean up timer on unmount + save final position
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      // Save final position on exit
+      const idx = firstVisibleIndex.current;
+      const totalItems = items.length;
+      const pct = totalItems > 0 ? Math.min(100, (idx / totalItems) * 100) : 0;
+      database.write(async () => {
+        await book.update((record) => {
+          record.lastPosition = JSON.stringify({ index: idx });
+          record.progress = pct;
+          record.lastReadAt = new Date();
+        });
+      }).catch((err) => console.warn('[Fb2Reader] Failed to save final position:', err));
+    };
+  }, [book, items.length]);
+
   // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const handleWordTap = useCallback((word: string, sentence: string) => {
@@ -111,11 +162,16 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
   );
 
   const handleViewableItemsChanged = useCallback(
-    ({ viewableItems }: { viewableItems: { item: FlatItem }[] }) => {
+    ({ viewableItems }: { viewableItems: { item: FlatItem; index: number | null }[] }) => {
+      // Track first visible item index for position saving
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
+        firstVisibleIndex.current = viewableItems[0].index;
+        savePosition();
+      }
+
       const words: string[] = [];
       for (const { item } of viewableItems) {
         if (item.type === 'section-title') {
-          // tokenise title words
           const titleWords = item.title.split(/\s+/).filter(Boolean);
           words.push(...titleWords);
         } else {
@@ -137,7 +193,7 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
       }
       setVisibleWords(words);
     },
-    [],
+    [savePosition],
   );
 
   const renderItem = useCallback(
@@ -151,6 +207,7 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
             fontSize={settings.fontSize}
             lineHeight={settings.lineHeight}
             fontFamily={settings.fontFamily}
+            textColor={readerTheme.colors.text}
           />
         );
       }
@@ -162,10 +219,11 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
           fontSize={settings.fontSize}
           lineHeight={settings.lineHeight}
           fontFamily={settings.fontFamily}
+          textColor={readerTheme.colors.text}
         />
       );
     },
-    [handleWordTap, wordColors, settings.fontSize, settings.lineHeight, settings.fontFamily],
+    [handleWordTap, wordColors, settings.fontSize, settings.lineHeight, settings.fontFamily, readerTheme.colors.text],
   );
 
   const getItemType = useCallback((item: FlatItem) => {
@@ -199,7 +257,10 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <YStack flex={1} onPress={handleReaderPress}>
+    <Pressable
+      style={[styles.container, { backgroundColor: readerTheme.colors.background }]}
+      onPress={handleReaderPress}
+    >
       <FlashList
         ref={listRef}
         data={items}
@@ -212,7 +273,11 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
         initialScrollIndex={initialScrollIndex > 0 ? initialScrollIndex : undefined}
         onViewableItemsChanged={handleViewableItemsChanged}
         viewabilityConfig={{ itemVisiblePercentThreshold: 10 }}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: insets.top + TOP_BAR_HEIGHT,
+          paddingBottom: insets.bottom,
+        }}
       />
       <ReaderTopBar
         title={book.title}
@@ -233,6 +298,12 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
         onSave={handleSave}
         onStatusChange={handleStatusChange}
       />
-    </YStack>
+    </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
