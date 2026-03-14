@@ -6,6 +6,7 @@ import { useFileSystem } from '../../services/reader/useFileSystemLegacy';
 import { generateBridgeScript } from '../../services/reader/epubBridgeScript';
 import { TranslationPopup } from './TranslationPopup';
 import { ReaderTopBar } from './ReaderTopBar';
+import { ReaderSettingsSheet } from './ReaderSettingsSheet';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useReaderStore } from '../../stores/readerStore';
 import { useReaderTheme } from '../../hooks/useReaderTheme';
@@ -47,6 +48,7 @@ function EpubReaderInner({ fileUri, book, bookLanguage, nativeLanguage }: EpubRe
   const [isPhrase, setIsPhrase] = useState(false);
   const [topBarVisible, setTopBarVisible] = useState(true);
   const [progress, setProgress] = useState(book.progress || 0);
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   // Debounced position saving for EPUB
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -112,8 +114,10 @@ function EpubReaderInner({ fileUri, book, bookLanguage, nativeLanguage }: EpubRe
           setPopupVisible(true);
           break;
         case 'noWordTap':
-          // Tapped on non-text area → toggle top bar
-          setTopBarVisible((v) => !v);
+          // Tapped on non-text area → toggle top bar (skip if settings sheet is open)
+          if (!settingsVisible) {
+            setTopBarVisible((v) => !v);
+          }
           break;
         case 'phraseSelect':
           setSelectedWord(data.phrase as string);
@@ -150,7 +154,7 @@ function EpubReaderInner({ fileUri, book, bookLanguage, nativeLanguage }: EpubRe
         }
       }
     } catch { /* ignore */ }
-  }, [book, readerStore]);
+  }, [book, readerStore, settingsVisible]);
 
   // On tap: if popup is open → close it; otherwise ask WebView for the word.
   // Coordinates are already captured by touchstart in the iframe (bridge script),
@@ -200,7 +204,7 @@ function EpubReaderInner({ fileUri, book, bookLanguage, nativeLanguage }: EpubRe
           title={book.title}
           progress={progress}
           visible={topBarVisible}
-          onSettingsPress={() => {/* TODO: open ReaderSettingsSheet */}}
+          onSettingsPress={() => setSettingsVisible(true)}
         />
         <TranslationPopup
           visible={popupVisible}
@@ -212,6 +216,10 @@ function EpubReaderInner({ fileUri, book, bookLanguage, nativeLanguage }: EpubRe
           onClose={() => { setPopupVisible(false); setSelectedWord(''); }}
           onSave={handleSave}
           onStatusChange={handleStatusChange}
+        />
+        <ReaderSettingsSheet
+          visible={settingsVisible}
+          onClose={() => setSettingsVisible(false)}
         />
       </View>
     </View>

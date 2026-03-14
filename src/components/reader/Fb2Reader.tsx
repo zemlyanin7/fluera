@@ -7,6 +7,7 @@ import { Fb2Parser } from '../../services/parser/Fb2Parser';
 import { Fb2ItemRenderer } from './Fb2Renderer';
 import { TranslationPopup } from './TranslationPopup';
 import { ReaderTopBar } from './ReaderTopBar';
+import { ReaderSettingsSheet } from './ReaderSettingsSheet';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useWordStatusBatch } from '../../hooks/useWordStatusBatch';
 import { database } from '../../db';
@@ -59,6 +60,7 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
   const [selectedSentence, setSelectedSentence] = useState('');
   const [topBarVisible, setTopBarVisible] = useState(true);
   const [progress, setProgress] = useState(book.progress || 0);
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   // Parse and flatten FB2 content
   const items = useMemo(() => {
@@ -147,8 +149,9 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
   }, []);
 
   const handleReaderPress = useCallback(() => {
+    if (settingsVisible) return; // Don't toggle TopBar while settings sheet is open
     setTopBarVisible((prev) => !prev);
-  }, []);
+  }, [settingsVisible]);
 
   const handleScroll = useCallback(
     (event: { nativeEvent: { contentOffset: { y: number }; contentSize: { height: number } } }) => {
@@ -283,9 +286,7 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
         title={book.title}
         progress={progress}
         visible={topBarVisible}
-        onSettingsPress={() => {
-          // TODO: open ReaderSettingsSheet (Task 15)
-        }}
+        onSettingsPress={() => setSettingsVisible(true)}
       />
       <TranslationPopup
         visible={popupVisible}
@@ -297,6 +298,10 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
         onClose={handlePopupClose}
         onSave={handleSave}
         onStatusChange={handleStatusChange}
+      />
+      <ReaderSettingsSheet
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
       />
     </Pressable>
   );
