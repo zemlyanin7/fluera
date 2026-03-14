@@ -10,7 +10,17 @@
     "empty": "Twoje książki pojawią się tutaj",
     "myBooks": "Moje książki",
     "catalogs": "Katalogi",
-    "upload": "Wgraj"
+    "upload": "Wgraj",
+    "addBook": "Dodaj książkę",
+    "emptyState": {
+      "title": "Biblioteka jest pusta",
+      "subtitle": "Dodaj pierwszą książkę, aby rozpocząć czytanie"
+    },
+    "import": {
+      "errorTitle": "Błąd importu",
+      "unsupportedFormat": "Ten format pliku nie jest obsługiwany. Wybierz plik EPUB lub FB2.",
+      "failed": "Nie udało się zaimportować książki. Plik może być uszkodzony."
+    }
   },
   "dictionary": {
     "title": "Słownik",

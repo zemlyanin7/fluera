@@ -10,7 +10,17 @@
     "empty": "Your books will appear here",
     "myBooks": "My Books",
     "catalogs": "Catalogs",
-    "upload": "Upload"
+    "upload": "Upload",
+    "addBook": "Add Book",
+    "emptyState": {
+      "title": "Your library is empty",
+      "subtitle": "Add your first book to start reading"
+    },
+    "import": {
+      "errorTitle": "Import Error",
+      "unsupportedFormat": "This file format is not supported. Please select an EPUB or FB2 file.",
+      "failed": "Failed to import book. The file may be corrupted."
+    }
   },
   "dictionary": {
     "title": "Dictionary",
