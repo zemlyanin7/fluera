@@ -1,8 +1,11 @@
 import { Tabs } from 'expo-router'
 import { useTheme } from '@tamagui/core'
+import { useTranslation } from 'react-i18next'
+import { Ionicons } from '@expo/vector-icons'
 
 export default function TabLayout() {
   const theme = useTheme()
+  const { t } = useTranslation()
 
   return (
     <Tabs
@@ -21,19 +24,43 @@ export default function TabLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: 'Library', tabBarLabel: 'Library' }}
+        options={{
+          title: t('tabs.library'),
+          tabBarLabel: t('tabs.library'),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="library-outline" size={size} color={color} />
+          ),
+        }}
       />
       <Tabs.Screen
         name="dictionary"
-        options={{ title: 'Dictionary', tabBarLabel: 'Dictionary' }}
+        options={{
+          title: t('tabs.dictionary'),
+          tabBarLabel: t('tabs.dictionary'),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="book-outline" size={size} color={color} />
+          ),
+        }}
       />
       <Tabs.Screen
         name="stats"
-        options={{ title: 'Stats', tabBarLabel: 'Stats' }}
+        options={{
+          title: t('tabs.stats'),
+          tabBarLabel: t('tabs.stats'),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="stats-chart-outline" size={size} color={color} />
+          ),
+        }}
       />
       <Tabs.Screen
         name="settings"
-        options={{ title: 'Settings', tabBarLabel: 'Settings' }}
+        options={{
+          title: t('tabs.settings'),
+          tabBarLabel: t('tabs.settings'),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" size={size} color={color} />
+          ),
+        }}
       />
     </Tabs>
   )
