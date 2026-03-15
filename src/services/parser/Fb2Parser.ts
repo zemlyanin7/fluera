@@ -30,11 +30,7 @@ export class Fb2Parser {
     const titleInfo = metaFb.description?.['title-info']
 
     // Parse body with order-preserving parser for correct inline ordering
-    const orderedDoc = bodyParser.parse(xml)
-    const fbNode = orderedDoc.find((n: Record<string, unknown>) => 'FictionBook' in n)
-    const fbChildren = fbNode?.FictionBook ?? []
-    const bodyNode = fbChildren.find((n: Record<string, unknown>) => 'body' in n)
-    const bodyChildren = bodyNode?.body ?? []
+    const bodyChildren = Fb2Parser.parseBodyOrdered(xml)
 
     return {
       title: titleInfo?.['book-title'] ?? 'Untitled',
@@ -44,6 +40,53 @@ export class Fb2Parser {
       coverBase64: Fb2Parser.findCover(metaFb),
       sections: Fb2Parser.parseSectionsOrdered(bodyChildren),
     }
+  }
+
+  /**
+   * Fast path: parse only the body sections (single XML pass).
+   * Use this in the reader where metadata is already available from the DB.
+   */
+  static parseSectionsOnly(xml: string): Fb2Section[] {
+    const bodyChildren = Fb2Parser.parseBodyOrdered(xml)
+    return Fb2Parser.parseSectionsOrdered(bodyChildren)
+  }
+
+  /**
+   * Извлекает все <body> элементы — основной контент и сноски.
+   * Для FB2 конвертера, который должен обработать и основной body, и body name="notes".
+   */
+  static parseAllBodies(xml: string): {
+    mainBody: Record<string, unknown>[]
+    notesBodies: Record<string, unknown>[][]
+  } {
+    const orderedDoc = bodyParser.parse(xml)
+    const fbNode = orderedDoc.find((n: Record<string, unknown>) => 'FictionBook' in n)
+    const fbChildren = fbNode?.FictionBook ?? []
+
+    const allBodies = fbChildren.filter((n: Record<string, unknown>) => 'body' in n)
+
+    const mainBody: Record<string, unknown>[] = []
+    const notesBodies: Record<string, unknown>[][] = []
+
+    for (const bodyNode of allBodies) {
+      const attrs = (bodyNode[':@'] ?? {}) as Record<string, string>
+      const children = (bodyNode.body ?? []) as Record<string, unknown>[]
+      if (attrs['@_name'] === 'notes') {
+        notesBodies.push(children)
+      } else {
+        mainBody.push(...children)
+      }
+    }
+
+    return { mainBody, notesBodies }
+  }
+
+  private static parseBodyOrdered(xml: string): Record<string, unknown>[] {
+    const orderedDoc = bodyParser.parse(xml)
+    const fbNode = orderedDoc.find((n: Record<string, unknown>) => 'FictionBook' in n)
+    const fbChildren = fbNode?.FictionBook ?? []
+    const bodyNode = fbChildren.find((n: Record<string, unknown>) => 'body' in n)
+    return (bodyNode?.body ?? []) as Record<string, unknown>[]
   }
 
   private static parseAuthor(author: Record<string, string> | undefined): string {
@@ -130,7 +173,7 @@ export class Fb2Parser {
     return paragraphs
   }
 
-  private static parseInlinesOrdered(nodes: Record<string, unknown>[]): Fb2Inline[] {
+  static parseInlinesOrdered(nodes: Record<string, unknown>[]): Fb2Inline[] {
     const inlines: Fb2Inline[] = []
     for (const node of nodes) {
       if ('#text' in node) {
@@ -140,14 +183,14 @@ export class Fb2Parser {
         const emChildren = (node.emphasis ?? []) as Record<string, unknown>[]
         inlines.push({
           type: 'emphasis',
-          text: Fb2Parser.extractOrderedText(emChildren),
+          children: Fb2Parser.parseInlinesOrdered(emChildren),
         })
       }
       if ('strong' in node) {
         const strChildren = (node.strong ?? []) as Record<string, unknown>[]
         inlines.push({
           type: 'strong',
-          text: Fb2Parser.extractOrderedText(strChildren),
+          children: Fb2Parser.parseInlinesOrdered(strChildren),
         })
       }
       if ('a' in node) {
@@ -155,8 +198,9 @@ export class Fb2Parser {
         const linkChildren = (node.a ?? []) as Record<string, unknown>[]
         inlines.push({
           type: 'link',
-          text: Fb2Parser.extractOrderedText(linkChildren),
+          children: Fb2Parser.parseInlinesOrdered(linkChildren),
           href: attrs['@_href'] ?? attrs['@_l:href'] ?? '',
+          linkType: attrs['@_type'] ?? undefined,
         })
       }
       if ('image' in node) {
