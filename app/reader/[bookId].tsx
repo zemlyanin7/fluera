@@ -11,6 +11,7 @@ import { chapterExists, saveChapters, saveFootnotes, ensureBookDirs } from '../.
 import { convertFb2 } from '../../src/services/converter/fb2Converter';
 import { convertEpub } from '../../src/services/converter/epubConverter';
 import { database } from '../../src/db';
+import type { Book } from '../../src/db/models/Book';
 
 export default function ReaderScreen() {
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
@@ -45,18 +46,26 @@ export default function ReaderScreen() {
       // Необходима конвертация
       setMigrationDone(false);
       try {
+        console.log('[Migration] Начало конвертации. format:', currentBook.format, 'id:', currentBook.id, 'filePath:', currentBook.filePath);
         await ensureBookDirs(currentBook.id);
+        console.log('[Migration] ensureBookDirs OK');
 
         if (currentBook.format === 'fb2') {
           // Читаем XML-файл
+          console.log('[Migration] Читаем FB2 файл...');
           const xml = await FileSystem.readAsStringAsync(currentBook.filePath);
+          console.log('[Migration] FB2 прочитан, длина:', xml.length);
           const result = await convertFb2(xml, currentBook.id);
+          console.log('[Migration] convertFb2 OK, глав:', result.chapters.length);
           await saveChapters(currentBook.id, result.chapters);
+          console.log('[Migration] saveChapters OK');
           await saveFootnotes(currentBook.id, result.footnotes);
 
           // Обновляем метаданные книги в БД, сбрасываем lastPosition (формат изменился)
+          // Перечитываем книгу из БД — useBook мог обновить lastReadAt в другом writer
           await database.write(async () => {
-            await currentBook.update((record) => {
+            const freshBook = await database.get<Book>('books').find(currentBook.id);
+            await freshBook.update((record) => {
               record.totalChapters = result.totalChapters;
               record.contentVersion = 1;
               record.lastPosition = null;
@@ -64,23 +73,30 @@ export default function ReaderScreen() {
           });
         } else if (currentBook.format === 'epub') {
           // Читаем EPUB как base64 и конвертируем в ArrayBuffer
+          console.log('[Migration] Читаем EPUB файл...');
           const base64 = await FileSystem.readAsStringAsync(currentBook.filePath, {
             encoding: FileSystem.EncodingType.Base64,
           });
+          console.log('[Migration] EPUB прочитан, base64 длина:', base64.length);
           const binary = atob(base64);
           const buffer = new ArrayBuffer(binary.length);
           const view = new Uint8Array(buffer);
           for (let i = 0; i < binary.length; i++) {
             view[i] = binary.charCodeAt(i);
           }
+          console.log('[Migration] ArrayBuffer создан, размер:', buffer.byteLength);
 
           const result = await convertEpub(buffer, currentBook.id);
+          console.log('[Migration] convertEpub OK, глав:', result.chapters.length);
           await saveChapters(currentBook.id, result.chapters);
+          console.log('[Migration] saveChapters OK');
           await saveFootnotes(currentBook.id, result.footnotes);
 
           // Обновляем метаданные книги в БД, сбрасываем lastPosition (формат изменился)
+          // Перечитываем книгу из БД — useBook мог обновить lastReadAt в другом writer
           await database.write(async () => {
-            await currentBook.update((record) => {
+            const freshBook = await database.get<Book>('books').find(currentBook.id);
+            await freshBook.update((record) => {
               record.totalChapters = result.chapters.length;
               record.contentVersion = 1;
               record.lastPosition = null;
@@ -94,7 +110,7 @@ export default function ReaderScreen() {
 
         setMigrationDone(true);
       } catch (err) {
-        console.error('[ReaderScreen] Ошибка авто-миграции:', err);
+        console.error('[ReaderScreen] Ошибка авто-миграции:', err, err instanceof Error ? err.stack : '');
         // Даже при ошибке пытаемся открыть ридер — он покажет своё состояние загрузки
         setMigrationDone(true);
       }
