@@ -821,8 +821,10 @@ function parseHtmlInlines(nodes: any[]): InlineNode[] {
 function isFootnoteRef(href: string, attrs: Record<string, any>): boolean {
   const epubType = (attrs['@_epub:type'] ?? '') as string
   const className = (attrs['@_class'] ?? '') as string
+  // НЕ используем href.includes('#') — это слишком агрессивно и ловит все внутренние ссылки.
+  // href.startsWith('#') уже обработан в вызывающем коде для чисто внутренних якорей.
+  // Здесь проверяем только epub:type и class для межфайловых сносок.
   return (
-    href.includes('#') ||
     epubType.includes('noteref') ||
     epubType.includes('footnote') ||
     className.includes('footnote') ||

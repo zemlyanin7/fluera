@@ -106,28 +106,30 @@ export class BookImporter {
     });
 
     // Конвертация в JSON-главы после сохранения записи в БД
+    // ВАЖНО: используем book.id (UUID из WatermelonDB), а не bookId (локальный)
+    const dbBookId = book.id;
     try {
       if (format === 'fb2' && fb2XmlContent != null) {
-        await ensureBookDirs(bookId);
-        const fb2Result = await convertFb2(fb2XmlContent, bookId);
+        await ensureBookDirs(dbBookId);
+        const fb2Result = await convertFb2(fb2XmlContent, dbBookId);
         const totalChapters = fb2Result.chapters.length;
 
         if (totalChapters <= 10) {
           // Маленькая книга: сохраняем все главы сразу
-          await saveChapters(bookId, fb2Result.chapters);
+          await saveChapters(dbBookId, fb2Result.chapters);
         } else {
           // Прогрессивный импорт: первые 5 глав сохраняем сразу
           const initialChapters = fb2Result.chapters.slice(0, 5);
-          await saveChapters(bookId, initialChapters);
+          await saveChapters(dbBookId, initialChapters);
           // Остальные главы конвертируем в фоне
           const remaining = fb2Result.chapters.slice(5);
           InteractionManager.runAfterInteractions(async () => {
-            await saveChapters(bookId, remaining);
+            await saveChapters(dbBookId, remaining);
           });
         }
 
         if (Object.keys(fb2Result.footnotes).length > 0) {
-          await saveFootnotes(bookId, fb2Result.footnotes);
+          await saveFootnotes(dbBookId, fb2Result.footnotes);
         }
 
         // Обновляем totalChapters и contentVersion в БД
@@ -138,7 +140,7 @@ export class BookImporter {
           });
         });
       } else if (format === 'epub' && epubBase64Content != null) {
-        await ensureBookDirs(bookId);
+        await ensureBookDirs(dbBookId);
         // Декодируем base64 → ArrayBuffer для convertEpub
         const binaryStr = atob(epubBase64Content);
         const bytes = new Uint8Array(binaryStr.length);
@@ -147,25 +149,25 @@ export class BookImporter {
         }
         const epubArrayBuffer = bytes.buffer;
 
-        const epubResult = await convertEpub(epubArrayBuffer, bookId);
+        const epubResult = await convertEpub(epubArrayBuffer, dbBookId);
         const totalChapters = epubResult.chapters.length;
 
         if (totalChapters <= 10) {
           // Маленькая книга: сохраняем все главы сразу
-          await saveChapters(bookId, epubResult.chapters);
+          await saveChapters(dbBookId, epubResult.chapters);
         } else {
           // Прогрессивный импорт: первые 5 глав сохраняем сразу
           const initialChapters = epubResult.chapters.slice(0, 5);
-          await saveChapters(bookId, initialChapters);
+          await saveChapters(dbBookId, initialChapters);
           // Остальные главы конвертируем в фоне
           const remaining = epubResult.chapters.slice(5);
           InteractionManager.runAfterInteractions(async () => {
-            await saveChapters(bookId, remaining);
+            await saveChapters(dbBookId, remaining);
           });
         }
 
         if (Object.keys(epubResult.footnotes).length > 0) {
-          await saveFootnotes(bookId, epubResult.footnotes);
+          await saveFootnotes(dbBookId, epubResult.footnotes);
         }
 
         // Обновляем totalChapters и contentVersion в БД

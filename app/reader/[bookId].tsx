@@ -7,7 +7,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useBook } from '../../src/hooks/useBook';
 import { UnifiedReader } from '../../src/components/reader/UnifiedReader';
 import { useSettingsStore } from '../../src/stores/settingsStore';
-import { chapterExists, saveChapters, saveFootnotes } from '../../src/services/converter/chapterStorage';
+import { chapterExists, saveChapters, saveFootnotes, ensureBookDirs } from '../../src/services/converter/chapterStorage';
 import { convertFb2 } from '../../src/services/converter/fb2Converter';
 import { convertEpub } from '../../src/services/converter/epubConverter';
 import { database } from '../../src/db';
@@ -45,6 +45,8 @@ export default function ReaderScreen() {
       // Необходима конвертация
       setMigrationDone(false);
       try {
+        await ensureBookDirs(currentBook.id);
+
         if (currentBook.format === 'fb2') {
           // Читаем XML-файл
           const xml = await FileSystem.readAsStringAsync(currentBook.filePath);
