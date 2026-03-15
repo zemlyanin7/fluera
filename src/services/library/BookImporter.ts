@@ -1,10 +1,15 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
+import { InteractionManager } from 'react-native';
 import { database } from '../../db';
 import { Book } from '../../db/models/Book';
 import { Fb2Parser } from '../parser/Fb2Parser';
+import { flattenSections, saveFb2Cache } from '../parser/fb2Cache';
 import type { BookFormat } from '../../utils/types';
+import { convertFb2 } from '../converter/fb2Converter';
+import { convertEpub } from '../converter/epubConverter';
+import { saveChapters, saveFootnotes, ensureBookDirs } from '../converter/chapterStorage';
 
 const BOOKS_DIR = `${FileSystem.documentDirectory}books/`;
 const COVERS_DIR = `${FileSystem.documentDirectory}covers/`;
@@ -50,10 +55,14 @@ export class BookImporter {
     let title = filename.replace(/\.\w+$/, '');
     let author = 'Unknown';
     let coverPath: string | null = null;
+    // Сохраняем содержимое файла для последующей конвертации
+    let fb2XmlContent: string | null = null;
+    let epubBase64Content: string | null = null;
 
     try {
       if (format === 'fb2') {
         const content = await FileSystem.readAsStringAsync(filePath);
+        fb2XmlContent = content;
         const parsed = Fb2Parser.parse(content);
         if (parsed.title) title = parsed.title;
         if (parsed.author) author = parsed.author;
@@ -61,6 +70,9 @@ export class BookImporter {
           coverPath = await this.saveCoverBase64(bookId, parsed.coverBase64);
         }
       } else if (format === 'epub') {
+        epubBase64Content = await FileSystem.readAsStringAsync(filePath, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
         const result = await this.extractEpubMetadata(filePath);
         if (result.title) title = result.title;
         if (result.author) author = result.author;
@@ -92,6 +104,82 @@ export class BookImporter {
         record.lastReadAt = new Date(0);
       });
     });
+
+    // Конвертация в JSON-главы после сохранения записи в БД
+    try {
+      if (format === 'fb2' && fb2XmlContent != null) {
+        await ensureBookDirs(bookId);
+        const fb2Result = await convertFb2(fb2XmlContent, bookId);
+        const totalChapters = fb2Result.chapters.length;
+
+        if (totalChapters <= 10) {
+          // Маленькая книга: сохраняем все главы сразу
+          await saveChapters(bookId, fb2Result.chapters);
+        } else {
+          // Прогрессивный импорт: первые 5 глав сохраняем сразу
+          const initialChapters = fb2Result.chapters.slice(0, 5);
+          await saveChapters(bookId, initialChapters);
+          // Остальные главы конвертируем в фоне
+          const remaining = fb2Result.chapters.slice(5);
+          InteractionManager.runAfterInteractions(async () => {
+            await saveChapters(bookId, remaining);
+          });
+        }
+
+        if (Object.keys(fb2Result.footnotes).length > 0) {
+          await saveFootnotes(bookId, fb2Result.footnotes);
+        }
+
+        // Обновляем totalChapters и contentVersion в БД
+        await database.write(async () => {
+          await book.update((record) => {
+            record.totalChapters = totalChapters;
+            record.contentVersion = 1;
+          });
+        });
+      } else if (format === 'epub' && epubBase64Content != null) {
+        await ensureBookDirs(bookId);
+        // Декодируем base64 → ArrayBuffer для convertEpub
+        const binaryStr = atob(epubBase64Content);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        const epubArrayBuffer = bytes.buffer;
+
+        const epubResult = await convertEpub(epubArrayBuffer, bookId);
+        const totalChapters = epubResult.chapters.length;
+
+        if (totalChapters <= 10) {
+          // Маленькая книга: сохраняем все главы сразу
+          await saveChapters(bookId, epubResult.chapters);
+        } else {
+          // Прогрессивный импорт: первые 5 глав сохраняем сразу
+          const initialChapters = epubResult.chapters.slice(0, 5);
+          await saveChapters(bookId, initialChapters);
+          // Остальные главы конвертируем в фоне
+          const remaining = epubResult.chapters.slice(5);
+          InteractionManager.runAfterInteractions(async () => {
+            await saveChapters(bookId, remaining);
+          });
+        }
+
+        if (Object.keys(epubResult.footnotes).length > 0) {
+          await saveFootnotes(bookId, epubResult.footnotes);
+        }
+
+        // Обновляем totalChapters и contentVersion в БД
+        await database.write(async () => {
+          await book.update((record) => {
+            record.totalChapters = totalChapters;
+            record.contentVersion = 1;
+          });
+        });
+      }
+    } catch (err) {
+      // Конвертация провалилась — логируем предупреждение, но не прерываем импорт
+      console.warn('[BookImporter] Chapter conversion error:', err);
+    }
 
     return book;
   }
