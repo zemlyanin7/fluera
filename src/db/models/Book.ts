@@ -23,4 +23,6 @@ export class Book extends Model {
   @date('added_at') addedAt!: Date
   @date('last_read_at') lastReadAt!: Date
   @field('last_position') lastPosition!: string | null
+  @field('total_chapters') totalChapters!: number | null
+  @field('content_version') contentVersion!: number | null
 }
