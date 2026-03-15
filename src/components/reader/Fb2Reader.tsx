@@ -1,9 +1,11 @@
+// TODO: удалить после полного перехода на UnifiedReader (Task 15+)
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { View, Pressable, StyleSheet, FlatList, useWindowDimensions } from 'react-native';
+import { View, Pressable, StyleSheet, FlatList, useWindowDimensions, InteractionManager, ActivityIndicator } from 'react-native';
 import { Text } from 'tamagui';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useReaderTheme } from '../../hooks/useReaderTheme';
 import { Fb2Parser } from '../../services/parser/Fb2Parser';
 import { Fb2ItemRenderer } from './Fb2Renderer';
@@ -40,6 +42,8 @@ interface PageData {
 
 const TOP_BAR_HEIGHT = 44;
 const MEASURE_BATCH_SIZE = 50; // Measure ~50 paragraphs at a time per spec
+const CACHE_DIR = `${FileSystem.cacheDirectory}fb2-parsed/`;
+const CACHE_VERSION = 1;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -82,25 +86,74 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
   const [measurementComplete, setMeasurementComplete] = useState(false);
   const paginatedListRef = useRef<FlatList<PageData>>(null);
   const remeasureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInitialMountRef = useRef(true); // Skip debounce reset on first mount
 
-  // Parse and flatten FB2 content
-  const items = useMemo(() => {
-    try {
-      const parsed = Fb2Parser.parse(xml);
-      console.log('[Fb2Reader] Parsed:', {
-        title: parsed.title,
-        sectionsCount: parsed.sections.length,
-        firstSectionParagraphs: parsed.sections[0]?.paragraphs?.length,
-        firstPara: JSON.stringify(parsed.sections[0]?.paragraphs?.[0])?.slice(0, 200),
+  // Parse and flatten FB2 content — cached for instant subsequent opens
+  const [items, setItems] = useState<FlatItem[]>([]);
+  const [parsing, setParsing] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setParsing(true);
+
+    const cachePath = `${CACHE_DIR}${book.id}.v${CACHE_VERSION}.json`;
+
+    async function loadContent() {
+      // 1) Try loading from cache (JSON.parse is ~10-50x faster than XML parsing)
+      try {
+        const cached = await FileSystem.readAsStringAsync(cachePath);
+        if (!cancelled) {
+          const flat = JSON.parse(cached) as FlatItem[];
+          console.log('[Fb2Reader] Loaded from cache:', flat.length, 'items');
+          setItems(flat);
+          setParsing(false);
+          return;
+        }
+      } catch {
+        // Cache miss — fall through to XML parsing
+      }
+
+      if (cancelled) return;
+
+      // 2) Parse XML (deferred to after animations to keep UI responsive)
+      return new Promise<void>((resolve) => {
+        const task = InteractionManager.runAfterInteractions(() => {
+          try {
+            const sections = Fb2Parser.parseSectionsOnly(xml);
+            const flat = flattenSections(sections);
+            console.log('[Fb2Reader] Parsed:', flat.length, 'items');
+
+            if (!cancelled) {
+              setItems(flat);
+              setParsing(false);
+
+              // Save cache for next time (fire-and-forget)
+              FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true })
+                .then(() => FileSystem.writeAsStringAsync(cachePath, JSON.stringify(flat)))
+                .then(() => console.log('[Fb2Reader] Cache saved'))
+                .catch((err) => console.warn('[Fb2Reader] Cache write failed:', err));
+            }
+          } catch (err) {
+            console.error('[Fb2Reader] Parse error:', err);
+            if (!cancelled) setParsing(false);
+          }
+          resolve();
+        });
+
+        // Cancel InteractionManager task on cleanup
+        if (cancelled) {
+          task.cancel();
+          resolve();
+        }
       });
-      const flat = flattenSections(parsed.sections);
-      console.log('[Fb2Reader] Flattened items:', flat.length);
-      return flat;
-    } catch (err) {
-      console.error('[Fb2Reader] Parse error:', err);
-      return [];
     }
-  }, [xml]);
+
+    loadContent();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [xml, book.id]);
 
   // Collect all words for batch status lookup
   const [visibleWords, setVisibleWords] = useState<string[]>([]);
@@ -147,10 +200,11 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
   useEffect(() => {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
-      // Save final position on exit
-      const idx = firstVisibleIndex.current;
+      // Save final position on exit (skip if content hasn't loaded yet)
       const totalItems = items.length;
-      const pct = totalItems > 0 ? Math.min(100, (idx / totalItems) * 100) : 0;
+      if (totalItems === 0) return;
+      const idx = firstVisibleIndex.current;
+      const pct = Math.min(100, (idx / totalItems) * 100);
       database.write(async () => {
         await book.update((record) => {
           record.lastPosition = JSON.stringify({ index: idx });
@@ -280,6 +334,12 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
   // ─── Debounced re-measurement when display settings change ───────────────────
 
   useEffect(() => {
+    // Skip on initial mount — measurement state starts at correct initial values
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+
     if (settings.scrollMode !== 'paginated') return;
 
     // Debounce re-measurement to avoid rapid re-renders when holding A-/A+ button
@@ -473,6 +533,20 @@ export function Fb2Reader({ xml, book, bookLanguage, nativeLanguage }: Fb2Reader
   }, []);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
+
+  // Show loading screen while parsing FB2 content
+  if (parsing) {
+    return (
+      <View style={[styles.container, { backgroundColor: readerTheme.colors.background }]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6c63ff" />
+          <Text color={readerTheme.colors.textSecondary} marginTop={12}>
+            {t('reader.loading')}
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <Pressable

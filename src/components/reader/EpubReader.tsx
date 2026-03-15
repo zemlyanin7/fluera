@@ -1,3 +1,4 @@
+// TODO: удалить после полного перехода на UnifiedReader (Task 15+)
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

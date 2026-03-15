@@ -2,7 +2,7 @@ import React from 'react';
 import { Image } from 'react-native';
 import { Text, YStack, XStack } from 'tamagui';
 import { WordTappable } from './WordTappable';
-import { tokenizeIntoWords, extractSentence } from './Fb2Renderer';
+import { tokenizeIntoWords, extractSentence } from '../../utils/textTokenizer';
 import { WORD_STATUS_COLORS } from '../../utils/constants';
 import type { ContentItem, InlineNode, BookFootnotes } from '../../services/parser/types';
 import type { WordStatusValue } from '../../utils/types';
