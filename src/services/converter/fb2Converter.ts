@@ -228,7 +228,7 @@ async function extractImages(xml: string, bookId: string): Promise<void> {
   const fb = doc.FictionBook
   if (!fb) return
 
-  const binaries = fb.binary as Array<Record<string, string>> | undefined
+  const binaries = fb.binary as Record<string, string>[] | undefined
   if (!binaries) return
 
   for (const bin of binaries) {

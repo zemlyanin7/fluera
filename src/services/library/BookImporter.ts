@@ -5,7 +5,7 @@ import { InteractionManager } from 'react-native';
 import { database } from '../../db';
 import { Book } from '../../db/models/Book';
 import { Fb2Parser } from '../parser/Fb2Parser';
-import { flattenSections, saveFb2Cache } from '../parser/fb2Cache';
+
 import type { BookFormat } from '../../utils/types';
 import { convertFb2 } from '../converter/fb2Converter';
 import { convertEpub } from '../converter/epubConverter';
