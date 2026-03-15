@@ -7,21 +7,24 @@ import { WORD_STATUS_COLORS } from '../../utils/constants';
 import type { ContentItem, InlineNode, BookFootnotes } from '../../services/parser/types';
 import type { WordStatusValue } from '../../utils/types';
 
-// ─── Constants ─────────────────────────────────────────────────────────────────
+// ─── Константы ──────────────────────────────────────────────────────────────────
 
 const MAX_INLINE_DEPTH = 20;
+/** Акцентный цвет для сносок и ссылок (primary) */
+const FOOTNOTE_COLOR = '$primary';
 
-// ─── Inline context ────────────────────────────────────────────────────────────
+// ─── Контекст инлайн-рендеринга ─────────────────────────────────────────────
 
 interface InlineContext {
   bold?: 'bold';
   italic?: 'italic';
   textColor: string;
   fontSize: number;
+  lineHeight: number;
   fontFamily?: string;
 }
 
-// ─── Props ─────────────────────────────────────────────────────────────────────
+// ─── Пропсы ────────────────────────────────────────────────────────────────────
 
 export interface UnifiedRendererProps {
   item: ContentItem;
@@ -31,12 +34,14 @@ export interface UnifiedRendererProps {
   lineHeight?: number;
   fontFamily?: string;
   textColor?: string;
+  // backgroundColor используется на уровне контейнера (UnifiedReader), не в рендерере
   backgroundColor?: string;
+  // footnotes используется в Task 9 (FootnoteSheet)
   footnotes?: BookFootnotes;
   onFootnotePress?: (id: string) => void;
 }
 
-// ─── Utilities ─────────────────────────────────────────────────────────────────
+// ─── Утилиты ───────────────────────────────────────────────────────────────────
 
 function getWordColor(word: string, wordColors: Map<string, WordStatusValue>): string {
   const cleanWord = word.replace(/[^a-zA-Z\u00C0-\u00FF\u0400-\u04FF]/g, '').toLowerCase();
@@ -44,13 +49,11 @@ function getWordColor(word: string, wordColors: Map<string, WordStatusValue>): s
   if (status !== undefined) {
     return WORD_STATUS_COLORS[status];
   }
-  // Default: treat as new word (status 1)
+  // По умолчанию: новое слово (status 1)
   return WORD_STATUS_COLORS[1];
 }
 
-/**
- * Recursively extracts plain text from an array of InlineNodes.
- */
+/** Рекурсивно извлекает текст из массива InlineNode[] */
 export function extractInlineText(nodes: InlineNode[]): string {
   return nodes
     .map((node) => {
@@ -62,9 +65,7 @@ export function extractInlineText(nodes: InlineNode[]): string {
     .join('');
 }
 
-/**
- * Extracts full plain text from a ContentItem for sentence context.
- */
+/** Извлекает полный текст из ContentItem для контекста предложения */
 export function extractItemText(item: ContentItem): string {
   switch (item.type) {
     case 'heading':
@@ -87,7 +88,7 @@ export function extractItemText(item: ContentItem): string {
   }
 }
 
-// ─── Inline renderer ───────────────────────────────────────────────────────────
+// ─── Инлайн-рендерер ────────────────────────────────────────────────────────────
 
 function renderInlines(
   nodes: InlineNode[],
@@ -116,6 +117,7 @@ function renderInlines(
             fontWeight={ctx.bold}
             fontStyle={ctx.italic}
             fontSize={ctx.fontSize}
+            lineHeight={ctx.lineHeight}
             fontFamily={ctx.fontFamily as any}
           >
             <WordTappable
@@ -133,6 +135,7 @@ function renderInlines(
             <Text
               key={`${key}-${tokenIndex}-space`}
               fontSize={ctx.fontSize}
+              lineHeight={ctx.lineHeight}
               fontWeight={ctx.bold}
               fontStyle={ctx.italic}
               color={ctx.textColor || undefined}
@@ -167,7 +170,7 @@ function renderInlines(
       );
       elements.push(...childElements);
     } else if (node.type === 'link') {
-      // External links rendered as underlined text
+      // Внешние ссылки рендерятся подчёркнутым текстом
       const childElements = renderInlines(
         node.children,
         ctx,
@@ -219,7 +222,7 @@ function renderInlines(
         <Text
           key={key}
           fontSize={ctx.fontSize * 0.7}
-          color="#6c63ff"
+          color={FOOTNOTE_COLOR}
           onPress={() => onFootnotePress?.(node.id)}
         >
           {node.label}
@@ -231,12 +234,10 @@ function renderInlines(
   return elements;
 }
 
-// ─── Block item renderer ───────────────────────────────────────────────────────
+// ─── Блочный рендерер ────────────────────────────────────────────────────────
 
-/**
- * Renders a single ContentItem into native React Native / Tamagui components.
- */
-export function UnifiedRenderer({
+/** Рендерит один ContentItem в нативные React Native / Tamagui компоненты */
+export function UnifiedItemRenderer({
   item,
   onWordTap,
   wordColors,
@@ -248,8 +249,9 @@ export function UnifiedRenderer({
   onFootnotePress,
 }: UnifiedRendererProps): React.ReactElement {
   const baseCtx: InlineContext = {
-    textColor: textColor ?? '#000000',
+    textColor: textColor ?? '$color',
     fontSize,
+    lineHeight,
     fontFamily,
   };
 
@@ -336,53 +338,41 @@ export function UnifiedRenderer({
 
   // ── blockquote ────────────────────────────────────────────────────────────
   if (item.type === 'blockquote') {
+    const hasNestedItems = item.nestedItems && item.nestedItems.length > 0;
     const fullText = extractItemText(item);
 
-    const inlineElements =
-      item.inlines.length > 0
-        ? renderInlines(
-            item.inlines,
-            baseCtx,
-            fullText,
-            onWordTap,
-            wordColors,
-            onFootnotePress,
-          )
-        : null;
-
-    const nestedElements =
-      item.nestedItems && item.nestedItems.length > 0
-        ? item.nestedItems.map((nestedItem, index) => (
-            <UnifiedRenderer
-              key={index}
-              item={nestedItem}
-              onWordTap={onWordTap}
-              wordColors={wordColors}
-              fontSize={fontSize}
-              lineHeight={lineHeight}
-              fontFamily={fontFamily}
-              textColor={textColor}
-              onFootnotePress={onFootnotePress}
-            />
-          ))
-        : null;
+    // Правило приоритета: если nestedItems присутствует и не пуст, inlines игнорируется
+    const content = hasNestedItems ? (
+      item.nestedItems!.map((nestedItem, index) => (
+        <UnifiedItemRenderer
+          key={index}
+          item={nestedItem}
+          onWordTap={onWordTap}
+          wordColors={wordColors}
+          fontSize={fontSize}
+          lineHeight={lineHeight}
+          fontFamily={fontFamily}
+          textColor={textColor}
+          onFootnotePress={onFootnotePress}
+        />
+      ))
+    ) : item.inlines.length > 0 ? (
+      <XStack flexWrap="wrap" alignItems="baseline">
+        {renderInlines(item.inlines, baseCtx, fullText, onWordTap, wordColors, onFootnotePress)}
+      </XStack>
+    ) : null;
 
     return (
       <YStack
         borderLeftWidth={3}
-        borderLeftColor="#aaaaaa"
+        borderLeftColor="$borderColor"
         paddingLeft="$4"
         paddingRight="$4"
         paddingVertical="$2"
         marginHorizontal="$4"
         marginVertical="$1"
       >
-        {inlineElements && (
-          <XStack flexWrap="wrap" alignItems="baseline">
-            {inlineElements}
-          </XStack>
-        )}
-        {nestedElements}
+        {content}
       </YStack>
     );
   }
@@ -450,6 +440,6 @@ export function UnifiedRenderer({
     );
   }
 
-  // Fallback — should never happen if ContentItem union is exhaustive
+  // Fallback — не должен сработать при исчерпывающем union ContentItem
   return <YStack />;
 }
