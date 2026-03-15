@@ -30,6 +30,7 @@
   },
   "reader": {
     "loading": "Ładowanie...",
+    "preparingBook": "Przygotowanie książki...",
     "translation": {
       "loading": "Tłumaczę...",
       "error": "Nie udało się przetłumaczyć. Sprawdź połączenie i spróbuj ponownie.",
@@ -77,6 +78,7 @@
       "graphite": "Grafitowy"
     },
     "reading": "Czytanie",
+    "theme": "Motyw",
     "dayTheme": "Motyw dzienny",
     "nightTheme": "Motyw nocny",
     "autoTheme": "Auto dzień / noc",

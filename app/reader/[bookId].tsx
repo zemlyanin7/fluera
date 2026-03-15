@@ -5,9 +5,12 @@ import { YStack, Text, Spinner } from 'tamagui';
 import { useTranslation } from 'react-i18next';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useBook } from '../../src/hooks/useBook';
-import { Fb2Reader } from '../../src/components/reader/Fb2Reader';
-import { EpubReader } from '../../src/components/reader/EpubReader';
+import { UnifiedReader } from '../../src/components/reader/UnifiedReader';
 import { useSettingsStore } from '../../src/stores/settingsStore';
+import { chapterExists, saveChapters, saveFootnotes } from '../../src/services/converter/chapterStorage';
+import { convertFb2 } from '../../src/services/converter/fb2Converter';
+import { convertEpub } from '../../src/services/converter/epubConverter';
+import { database } from '../../src/db';
 
 export default function ReaderScreen() {
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
@@ -15,16 +18,87 @@ export default function ReaderScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const settings = useSettingsStore();
-  const [content, setContent] = useState<string | null>(null);
+
+  // Состояние авто-миграции: null — проверяем, true — готово, false — в процессе
+  const [migrationDone, setMigrationDone] = useState<boolean | null>(null);
 
   console.log('[ReaderScreen] bookId:', bookId, 'loading:', loading, 'error:', error, 'book:', book?.title);
 
   useEffect(() => {
-    if (book && book.format === 'fb2') {
-      FileSystem.readAsStringAsync(book.filePath)
-        .then(setContent)
-        .catch((err) => console.error('[ReaderScreen] Failed to read file:', err));
+    if (!book) return;
+
+    // Захватываем book в локальную переменную, чтобы TypeScript корректно сужал тип
+    const currentBook = book;
+
+    // Авто-миграция: если книга ещё не сконвертирована (totalChapters === null)
+    // или если первая глава не существует на диске
+    async function checkAndMigrate() {
+      if (currentBook.totalChapters != null) {
+        // Проверяем, существует ли первая глава на диске
+        const exists = await chapterExists(currentBook.id, 0);
+        if (exists) {
+          setMigrationDone(true);
+          return;
+        }
+      }
+
+      // Необходима конвертация
+      setMigrationDone(false);
+      try {
+        if (currentBook.format === 'fb2') {
+          // Читаем XML-файл
+          const xml = await FileSystem.readAsStringAsync(currentBook.filePath);
+          const result = await convertFb2(xml, currentBook.id);
+          await saveChapters(currentBook.id, result.chapters);
+          await saveFootnotes(currentBook.id, result.footnotes);
+
+          // Обновляем метаданные книги в БД, сбрасываем lastPosition (формат изменился)
+          await database.write(async () => {
+            await currentBook.update((record) => {
+              record.totalChapters = result.totalChapters;
+              record.contentVersion = 1;
+              record.lastPosition = null;
+            });
+          });
+        } else if (currentBook.format === 'epub') {
+          // Читаем EPUB как base64 и конвертируем в ArrayBuffer
+          const base64 = await FileSystem.readAsStringAsync(currentBook.filePath, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          const binary = atob(base64);
+          const buffer = new ArrayBuffer(binary.length);
+          const view = new Uint8Array(buffer);
+          for (let i = 0; i < binary.length; i++) {
+            view[i] = binary.charCodeAt(i);
+          }
+
+          const result = await convertEpub(buffer, currentBook.id);
+          await saveChapters(currentBook.id, result.chapters);
+          await saveFootnotes(currentBook.id, result.footnotes);
+
+          // Обновляем метаданные книги в БД, сбрасываем lastPosition (формат изменился)
+          await database.write(async () => {
+            await currentBook.update((record) => {
+              record.totalChapters = result.chapters.length;
+              record.contentVersion = 1;
+              record.lastPosition = null;
+            });
+          });
+        } else {
+          // Неизвестный формат — просто помечаем как готовое
+          setMigrationDone(true);
+          return;
+        }
+
+        setMigrationDone(true);
+      } catch (err) {
+        console.error('[ReaderScreen] Ошибка авто-миграции:', err);
+        // Даже при ошибке пытаемся открыть ридер — он покажет своё состояние загрузки
+        setMigrationDone(true);
+      }
     }
+
+    void checkAndMigrate();
   }, [book]);
 
   if (loading) {
@@ -55,43 +129,24 @@ export default function ReaderScreen() {
     );
   }
 
-  if (book.format === 'epub') {
+  // Авто-миграция в процессе
+  if (migrationDone === null || migrationDone === false) {
     return (
-      <EpubReader
-        fileUri={book.filePath}
-        book={book}
-        bookLanguage={settings.bookLanguage}
-        nativeLanguage={settings.nativeLanguage}
-      />
-    );
-  }
-
-  // Loading file content for FB2
-  if (book.format === 'fb2' && !content) {
-    return (
-      <YStack flex={1} justifyContent="center" alignItems="center">
+      <YStack flex={1} justifyContent="center" alignItems="center" gap="$3">
         <Spinner size="large" />
+        <Text fontSize="$4" color="$textSecondary">
+          {t('reader.preparingBook')}
+        </Text>
       </YStack>
     );
   }
 
-  if (book.format === 'fb2' && content) {
-    return (
-      <Fb2Reader
-        xml={content}
-        book={book}
-        bookLanguage={settings.bookLanguage}
-        nativeLanguage={settings.nativeLanguage}
-      />
-    );
-  }
-
-  // Fallback for unsupported formats
   return (
-    <YStack flex={1} justifyContent="center" alignItems="center">
-      <Text fontSize="$6">{book.title}</Text>
-      <Text fontSize="$4" color="$textSecondary">{book.format} reader coming soon</Text>
-    </YStack>
+    <UnifiedReader
+      book={book}
+      bookLanguage={settings.bookLanguage}
+      nativeLanguage={settings.nativeLanguage}
+    />
   );
 }
 

@@ -30,6 +30,7 @@
   },
   "reader": {
     "loading": "Loading...",
+    "preparingBook": "Preparing book...",
     "translation": {
       "loading": "Translating...",
       "error": "Could not translate. Check connection and try again.",
@@ -77,6 +78,7 @@
       "graphite": "Graphite"
     },
     "reading": "Reading",
+    "theme": "Theme",
     "dayTheme": "Day theme",
     "nightTheme": "Night theme",
     "autoTheme": "Auto day / night",
