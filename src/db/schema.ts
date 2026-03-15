@@ -20,6 +20,8 @@ export const schema = appSchema({
         { name: 'added_at', type: 'number' },
         { name: 'last_read_at', type: 'number', isIndexed: true },
         { name: 'last_position', type: 'string', isOptional: true },
+        { name: 'total_chapters', type: 'number', isOptional: true },
+        { name: 'content_version', type: 'number', isOptional: true },
       ],
     }),
     tableSchema({
