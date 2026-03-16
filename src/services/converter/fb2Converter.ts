@@ -1,4 +1,3 @@
-import { XMLParser } from 'fast-xml-parser'
 import { Fb2Parser } from '../parser/Fb2Parser'
 import { saveImage } from './chapterStorage'
 import type {
@@ -27,17 +26,15 @@ export async function convertFb2(
   bookId: string,
   maxChapters?: number,
 ): Promise<Fb2ConvertResult> {
-  // Полный парсинг для метаданных + бинарных данных
-  const parsed = Fb2Parser.parse(xml)
+  // Парсинг 1 (preserveOrder): секции + сноски — один вызов bodyParser
+  const { mainBody, notesBodies } = Fb2Parser.parseAllBodies(xml)
+  const sections = Fb2Parser.parseSectionsOrdered(mainBody)
 
-  // Извлечь все body (основной + сноски)
-  const { notesBodies } = Fb2Parser.parseAllBodies(xml)
+  // Парсинг 2 (metaParser): метаданные + бинарные данные — один вызов
+  const meta = Fb2Parser.parseMetadataOnly(xml)
 
-  // Основные секции
-  const sections = Fb2Parser.parseSectionsOnly(xml)
-
-  // Извлечь изображения из binary-элементов
-  await extractImages(xml, bookId)
+  // Извлечь изображения из уже распарсенных бинарных данных (без повторного парсинга)
+  await extractImagesFromBinaries(meta.binaries, bookId)
 
   // Конвертировать секции в главы
   const allChapters = sectionsToChapters(sections)
@@ -54,9 +51,9 @@ export async function convertFb2(
   return {
     chapters,
     totalChapters,
-    title: parsed.title,
-    author: parsed.author,
-    coverBase64: parsed.coverBase64,
+    title: meta.title,
+    author: meta.author,
+    coverBase64: meta.coverBase64,
     footnotes,
   }
 }
@@ -215,20 +212,11 @@ function extractText(inlines: Fb2Inline[]): string {
     .join('')
 }
 
-/** Извлечь binary-изображения из FB2 XML и сохранить как файлы.
- *  Использует отдельный экземпляр XMLParser (не preserveOrder) для доступа к бинарным данным. */
-async function extractImages(xml: string, bookId: string): Promise<void> {
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: '@_',
-    textNodeName: '#text',
-    isArray: (name: string) => name === 'binary',
-  })
-  const doc = parser.parse(xml)
-  const fb = doc.FictionBook
-  if (!fb) return
-
-  const binaries = fb.binary as Record<string, string>[] | undefined
+/** Извлечь изображения из уже распарсенных binary-элементов (без повторного парсинга XML) */
+async function extractImagesFromBinaries(
+  binaries: Array<Record<string, string>> | undefined,
+  bookId: string,
+): Promise<void> {
   if (!binaries) return
 
   for (const bin of binaries) {

@@ -63,11 +63,12 @@ export class BookImporter {
       if (format === 'fb2') {
         const content = await FileSystem.readAsStringAsync(filePath);
         fb2XmlContent = content;
-        const parsed = Fb2Parser.parse(content);
-        if (parsed.title) title = parsed.title;
-        if (parsed.author) author = parsed.author;
-        if (parsed.coverBase64) {
-          coverPath = await this.saveCoverBase64(bookId, parsed.coverBase64);
+        // Быстрый парсинг только метаданных (без body) — один вызов metaParser
+        const meta = Fb2Parser.parseMetadataOnly(content);
+        if (meta.title) title = meta.title;
+        if (meta.author) author = meta.author;
+        if (meta.coverBase64) {
+          coverPath = await this.saveCoverBase64(bookId, meta.coverBase64);
         }
       } else if (format === 'epub') {
         epubBase64Content = await FileSystem.readAsStringAsync(filePath, {

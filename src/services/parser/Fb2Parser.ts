@@ -42,6 +42,24 @@ export class Fb2Parser {
     }
   }
 
+  /** Быстрый парсинг только метаданных (без body) — один вызов metaParser */
+  static parseMetadataOnly(xml: string): {
+    title: string; author: string; coverBase64: string | null;
+    binaries: Array<Record<string, string>> | undefined;
+  } {
+    const metaDoc = metaParser.parse(xml)
+    const metaFb = metaDoc.FictionBook
+    if (!metaFb) return { title: 'Untitled', author: 'Unknown', coverBase64: null, binaries: undefined }
+
+    const titleInfo = metaFb.description?.['title-info']
+    return {
+      title: titleInfo?.['book-title'] ?? 'Untitled',
+      author: Fb2Parser.parseAuthor(titleInfo?.author),
+      coverBase64: Fb2Parser.findCover(metaFb),
+      binaries: metaFb.binary as Array<Record<string, string>> | undefined,
+    }
+  }
+
   /**
    * Fast path: parse only the body sections (single XML pass).
    * Use this in the reader where metadata is already available from the DB.
@@ -114,7 +132,7 @@ export class Fb2Parser {
     return coverBin?.['#text'] ?? null
   }
 
-  private static parseSectionsOrdered(nodes: Record<string, unknown>[]): Fb2Section[] {
+  static parseSectionsOrdered(nodes: Record<string, unknown>[]): Fb2Section[] {
     const sections: Fb2Section[] = []
 
     // Parse direct block elements at this level (paragraphs outside sections)
