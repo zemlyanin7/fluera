@@ -248,10 +248,14 @@ export function UnifiedItemRenderer({
   footnotes: _footnotes,
   onFootnotePress,
 }: UnifiedRendererProps): React.ReactElement {
+  // lineHeight из settingsStore — это множитель (1.0, 1.5, 1.8 и т.д.),
+  // а не пиксели. Конвертируем в пиксели для React Native <Text>.
+  const resolvedLineHeight = lineHeight <= 5 ? Math.round(fontSize * lineHeight) : lineHeight;
+
   const baseCtx: InlineContext = {
     textColor: textColor ?? '$color',
     fontSize,
-    lineHeight,
+    lineHeight: resolvedLineHeight,
     fontFamily,
   };
 
