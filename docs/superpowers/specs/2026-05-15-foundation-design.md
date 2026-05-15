@@ -83,10 +83,11 @@ stats, library polish) идут отдельными spec/plan/impl циклам
 | Язык | TypeScript strict | Из CLAUDE.md |
 | Навигация | Expo Router (file-based) | Уже знакома, deep linking из коробки |
 | Стили | `react-native-unistyles v3` | Поддержка theme-cascade без re-render через ShadowTree, runtime variants для `data-lang`-эквивалента, требует New Arch — совпадает с Expo 55 |
-| Состояние UI | Zustand | Из CLAUDE.md, легче чем Redux |
+| Состояние UI | Zustand (`zustand` + middleware `subscribeWithSelector`) | Из CLAUDE.md, легче чем Redux |
 | Иконки | `react-native-svg` (port дизайн-иконок 1:1) | Pixel-perfect, нет зависимости от стороннего icon-pack |
-| Blur | `expo-blur` (BlurView) + `experimentalBlurMethod="dimezisBlurView"` на Android | Tab-bar дизайн использует `backdrop-filter: blur(20px)` |
-| Жесты | `react-native-gesture-handler` + `reanimated` | Для Sheet drag-to-dismiss |
+| Blur | `expo-blur` (BlurView) + `experimentalBlurMethod="dimezisBlurViewSdk31Plus"` на Android | Лучшая perf чем `dimezisBlurView`: на Android <12 blur пропускается вместо RenderScript-CPU |
+| Bottom sheet | `@gorhom/bottom-sheet` v5+ | Production-grade drag, snap-points, keyboard handling. Hand-rolled = переоткрытие edge-кейсов |
+| Жесты | `react-native-gesture-handler` + `react-native-reanimated` | Peer deps `@gorhom/bottom-sheet` |
 | i18n | `i18next` + `react-i18next` + `expo-localization` | Совместимо с существующими планами |
 | Тесты | `jest-expo` + `@testing-library/react-native` | Стандарт Expo |
 | Шрифты | `expo-font` (bundle) | Загрузка на старте через `useFonts()` |
@@ -117,7 +118,7 @@ app/
     stats.tsx                         # Stats (заглушка)
     settings.tsx                      # YOU/Settings (с реальным ThemePicker)
   reader/
-    [bookId].tsx                      # presentation: 'card' (push, full-screen)
+    [bookId].tsx                      # default push, full-screen
   word/
     [wordId].tsx                      # presentation: 'transparentModal'
   deck/
@@ -165,7 +166,8 @@ src/
       uk.json
   utils/
     constants.ts                      # числовые константы, regex
-    tokenizer.ts                      # пока stub — реальная импл в #4
+    splitWords.ts                     # минимальный regex split для Foundation smoke
+                                      # (полноценный word tokenizer — в #4)
 
 assets/
   fonts/                              # ~30 .ttf файлов (см. §8)
@@ -380,7 +382,8 @@ export { scriptTypography };
 import { UnistylesRuntime } from 'react-native-unistyles';
 import { useSettingsStore } from '@/stores/settingsStore';
 
-// Single subscriber на изменения themeId / themeAuto в Zustand
+// Single subscriber на изменения themeId / themeAuto в Zustand.
+// Возвращает unsubscribe — обязательно вызывать в cleanup useEffect.
 export function attachThemeBridge() {
   return useSettingsStore.subscribe(
     (s) => ({ id: s.themeId, auto: s.themeAuto }),
@@ -392,11 +395,21 @@ export function attachThemeBridge() {
         UnistylesRuntime.setTheme(id);
       }
     },
+    { fireImmediately: true },
   );
 }
 ```
 
-Бридж вызывается один раз в `app/_layout.tsx` после mount.
+Вызов в `app/_layout.tsx`:
+
+```typescript
+useEffect(() => {
+  const unsubscribe = attachThemeBridge();
+  return unsubscribe;  // cleanup при unmount root layout
+}, []);
+```
+
+**Threading:** Zustand subscriptions работают на JS thread. `UnistylesRuntime.setTheme`/`setAdaptiveThemes` диспатчят в ShadowTree внутренне. Бридж **нельзя** вызывать из Reanimated worklet.
 
 ### 5.6. Маппинг язык → script (`src/theme/scripts.ts`)
 
@@ -417,15 +430,20 @@ export const scriptForLang = (lang: string): ScriptId =>
   langToScript[lang] ?? 'latin';
 ```
 
-### 5.7. Использование в компонентах
+### 5.7. Использование в компонентах (Unistyles v3 API)
+
+**Важно:** в Unistyles v3 `useStyles(stylesheet, variants)` **удалён**. Стили
+читаются напрямую с экспортированного объекта, варианты применяются через
+`styles.useVariants({ script })` ВНУТРИ компонента. Порядок имеет значение:
+`useVariants` вызывается **до** чтения свойств.
 
 ```typescript
-import { StyleSheet, useStyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 import { Text } from 'react-native';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { scriptForLang } from '@/theme/scripts';
 
-const stylesheet = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme, rt) => ({
   reading: {
     color: theme.ink,
     backgroundColor: theme.paper,
@@ -444,10 +462,15 @@ const stylesheet = StyleSheet.create((theme, rt) => ({
 
 function ReadingText({ children }: { children: string }) {
   const bookLang = useSettingsStore((s) => s.bookLanguage);
-  const styles = useStyles(stylesheet, { script: scriptForLang(bookLang) });
+  styles.useVariants({ script: scriptForLang(bookLang) });
   return <Text style={styles.reading}>{children}</Text>;
 }
 ```
+
+**Типизация вариантов:** Unistyles v3 автоматически выводит варианты из
+`StyleSheet.create`. Утилитарный тип `UnistylesVariants<typeof styles>` доступен
+для prop-передачи. Дополнительная module augmentation для `UnistylesVariants`
+**не требуется** — оставляем только `UnistylesThemes` и `UnistylesBreakpoints` (§5.4).
 
 ### 5.8. Тёмная тема — авто Day/Night
 
@@ -493,12 +516,27 @@ export interface ParagraphStyle {
   italic?: boolean;
 }
 
+/**
+ * Блочный элемент контента.
+ *
+ * Поля для разрешения:
+ * - `heading.id`: anchor для оглавления (TOC) и для EPUB `#fragment` ссылок.
+ *   Заполняется парсерами в #3 (например, slug из заголовка).
+ * - `image.aspectRatio`: высоту в момент парсинга мы не всегда знаем (EPUB,
+ *   удалённые изображения), но aspect-ratio часто доступен — используется в #4
+ *   чтобы избежать layout-jank. Если неизвестен — рендерится плейсхолдер
+ *   фиксированной высоты, описанный в #4.
+ * - `list.items: ContentItem[][]` — каждый item списка может содержать
+ *   подбоки (вложенные списки, параграфы внутри пункта).
+ * - `blockquote.items`: всегда блоки. Inline-цитаты заворачиваются парсером в
+ *   `paragraph` внутри `blockquote.items`. Это убирает двойную репрезентацию.
+ */
 export type ContentItem =
-  | { type: 'heading'; level: 1 | 2 | 3 | 4 | 5 | 6; inlines: InlineNode[] }
+  | { type: 'heading'; level: 1 | 2 | 3 | 4 | 5 | 6; id?: string; inlines: InlineNode[] }
   | { type: 'paragraph'; inlines: InlineNode[]; style?: ParagraphStyle }
-  | { type: 'image'; src: string; alt?: string; width?: number; height?: number }
-  | { type: 'blockquote'; inlines: InlineNode[]; nestedItems?: ContentItem[] }
-  | { type: 'list'; ordered: boolean; items: InlineNode[][] }
+  | { type: 'image'; src: string; alt?: string; width?: number; height?: number; aspectRatio?: number }
+  | { type: 'blockquote'; items: ContentItem[] }
+  | { type: 'list'; ordered: boolean; items: ContentItem[][] }
   | { type: 'separator' }
   | { type: 'table-row'; cells: InlineNode[][] };
 
@@ -506,41 +544,86 @@ export interface BookChapter {
   index: number;
   title: string | null;
   items: ContentItem[];
+  /**
+   * Per-chapter override языка чтения (например, EPUB `xml:lang` на section).
+   * Если `null` — используется `Book.language` (книги-метаданные в #2).
+   */
+  lang?: string | null;
 }
 
+/**
+ * Сноски на уровне книги. В отличие от inline-нод, тело сноски может содержать
+ * несколько параграфов (EPUB), поэтому значение — массив блоков `ContentItem[]`.
+ */
 export interface BookFootnotes {
-  [id: string]: InlineNode[];
+  [id: string]: ContentItem[];
 }
 
+/**
+ * Максимальная глубина вложенности `InlineNode.children`.
+ *
+ * Контракт: парсеры (#3) обязаны обрезать вложенность на этой глубине,
+ * сохраняя текстовый контент через flatten. Рендерер (#4) полагается на
+ * этот контракт и не имеет защиты от patalogical EPUB.
+ */
 export const MAX_INLINE_DEPTH = 20;
 ```
 
 ### 6.2. `src/types/settings.ts`
 
+**Семантика `bookLanguage`.** В `SettingsState` это поле = "язык по умолчанию для
+новых импортов" (книги без явного метаданных-языка). **Не** runtime-состояние
+открытой книги — за это отвечает `readerStore.activeBookLanguage`, который создаётся
+в #4. Foundation использует `SettingsState.bookLanguage` только в smoke-сцене.
+
+**Бренд-тип `NativeLanguage`.** Переводчик Hy-MT поддерживает ограниченный набор
+пар. Чтобы онбординг не предлагал Klingon и не падал в #5, оборачиваем тип в
+branded `NativeLanguage`. Конкретный набор пар уточняется в #5; здесь — рамка.
+
 ```typescript
 export type ThemeId = 'light' | 'sepia' | 'dark';
 export type FontFamilyMode = 'serif' | 'sans';
 export type ScrollMode = 'page' | 'scroll';
+export type ProficiencyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'auto';
+export type TapToTranslateBehavior = 'instant' | 'delay' | 'long-press';
+export type AutoAddToDeck = 'always' | 'never' | 'ask';
+
+/**
+ * BCP-47 коды для пар перевода, реально поддерживаемых моделью Hy-MT в #5.
+ * Финальный список заполняется при интеграции llama.rn в #5.
+ */
+export const SUPPORTED_NATIVE_LANGUAGES = ['en', 'ru', 'pl', 'uk', 'es', 'fr', 'de'] as const;
+export type NativeLanguage = (typeof SUPPORTED_NATIVE_LANGUAGES)[number];
+export const SUPPORTED_BOOK_LANGUAGES = ['en', 'ru', 'pl', 'uk', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'ko', 'ar', 'hi'] as const;
+export type BookLanguage = (typeof SUPPORTED_BOOK_LANGUAGES)[number];
 
 export interface SettingsState {
-  // languages
+  // ─── Languages ───
   uiLanguage: 'en' | 'ru' | 'pl' | 'uk';
-  nativeLanguage: string;             // BCP-47, целевой перевода
-  bookLanguage: string;               // BCP-47, текущая открытая книга
+  nativeLanguage: NativeLanguage;     // для перевода в (тип сужен)
+  bookLanguage: BookLanguage;         // default для новых импортов, НЕ runtime
 
-  // theme
+  // ─── Theme ───
   themeId: ThemeId;
-  themeAuto: boolean;
+  themeAuto: boolean;                 // auto sepia не работает (см. §19)
 
-  // reading
+  // ─── Reading ───
   fontFamilyMode: FontFamilyMode;
-  fontSize: number;                   // px, default 19
+  fontSize: number;                   // px, clamp 15..26, default 19
   scrollMode: ScrollMode;
-  highlightUnknown: boolean;
+  highlightUnknown: boolean;          // см. §19 — рендеринг определит #4
   showSentenceTranslation: boolean;
-  pageFlipAnim: boolean;
+  pageFlipAnim: boolean;              // косметика, не learner-default
 
-  // onboarding
+  // ─── Pedagogy (UX рендерится в #4/#5/#6, но persistence-shape фиксируем здесь) ───
+  bookLanguageLevel: ProficiencyLevel;       // 'auto' = эвристика по WordStatus в #6
+  tapToTranslateBehavior: TapToTranslateBehavior;  // активная retrieval vs. instant
+  autoAddToDeck: AutoAddToDeck;
+  showPhonetics: boolean;             // критично для AR/JP/HI/KR
+  lookupHistoryEnabled: boolean;      // трекинг частых тапов без save (#6)
+  readingSessionGoalMinutes: number;  // gamification target (#7)
+
+  // ─── Onboarding ───
   onboardingCompleted: boolean;
 }
 
@@ -553,9 +636,15 @@ export const DEFAULT_SETTINGS: SettingsState = {
   fontFamilyMode: 'serif',
   fontSize: 19,
   scrollMode: 'scroll',
-  highlightUnknown: true,
+  highlightUnknown: false,            // ИЗМЕНЕНО: для A1-A2 wall-of-color вредит
   showSentenceTranslation: false,
   pageFlipAnim: true,
+  bookLanguageLevel: 'auto',
+  tapToTranslateBehavior: 'instant',  // дефолт; pedagogy-эксперимент в #5
+  autoAddToDeck: 'ask',
+  showPhonetics: false,
+  lookupHistoryEnabled: true,
+  readingSessionGoalMinutes: 15,
   onboardingCompleted: false,
 };
 ```
@@ -573,8 +662,8 @@ import { DEFAULT_SETTINGS, SettingsState } from '@/types/settings';
 
 interface SettingsActions {
   setUiLanguage: (v: SettingsState['uiLanguage']) => void;
-  setNativeLanguage: (v: string) => void;
-  setBookLanguage: (v: string) => void;
+  setNativeLanguage: (v: NativeLanguage) => void;
+  setBookLanguage: (v: BookLanguage) => void;
   setTheme: (id: SettingsState['themeId'], auto?: boolean) => void;
   setFontFamilyMode: (v: SettingsState['fontFamilyMode']) => void;
   setFontSize: (v: number) => void;
@@ -582,6 +671,12 @@ interface SettingsActions {
   toggleHighlightUnknown: () => void;
   toggleShowSentenceTranslation: () => void;
   togglePageFlipAnim: () => void;
+  setBookLanguageLevel: (v: ProficiencyLevel) => void;
+  setTapToTranslateBehavior: (v: TapToTranslateBehavior) => void;
+  setAutoAddToDeck: (v: AutoAddToDeck) => void;
+  toggleShowPhonetics: () => void;
+  toggleLookupHistoryEnabled: () => void;
+  setReadingSessionGoalMinutes: (v: number) => void;
   completeOnboarding: () => void;
   reset: () => void;
 }
@@ -599,6 +694,12 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
     toggleHighlightUnknown: () => set((s) => ({ highlightUnknown: !s.highlightUnknown })),
     toggleShowSentenceTranslation: () => set((s) => ({ showSentenceTranslation: !s.showSentenceTranslation })),
     togglePageFlipAnim: () => set((s) => ({ pageFlipAnim: !s.pageFlipAnim })),
+    setBookLanguageLevel: (v) => set({ bookLanguageLevel: v }),
+    setTapToTranslateBehavior: (v) => set({ tapToTranslateBehavior: v }),
+    setAutoAddToDeck: (v) => set({ autoAddToDeck: v }),
+    toggleShowPhonetics: () => set((s) => ({ showPhonetics: !s.showPhonetics })),
+    toggleLookupHistoryEnabled: () => set((s) => ({ lookupHistoryEnabled: !s.lookupHistoryEnabled })),
+    setReadingSessionGoalMinutes: (v) => set({ readingSessionGoalMinutes: Math.max(5, Math.min(120, v)) }),
     completeOnboarding: () => set({ onboardingCompleted: true }),
     reset: () => set(DEFAULT_SETTINGS),
   })),
@@ -677,31 +778,85 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
 каждый. Это увеличит install size. Решение: оставляем как есть в v1 (явный
 выбор пользователя — приоритет офлайн-чтения). В README документируем.
 
-### 8.2. Загрузка
+### 8.2. Загрузка — `expo-font` config plugin (build-time embed)
 
-`app/_layout.tsx`:
+С 35+ шрифтами `useFonts()` runtime-загрузка даёт ощутимый FOUT при первом
+рендере + увеличивает cold start. Expo SDK 55 рекомендует **config plugin**
+для нативного встраивания: шрифты прописываются в `app.json`, при сборке
+попадают в native bundle и доступны мгновенно без хука.
+
+```json
+// app.json
+{
+  "expo": {
+    "plugins": [
+      ["expo-font", {
+        "fonts": [
+          "./assets/fonts/Geist-Regular.ttf",
+          "./assets/fonts/Geist-Medium.ttf",
+          "./assets/fonts/Geist-SemiBold.ttf",
+          "./assets/fonts/Geist-Bold.ttf",
+          "./assets/fonts/GeistMono-Regular.ttf",
+          "./assets/fonts/GeistMono-Medium.ttf",
+          "./assets/fonts/SourceSerif4-Regular.ttf",
+          "./assets/fonts/SourceSerif4-Medium.ttf",
+          "./assets/fonts/SourceSerif4-SemiBold.ttf",
+          "./assets/fonts/SourceSerif4-Italic.ttf",
+          "./assets/fonts/SourceSerif4-MediumItalic.ttf",
+          "./assets/fonts/Inter-Regular.ttf",
+          "./assets/fonts/Inter-Medium.ttf",
+          "./assets/fonts/Inter-SemiBold.ttf",
+          "./assets/fonts/Inter-Bold.ttf",
+          "./assets/fonts/Lora-Regular.ttf",
+          "./assets/fonts/Lora-Medium.ttf",
+          "./assets/fonts/Lora-SemiBold.ttf",
+          "./assets/fonts/Lora-Italic.ttf",
+          "./assets/fonts/Lora-MediumItalic.ttf",
+          "./assets/fonts/ShipporiMinchoB1-Regular.ttf",
+          "./assets/fonts/ShipporiMinchoB1-Medium.ttf",
+          "./assets/fonts/NotoSansJP-Regular.ttf",
+          "./assets/fonts/NotoSansJP-Medium.ttf",
+          "./assets/fonts/NotoSansJP-Bold.ttf",
+          "./assets/fonts/NotoSerifKR-Regular.ttf",
+          "./assets/fonts/NotoSerifKR-Medium.ttf",
+          "./assets/fonts/NotoSansKR-Regular.ttf",
+          "./assets/fonts/NotoSansKR-Medium.ttf",
+          "./assets/fonts/NotoSansKR-Bold.ttf",
+          "./assets/fonts/Amiri-Regular.ttf",
+          "./assets/fonts/Amiri-Italic.ttf",
+          "./assets/fonts/Amiri-Bold.ttf",
+          "./assets/fonts/NotoSansArabic-Regular.ttf",
+          "./assets/fonts/NotoSansArabic-Medium.ttf",
+          "./assets/fonts/TiroDevanagariHindi-Regular.ttf",
+          "./assets/fonts/TiroDevanagariHindi-Italic.ttf",
+          "./assets/fonts/NotoSansDevanagari-Regular.ttf",
+          "./assets/fonts/NotoSansDevanagari-Medium.ttf"
+        ]
+      }]
+    ]
+  }
+}
+```
+
+Имена fontFamily в RN = имя файла без расширения. `useFonts()` хук НЕ
+используется. `expo prebuild` + `eas build` пересобирают native code с этими
+шрифтами.
+
+В `app/_layout.tsx` остаётся только Splash:
 
 ```typescript
 import * as SplashScreen from 'expo-splash-screen';
-import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 
 SplashScreen.preventAutoHideAsync();
 
-const FONT_MAP = {
-  'Geist-Regular': require('../assets/fonts/Geist-Regular.ttf'),
-  // ... все остальные
-};
-
 export default function RootLayout() {
-  const [loaded, error] = useFonts(FONT_MAP);
-
   useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync();
-  }, [loaded, error]);
-
-  if (!loaded && !error) return null;
-
+    // Шрифты уже встроены в native bundle. Просто скрываем splash.
+    SplashScreen.hideAsync();
+    const unsubscribe = attachThemeBridge();
+    return unsubscribe;
+  }, []);
   return <Stack>{/* ... */}</Stack>;
 }
 ```
@@ -717,36 +872,49 @@ export default function RootLayout() {
 
 ### 9.2. `src/components/icons/Icon.tsx`
 
+**Важно:** `currentColor` — web-CSS, в `react-native-svg` не существует. Цвет
+передаётся всегда явно. Дефолт берём из `theme.ink` через Unistyles, либо
+явный prop.
+
 ```typescript
-import { Svg, SvgProps } from 'react-native-svg';
+import React from 'react';
+import { Svg } from 'react-native-svg';
+import { StyleSheet } from 'react-native-unistyles';
 
 export interface IconProps {
   size?: number;        // default 22
-  color?: string;       // default 'currentColor' — берём из props.color
+  color?: string;       // default — theme.ink
   strokeWidth?: number; // default 1.8
   fill?: string;        // default 'none'
 }
 
+const styles = StyleSheet.create((theme) => ({
+  defaultColor: theme.ink,
+}));
+
 export const Icon = ({
   size = 22,
-  color = 'currentColor',
+  color,
   strokeWidth = 1.8,
   fill = 'none',
   children,
-}: IconProps & { children: React.ReactNode }) => (
-  <Svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill={fill}
-    stroke={color}
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    {children}
-  </Svg>
-);
+}: IconProps & { children: React.ReactNode }) => {
+  const resolvedColor = color ?? styles.defaultColor;
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={fill}
+      stroke={resolvedColor}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {children}
+    </Svg>
+  );
+};
 ```
 
 ### 9.3. `src/components/icons/paths.ts`
@@ -763,12 +931,18 @@ export const PATHS = {
 
 ### 9.4. `src/components/icons/index.tsx`
 
-26 экспортов:
+26 экспортов. `Path` импортируется из `react-native-svg`:
 
 ```typescript
+import { Path, Circle, Rect } from 'react-native-svg';
+import { Icon, type IconProps } from './Icon';
+import { PATHS } from './paths';
+
 export const IcChevronLeft  = (p: IconProps) =>
   <Icon {...p}><Path d={PATHS.chevronLeft}/></Icon>;
-// ...
+export const IcChevronRight = (p: IconProps) =>
+  <Icon {...p}><Path d={PATHS.chevronRight}/></Icon>;
+// ... 24 остальных. Некоторые иконки используют <Circle> или <Rect> (см. icons.jsx)
 ```
 
 ---
@@ -783,7 +957,7 @@ export const IcChevronLeft  = (p: IconProps) =>
 | `Button` | `variant: 'primary'\|'accent'\|'ghost'`, `block?`, `icon?`, `onPress`, `children` | normal, pressed (opacity 0.7) |
 | `Pill` | `tone?: 'neutral'\|'accent'\|'known'\|'learning'`, `icon?`, `children` | static |
 | `Card` | `children`, `padding?: number` | static |
-| `Sheet` | `visible`, `onClose`, `children`, `paddingBottom?` | open/closing (animated) |
+| `Sheet` (обёртка над `@gorhom/bottom-sheet`) | `visible`, `onClose`, `snapPoints?`, `children` | open/closing (animated через native gorhom) |
 | `IconBtn` | `Icon`, `onPress`, `solid?: boolean`, `accent?: boolean` | normal, pressed |
 | `Hairline` | — | static |
 | `BookCover` | `book: {title, author, cover (gradient), lang}`, `w`, `h` | static |
@@ -799,13 +973,15 @@ export const IcChevronLeft  = (p: IconProps) =>
 - **`PhoneShell`** не рисует фейковый status bar. Только `SafeAreaView` +
   `useSafeAreaInsets()`. Реальное системное время/батарея показывает iOS/Android.
 - **`TabBar`** = `expo-blur` `<BlurView intensity={80}>` + на Android
-  `experimentalBlurMethod="dimezisBlurView"`. Тени из дизайна (`box-shadow`)
-  через RN `shadow*` props на iOS + `elevation` на Android. Активная иконка =
-  `theme.ink`, неактивная = `theme.ink3`. Точка-индикатор под активной =
-  `theme.accent` 4×4 круг.
-- **`Sheet`** = react-native-gesture-handler `PanGestureHandler` +
-  `reanimated` `useSharedValue` для y-translation. Spring back если drag < 100,
-  dismiss если >= 100. Backdrop = `rgba(0,0,0,0.15)` пресс закрывает.
+  `experimentalBlurMethod="dimezisBlurViewSdk31Plus"`. Тени из дизайна
+  (`box-shadow`) через RN `shadow*` props на iOS + `elevation` на Android.
+  Активная иконка = `theme.ink`, неактивная = `theme.ink3`. Точка-индикатор
+  под активной = `theme.accent` 4×4 круг.
+- **`Sheet`** = тонкая обёртка над `<BottomSheet>` из `@gorhom/bottom-sheet`.
+  Преимущества vs. ручной: правильная клавиатура, snap-points, scroll внутри
+  sheet, native swipe-feel. Backdrop через `<BottomSheetBackdrop>` с
+  `disappearsOnIndex={-1}`. Хелпер `useRef<BottomSheet>` экспортируется через
+  props для управления извне.
 - **`Button.block`** = full-width, padding 16, font-size 16, остальные =
   padding 12/18, font-size 15.
 - **`BookCover`** = `LinearGradient` (через `expo-linear-gradient`) с
@@ -943,20 +1119,28 @@ library.empty
 
 ### Шаги
 
-1. Запуск → splash → 3-step онбординг (выбор UI / book / native lang, все
-   опции работают, Continue заполнен)
+1. Запуск → splash → 3-step онбординг (порядок шагов уточняется в #8 — см. §19).
+   Все опции работают, Continue заполнен.
 2. После онбординга → Library с **hardcoded** карточкой "The Garden of
    Forking Paths"
-3. Тап на карточку → Reader stack с **hardcoded Borges-параграфом** из
-   `screen-reader.jsx` (`READER_SAMPLE.paragraphs[0]`). Один экран — без
-   пагинации, без скролла фокусируемся на стилях.
+3. Тап на карточку → Reader (push) с **hardcoded Borges-параграфом**.
+   Параграф приходит как pre-split `InlineNode[]` фикстура в
+   `src/fixtures/borges.ts` (не парсим runtime — это smoke). `splitWords.ts`
+   обрабатывает только конкретный массив строк параграфа из дизайна.
+   Один экран — без пагинации, без скролла фокусируемся на стилях.
 4. Тап на слово → подсветка `is-active` (terracotta solid), повторный тап
    снимает
-5. Кнопка "FontSize" в Reader top-bar → `Sheet` поднимается с тремя темами
-   (Day/Sepia/Night) — мгновенное переключение цветов без re-mount
+5. Кнопка "FontSize" в Reader top-bar → `Sheet` (gorhom) поднимается с тремя
+   темами (Day/Sepia/Night) — мгновенное переключение цветов без re-mount
+   Reader-стека (стек сохраняется при tab-switch, проверяется явно)
 6. Settings tab → BookLanguage picker (en/ru/ja/ar/ko/hi). Возврат в Reader
-   меняет шрифт (Latin → Cyrillic → JP → Arabic с RTL → Korean → Devanagari)
+   меняет шрифт (Latin → Cyrillic → JP → Arabic с RTL → Korean → Devanagari).
+   **RTL-инвариант:** в Arabic меняется только `writingDirection`/`textAlign`,
+   `paper`/`ink` цвета НЕ инвертируются.
 7. Tab-bar swipe между 4 табами — blur не лагает на Android (Pixel 7)
+8. Cold-start timing: `console.time('cold-start')` в первой строке
+   `app/_layout.tsx`, `console.timeEnd` после первого рендера Library.
+   Бюджет: **<1500ms** на Pixel 7 (release build), **<2500ms** на iPhone 13.
 
 ### Целевые устройства
 
@@ -968,9 +1152,11 @@ library.empty
 ### Что считать pass
 
 - Темы переключаются мгновенно (≤ 50ms)
-- Шрифты применяются без FOUT (preload до первого рендера)
-- Word tap имеет hit-area ≥ 32×32 (CSS-padding не обязателен, главное — попадание)
+- Шрифты применяются без FOUT (config-plugin native embed, §8.2)
+- Word tap имеет hit-area ≥ 32×32 (padding на `<Text>` обязателен)
 - Tab-bar blur ≥ 55 FPS на Pixel 7
+- Cold-start укладывается в бюджет (§14, шаг 8)
+- RTL не инвертирует цветовую схему (§14, шаг 6)
 
 ---
 
@@ -992,7 +1178,9 @@ library.empty
 
 ### Mocks (`jest.setup.js`)
 
-- `react-native-unistyles` — заглушки `StyleSheet.create`, `useStyles`, `UnistylesRuntime`
+- `react-native-unistyles` — заглушки `StyleSheet.create` (возвращает объект со
+  свойством `useVariants: () => void`), `UnistylesRuntime` (setTheme/setAdaptiveThemes — no-op)
+- `@gorhom/bottom-sheet` — `BottomSheet`/`BottomSheetBackdrop` → `View`/`View`
 - `expo-blur` — `BlurView` → `View`
 - `expo-font` — `useFonts` → `[true, null]`
 - `react-native-svg` — `Svg`, `Path` → `View`, `View`
@@ -1009,15 +1197,27 @@ Foundation считается завершённым когда:
 - [ ] `package.json` содержит все deps из §3
 - [ ] `app/` структура из §4 создана, все роуты — стабы рендерят свой заголовок
 - [ ] Все 30+ шрифтов в `assets/fonts/`, грузятся через `useFonts`
-- [ ] Unistyles v3 настроен с 3 themes + `script` variants, types сужены
-- [ ] SettingsStore рабочий, все actions меняют state
-- [ ] 12 UI-примитивов + 26 иконок имплементированы и снапшотятся в Storybook-стиле
-  (либо просто в smoke-экране `/playground` за feature-flag)
-- [ ] i18n инициализирован, en/ru/pl/uk JSON-файлы с базовыми ключами
-- [ ] Vertical-slice smoke (§14) проходит на iOS Simulator + Android emulator
-- [ ] Unit tests (§15) проходят, coverage ≥ 60% на `src/theme/` и `src/stores/`
-- [ ] `npx expo lint` без ошибок
-- [ ] README обновлён с инструкциями запуска dev-client
+- [ ] Unistyles v3 настроен с 3 themes + `script` variants; module augmentation
+  `UnistylesThemes` и `UnistylesBreakpoints` компилируется без ошибок;
+  `styles.useVariants({...})` в компоненте возвращает типизированные значения
+  без `any`
+- [ ] SettingsStore рабочий: все actions меняют свои поля; `setFontSize` clamp
+  на границах 15 и 26; `setReadingSessionGoalMinutes` clamp 5..120; reset
+  возвращает `DEFAULT_SETTINGS`
+- [ ] 12 UI-примитивов + 26 иконок имплементированы и видны в dev-only
+  playground-роуте `app/(playground)/index.tsx` (за `__DEV__` guard). Без
+  snapshot-тестов для иконок
+- [ ] i18n инициализирован, en/ru/pl/uk JSON-файлы с базовыми ключами из §13.2
+- [ ] Vertical-slice smoke (§14) проходит на iOS Simulator + Android emulator,
+  включая RTL-инвариант и cold-start budget
+- [ ] Unit tests (§15) — конкретные тест-кейсы (НЕ coverage threshold):
+  `scriptForLang` для всех 18 mapped langs + 2 unknown; `setFontSize` clamping
+  15 и 26; все 17 actions SettingsStore меняют ровно своё поле; Button рендерит
+  все варианты; Sheet open/close через ref
+- [ ] `tsc --noEmit` без ошибок (`expo lint` НЕ запускает tsc отдельно)
+- [ ] `npx expo lint` без warnings
+- [ ] README обновлён с инструкциями запуска dev-client (`eas build --profile
+  development` + `expo start --dev-client`)
 
 ---
 
@@ -1055,18 +1255,37 @@ Foundation считается завершённым когда:
 
 Эти моменты не закрыты в дизайне — оставляю как TODO для последующих specs:
 
-1. **Onboarding step 1 — UI language picker.** В дизайне показан только step 2
-   ("I'm reading in..."). Step 1 и 3 нужно дизайнить совместно при #8.
-2. **`fontFamilyMode: 'serif' | 'sans'`** — переключатель в reader-settings.
-   Применяется к `--font-reading`. Уточнить в #4: меняет только reading
-   контент или весь UI?
+1. **Onboarding порядок шагов.** Текущий дизайн: UI-lang → book-lang →
+   native-lang. Language-teaching ревью рекомендует: book-lang → native-lang →
+   UI-lang (UI default = native, опциональный override). Финально решается в
+   #8 (Onboarding polish). Foundation создаёт три роута стабов, переименовать
+   при необходимости в #8.
+2. **`fontFamilyMode: 'serif' | 'sans'`** — применяется только к reading
+   контенту в Reader (#4). UI всегда `Inter`/`Geist`. Решено: только reading.
 3. **Sepia + adaptiveThemes несовместимы.** Когда `themeAuto=true`, sepia
    автоматически выключается. Документировать в Settings UI (#8).
 4. **Word-tap hit area** в дизайне = `padding: 0 .04em` (~1px). Возможно
    нужно больше для удобства тапа на тонких CJK-шрифтах. Решить в #4.
-5. **`nativeLanguage` scope.** Сейчас `string` (BCP-47) — теоретически любой
-   язык. Но переводчик Hy-MT1.5-1.8B имеет ограниченный набор пар. Уточнить
-   в #5 — какой реальный supported set + сужать ли тип.
+5. **Финальный supported set пар `NativeLanguage`/`BookLanguage`.** Заполнен
+   placeholder-значениями. Точный список — после интеграции Hy-MT в #5.
+6. **`highlightUnknown` рендеринг.** Foundation хранит флаг, рендер в #4.
+   Pedagogy-рекомендация: показывать только `learning` (амбер) по умолчанию;
+   `new` (терракот) только при `highlightUnknown=true` И `level >= B1`;
+   `known` (сейдж) никогда не подсвечивается (знание не actionable).
+   Финализировать в #4.
+7. **L2 reading leading.** Pedagogy-ревью указывает: 1.65 для Latin — нижняя
+   граница комфорта для L2. Можно поднять до 1.7–1.75. Эксперимент в #4.
+8. **`readingMeasure` (max line width per script).** L2 reader страдает от
+   длинных строк (>50ch). Добавить в #4 как часть Reader-настроек.
+9. **`bookLanguage` semantic.** В `SettingsState` = "default для новых
+   импортов". Runtime-состояние открытой книги — отдельный `readerStore`
+   (создаётся в #4). Foundation НЕ создаёт `readerStore`; smoke использует
+   `SettingsState.bookLanguage` напрямую.
+10. **`heading.id` генерация.** Парсеры в #3 должны генерировать stable
+    slug-id для каждого heading. Алгоритм (slugify? hash от текста? incrementing
+    counter?) — решается в #3.
+11. **`bookLanguageLevel: 'auto'`** — эвристика по WordStatus реализуется в #6
+    SRS. Foundation хранит флаг.
 
 ---
 
