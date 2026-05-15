@@ -1,0 +1,14 @@
+{
+  "common": { "continue": "Kontynuuj", "skip": "Pomiń", "next": "Dalej", "back": "Wstecz", "close": "Zamknij" },
+  "tabs": { "read": "CZYTAJ", "deck": "TALIA", "stats": "STAT.", "you": "TY" },
+  "onboarding": {
+    "step1": { "title": "Witaj w Fluera" },
+    "step2": { "title": "Czytam w..." },
+    "step3": { "title": "Tłumacz na..." }
+  },
+  "settings": {
+    "theme": { "title": "Papier", "day": "Dzień", "sepia": "Sepia", "night": "Noc", "auto": "Auto Dzień/Noc" },
+    "font":  { "title": "Czytanie", "size": "Rozmiar", "typeface": "Krój pisma", "serif": "Source Serif", "sans": "Geist" }
+  },
+  "library": { "empty": "Brak książek" }
+}

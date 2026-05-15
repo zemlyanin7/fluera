@@ -1,0 +1,14 @@
+{
+  "common": { "continue": "Продовжити", "skip": "Пропустити", "next": "Далі", "back": "Назад", "close": "Закрити" },
+  "tabs": { "read": "ЧИТАННЯ", "deck": "КАРТКИ", "stats": "СТАТ.", "you": "ВИ" },
+  "onboarding": {
+    "step1": { "title": "Ласкаво просимо до Fluera" },
+    "step2": { "title": "Я читаю мовою..." },
+    "step3": { "title": "Перекладати на..." }
+  },
+  "settings": {
+    "theme": { "title": "Папір", "day": "День", "sepia": "Сепія", "night": "Ніч", "auto": "Авто День/Ніч" },
+    "font":  { "title": "Читання", "size": "Розмір", "typeface": "Шрифт", "serif": "Source Serif", "sans": "Geist" }
+  },
+  "library": { "empty": "Книг ще немає" }
+}

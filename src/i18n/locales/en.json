@@ -1,0 +1,14 @@
+{
+  "common": { "continue": "Continue", "skip": "Skip", "next": "Next", "back": "Back", "close": "Close" },
+  "tabs": { "read": "READ", "deck": "DECK", "stats": "STATS", "you": "YOU" },
+  "onboarding": {
+    "step1": { "title": "Welcome to Fluera" },
+    "step2": { "title": "I am reading in..." },
+    "step3": { "title": "Translate to..." }
+  },
+  "settings": {
+    "theme": { "title": "Paper", "day": "Day", "sepia": "Sepia", "night": "Night", "auto": "Auto Day/Night" },
+    "font":  { "title": "Reading", "size": "Size", "typeface": "Typeface", "serif": "Source Serif", "sans": "Geist" }
+  },
+  "library": { "empty": "No books yet" }
+}

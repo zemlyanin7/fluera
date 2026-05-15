@@ -1,0 +1,14 @@
+{
+  "common": { "continue": "Продолжить", "skip": "Пропустить", "next": "Далее", "back": "Назад", "close": "Закрыть" },
+  "tabs": { "read": "ЧТЕНИЕ", "deck": "КАРТЫ", "stats": "СТАТ.", "you": "ВЫ" },
+  "onboarding": {
+    "step1": { "title": "Добро пожаловать в Fluera" },
+    "step2": { "title": "Я читаю на..." },
+    "step3": { "title": "Переводить на..." }
+  },
+  "settings": {
+    "theme": { "title": "Бумага", "day": "День", "sepia": "Сепия", "night": "Ночь", "auto": "Авто День/Ночь" },
+    "font":  { "title": "Чтение", "size": "Размер", "typeface": "Шрифт", "serif": "Source Serif", "sans": "Geist" }
+  },
+  "library": { "empty": "Книг пока нет" }
+}
