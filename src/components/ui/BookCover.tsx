@@ -31,7 +31,14 @@ export const BookCover: React.FC<Props> = ({ book, w = 78, h = 108 }) => {
   const { start, end } = angleToPoints(book.angle ?? 160);
   return (
     <View style={[local.wrap, { width: w, height: h }]}>
-      <LinearGradient colors={book.gradient as any} start={start} end={end} style={local.gradient} />
+      {/* I10: spread в mutable массив, чтобы избавиться от `as any` cast.
+          expo-linear-gradient требует mutable [string, string, ...string[]]. */}
+      <LinearGradient
+        colors={[...book.gradient] as [string, string, ...string[]]}
+        start={start}
+        end={end}
+        style={local.gradient}
+      />
       <View style={local.spine} />
       <Text style={local.title} numberOfLines={3}>{book.title}</Text>
       <Text style={local.author} numberOfLines={1}>{book.author}</Text>

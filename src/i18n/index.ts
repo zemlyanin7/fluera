@@ -16,8 +16,20 @@ function detectInitialLang(): SupportedLang {
 
 // I4: экспортируем Promise готовности i18n, чтобы корневой layout мог await его
 // до SplashScreen.hideAsync(). Без этого пользователь видит мигание ключей.
-// I6: первоначальный язык берём из device locale, дальнейшие смены — через
-// settingsStore.setUiLanguage (см. I5).
+//
+// I6: первоначальный язык i18n берём из device locale (detectInitialLang),
+// чтобы НЕ зависеть от ещё не инициализированного store. Дальнейшие смены —
+// через settingsStore.setUiLanguage (см. I5), которая вызывает changeLanguage.
+// Когда подключим persist (#2), при cold-start вызывать syncI18nFromStore()
+// один раз после гидрации стора — это поднимет сохранённый UI-язык.
+export function syncI18nFromStore(uiLanguage: SupportedLang): void {
+  // eslint-disable-next-line import/no-named-as-default-member
+  void i18n.changeLanguage(uiLanguage);
+}
+
+// Экспорт детектора для onboarding (#8): «по умолчанию выставить UI-язык
+// детектированный с устройства, если пользователь не выбрал ничего».
+export { detectInitialLang };
 // eslint-disable-next-line import/no-named-as-default-member
 export const i18nReady: Promise<unknown> = i18n.use(initReactI18next).init({
   resources: {

@@ -3,6 +3,12 @@
 //
 // Skript-variant: `stylesheet.useVariants({ script })` подменяет fontFamily
 // (и для arabic writingDirection/textAlign).
+//
+// ВАЖНО (I11): word-tap через nested <Text onPress> — Foundation smoke.
+// Background styling нестабилен на Android (рендерится только за глифами,
+// без padding/borderRadius). Реальная реализация в sub-project #4: использовать
+// range-based highlight через onTouchStart math на родительском <Text>, а не
+// nested Text-spans.
 import React, { useState, useRef } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -92,6 +98,10 @@ const THEMES: { id: ThemeId; name: string }[] = [
   { id: 'dark', name: 'Night' },
 ];
 
+// I2: модульный const — массив больше не пересоздаётся каждый рендер
+// (избегаем лишних ре-рендеров BottomSheet).
+const READER_SHEET_SNAPS: (string | number)[] = ['40%'];
+
 export default function ReaderScreen() {
   const router = useRouter();
   const bookLang = useSettingsStore((s) => s.bookLanguage);
@@ -179,7 +189,7 @@ export default function ReaderScreen() {
         {BORGES_SAMPLE.items.map((item, pi) => renderItem(item, pi))}
       </ScrollView>
 
-      <Sheet ref={sheetRef} snapPoints={['40%']}>
+      <Sheet ref={sheetRef} snapPoints={READER_SHEET_SNAPS}>
         <View style={stylesheet.sheetTitle}>
           <Headline level={2}>Reading</Headline>
         </View>

@@ -1,10 +1,17 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import i18n from '@/i18n';
 import {
   DEFAULT_SETTINGS, SettingsState, NativeLanguage, BookLanguage, UILanguage,
   ThemeId, FontFamilyMode, ScrollMode, ProficiencyLevel,
   TapToTranslateBehavior, AutoAddToDeck,
 } from '@/types/settings';
+
+// I5: store → i18n зависимость документирована.
+// Пользователь меняет UI-язык → i18n.changeLanguage синхронизирует
+// react-i18next, иначе строки остаются на предыдущем языке.
+// Это однонаправленная зависимость (store knows about i18n); i18n НЕ знает
+// о store. См. I6: первоначальная инициализация i18n идёт от device locale.
 
 interface SettingsActions {
   setUiLanguage: (v: UILanguage) => void;
@@ -33,7 +40,11 @@ const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(ma
 export const useSettingsStore = create<SettingsStore>()(
   subscribeWithSelector((set) => ({
     ...DEFAULT_SETTINGS,
-    setUiLanguage: (v) => set({ uiLanguage: v }),
+    setUiLanguage: (v) => {
+      set({ uiLanguage: v });
+      // eslint-disable-next-line import/no-named-as-default-member
+      void i18n.changeLanguage(v);
+    },
     setNativeLanguage: (v) => set({ nativeLanguage: v }),
     setBookLanguage: (v) => set({ bookLanguage: v }),
     setTheme: (id, auto = false) => set({ themeId: id, themeAuto: auto }),

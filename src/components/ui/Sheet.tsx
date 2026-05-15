@@ -5,7 +5,11 @@ import BottomSheet, { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheet
 import { StyleSheet } from 'react-native-unistyles';
 
 export type SheetRef = BottomSheet;
-interface Props { snapPoints: readonly (string|number)[]; onClose?: () => void; children: React.ReactNode; }
+// I3: prop НЕ readonly — gorhom bottom-sheet типизирует snapPoints как
+// mutable массив, при readonly теряли совместимость и приходилось
+// делать `as (string|number)[]` cast. Хоститься рекомендуется
+// module-level константой (см. I2).
+interface Props { snapPoints: (string|number)[]; onClose?: () => void; children: React.ReactNode; }
 
 const styles = StyleSheet.create((theme) => ({
   bg: { backgroundColor: theme.paper, borderTopLeftRadius: 28, borderTopRightRadius: 28 } satisfies ViewStyle,
@@ -22,7 +26,7 @@ export const Sheet = forwardRef<SheetRef, Props>(({ snapPoints, onClose, childre
   );
   const handleChange = useCallback((i: number) => { if (i === -1) onClose?.(); }, [onClose]);
   return (
-    <BottomSheet ref={ref} snapPoints={snapPoints as (string|number)[]} index={-1}
+    <BottomSheet ref={ref} snapPoints={snapPoints} index={-1}
       enablePanDownToClose backgroundStyle={styles.bg} handleIndicatorStyle={styles.handle}
       backdropComponent={renderBackdrop} onChange={handleChange}>
       <BottomSheetView style={styles.content}>{children}</BottomSheetView>
