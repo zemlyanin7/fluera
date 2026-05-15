@@ -51,6 +51,25 @@ jest.mock('expo-linear-gradient', () => {
   return { LinearGradient: ({ children }) => React.createElement(RN.View, null, children) };
 });
 
+// react-i18next mock — возвращает ключ через простой lookup по en.json,
+// чтобы тесты на TabBar/прочие компоненты не требовали инициализации i18n.
+jest.mock('react-i18next', () => {
+  const en = require('./src/i18n/locales/en.json');
+  const get = (obj, path) =>
+    path.split('.').reduce((acc, k) => (acc == null ? undefined : acc[k]), obj);
+  return {
+    useTranslation: () => ({
+      t: (key) => {
+        const v = get(en, key);
+        return typeof v === 'string' ? v : key;
+      },
+      i18n: { changeLanguage: jest.fn() },
+    }),
+    initReactI18next: { type: '3rdParty', init: jest.fn() },
+    Trans: ({ children }) => children,
+  };
+});
+
 jest.mock('expo-font', () => ({ useFonts: () => [true, null], isLoaded: () => true }));
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }], locale: 'en-US' }));
 jest.mock('expo-splash-screen', () => ({ preventAutoHideAsync: jest.fn(), hideAsync: jest.fn() }));

@@ -32,8 +32,15 @@ const styles = StyleSheet.create((theme) => ({
 export const Button: React.FC<Props> = ({
   variant = 'primary', block = false, disabled = false, icon, onPress, children,
 }) => {
-  const bg = (styles as any)[`${variant}Bg`];
-  const fg = (styles as any)[`${variant}Text`];
+  // C5: явный switch, чтобы НЕ терять Unistyles-типизацию через `(styles as any)`.
+  const bg =
+    variant === 'primary' ? styles.primaryBg
+    : variant === 'accent' ? styles.accentBg
+    : styles.ghostBg;
+  const fg =
+    variant === 'primary' ? styles.primaryText
+    : variant === 'accent' ? styles.accentText
+    : styles.ghostText;
   return (
     <Pressable
       onPress={disabled ? undefined : onPress}

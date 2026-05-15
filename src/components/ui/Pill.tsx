@@ -19,8 +19,17 @@ const styles = StyleSheet.create((theme) => ({
 }));
 
 export const Pill: React.FC<{ tone?: PillTone; icon?: React.ReactNode; children: React.ReactNode }> = ({ tone = 'neutral', icon, children }) => {
-  const bg = (styles as any)[`${tone}Bg`];
-  const fg = (styles as any)[`${tone}Fg`];
+  // C5: явный switch вместо `(styles as any)[...]` — сохраняем типизацию.
+  const bg =
+    tone === 'accent' ? styles.accentBg
+    : tone === 'known' ? styles.knownBg
+    : tone === 'learning' ? styles.learningBg
+    : styles.neutralBg;
+  const fg =
+    tone === 'accent' ? styles.accentFg
+    : tone === 'known' ? styles.knownFg
+    : tone === 'learning' ? styles.learningFg
+    : styles.neutralFg;
   return (
     <View style={[styles.base, bg]}>
       {icon}

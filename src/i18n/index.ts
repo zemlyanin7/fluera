@@ -14,7 +14,12 @@ function detectInitialLang(): SupportedLang {
   return (SUPPORTED as readonly string[]).includes(sys) ? (sys as SupportedLang) : 'en';
 }
 
-void i18n.use(initReactI18next).init({
+// I4: экспортируем Promise готовности i18n, чтобы корневой layout мог await его
+// до SplashScreen.hideAsync(). Без этого пользователь видит мигание ключей.
+// I6: первоначальный язык берём из device locale, дальнейшие смены — через
+// settingsStore.setUiLanguage (см. I5).
+// eslint-disable-next-line import/no-named-as-default-member
+export const i18nReady: Promise<unknown> = i18n.use(initReactI18next).init({
   resources: {
     en: { translation: en },
     ru: { translation: ru },

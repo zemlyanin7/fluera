@@ -1,8 +1,8 @@
 // Шаг 3 онбординга — выбор родного языка. Завершение: ставим
-// onboardingCompleted и уводим в /(tabs). Stub до sub-project #8.
+// onboardingCompleted, разводку в /(tabs) делает корневой <app/index.tsx>
+// через декларативный <Redirect/> (C4). Stub до sub-project #8.
 import React from 'react';
 import { View, Text } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
 import { PhoneShell, Headline, SectionLabel, Button } from '@/components/ui';
@@ -21,12 +21,11 @@ const styles = StyleSheet.create((theme) => ({
 
 export default function OnboardingStep3() {
   const { t } = useTranslation();
-  const router = useRouter();
   const completeOnboarding = useSettingsStore((s) => s.completeOnboarding);
 
   const onFinish = () => {
     completeOnboarding();
-    router.replace('/(tabs)');
+    // Разводка через <Redirect/> в app/index.tsx — больше ничего не нужно.
   };
 
   return (

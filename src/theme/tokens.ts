@@ -1,7 +1,23 @@
+// paperOverlay — полупрозрачный «бумажный» tint поверх BlurView (TabBar и т.п.).
+// Отдельный rgba-токен, чтобы НЕ конкатенировать hex-suffix к paper —
+// `${theme.paper}E0` сломается, если палитра переедет на oklch.
+// Альфа ~30% оставляет BlurView видимым (см. I1).
 export const palettes = {
-  light: { paper: '#F5EFE4', paper2: '#EDE5D5', ink: '#1F1A14', ink2: '#564E42', ink3: '#8A8170' },
-  sepia: { paper: '#ECDFC6', paper2: '#DBCBAA', ink: '#2A2117', ink2: '#5E513D', ink3: '#8E7E62' },
-  dark:  { paper: '#16130E', paper2: '#221E17', ink: '#EDE6D6', ink2: '#B5AB97', ink3: '#786E5C' },
+  light: {
+    paper: '#F5EFE4', paper2: '#EDE5D5',
+    ink: '#1F1A14', ink2: '#564E42', ink3: '#8A8170',
+    paperOverlay: 'rgba(245,239,228,0.30)',
+  },
+  sepia: {
+    paper: '#ECDFC6', paper2: '#DBCBAA',
+    ink: '#2A2117', ink2: '#5E513D', ink3: '#8E7E62',
+    paperOverlay: 'rgba(236,223,198,0.30)',
+  },
+  dark: {
+    paper: '#16130E', paper2: '#221E17',
+    ink: '#EDE6D6', ink2: '#B5AB97', ink3: '#786E5C',
+    paperOverlay: 'rgba(22,19,14,0.30)',
+  },
 } as const;
 
 export const semanticBase = {

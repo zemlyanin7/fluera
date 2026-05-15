@@ -1,8 +1,9 @@
 // Корневой layout: монтирует bridge Settings → Unistyles, инициализирует i18n
-// (через side-effect import), скрывает splash после первого useEffect и
-// разводит навигацию по флагу onboardingCompleted.
-import React, { useEffect } from 'react';
-import { Stack, useRouter } from 'expo-router';
+// (через side-effect import + i18nReady promise) и разводит навигацию по флагу
+// onboardingCompleted декларативным <Redirect/>, чтобы не было flash (tabs)
+// перед onboarding.
+import React, { useEffect, useState } from 'react';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -12,30 +13,35 @@ import { StyleSheet } from 'react-native';
 import '@/theme'; // side-effect: StyleSheet.configure
 import { attachThemeBridge } from '@/theme/bridge';
 import { useSettingsStore } from '@/stores/settingsStore';
-import '@/i18n'; // side-effect: i18next init
+import { i18nReady } from '@/i18n'; // I4: ждём готовности i18n до hideAsync
 
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const router = useRouter();
-  const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);
+  // ВАЖНО: НЕ читаем onboardingCompleted на корневом layout, чтобы Stack не
+  // ремонтировался при completeOnboarding(). Разводку делает <_layout> внутри
+  // отдельных групп через Redirect (см. (onboarding)/_layout, (tabs)/_layout).
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const unsubscribe = attachThemeBridge();
-    void SplashScreen.hideAsync();
+    // I4: дождёмся i18n, потом снимаем splash. До этого момента Stack не
+    // монтируется (см. ниже `if (!ready) return null`).
+    void i18nReady.then(() => {
+      setReady(true);
+      void SplashScreen.hideAsync();
+    });
     return unsubscribe;
   }, []);
 
-  useEffect(() => {
-    if (onboardingCompleted) router.replace('/(tabs)');
-    else router.replace('/(onboarding)');
-  }, [onboardingCompleted, router]);
+  if (!ready) return null;
 
   return (
     <GestureHandlerRootView style={StyleSheet.absoluteFill}>
       <SafeAreaProvider>
         <StatusBar style="auto" />
         <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
           <Stack.Screen name="(onboarding)" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(playground)" />
