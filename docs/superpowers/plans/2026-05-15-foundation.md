@@ -1918,7 +1918,7 @@ export type { ProgressTone } from './ProgressBar';
 
 ### Task 36: locale JSON-файлы en/ru/pl/uk
 
-- [ ] **Step 1:** Создать 4 JSON в `src/i18n/locales/`. Минимальный набор ключей:
+- [x] **Step 1:** Создать 4 JSON в `src/i18n/locales/`. Минимальный набор ключей:
   - `common.*` (continue/skip/next/back/close)
   - `tabs.*` (read/deck/stats/you)
   - `onboarding.step1.title`, `step2.title`, `step3.title`
@@ -2002,7 +2002,7 @@ export type { ProgressTone } from './ProgressBar';
 }
 ```
 
-- [ ] **Step 2:** Коммит `feat(i18n): локали en/ru/pl/uk`
+- [x] **Step 2:** Коммит `feat(i18n): локали en/ru/pl/uk`
 
 ---
 
