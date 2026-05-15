@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pandoc /Users/andrei/development/Mobile/Fluera/doc/fluera-research-brief-v3.docx -o /tmp/fluera-doc.md)",
+      "WebFetch(domain:skillsmp.com)"
+    ]
+  }
+}
