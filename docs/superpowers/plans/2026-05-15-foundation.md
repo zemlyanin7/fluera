@@ -1062,7 +1062,7 @@ git commit -m "feat(stores): settingsStore с clamping + 19 tests"
 
 ### Task 19: paths.ts — 26 SVG path strings
 
-- [ ] **Step 1:** `src/components/icons/paths.ts`
+- [x] **Step 1:** `src/components/icons/paths.ts`
 
 ```typescript
 /** SVG path data для 26 иконок Fluera (port 1:1 из icons.jsx handoff). */
@@ -1112,7 +1112,7 @@ export const PATHS: Record<string, string> = {
 
 Композитные иконки (close, plus, book, arrowRight, fontSize, layers, и т.д.) используют несколько path-ключей с суффиксами P1/P2/... Структура «icon → используемые path-ключи + Circle/Rect» жёстко закодирована в Task 21.
 
-- [ ] **Step 2:** Коммит
+- [x] **Step 2:** Коммит
 
 ```bash
 git add src/components/icons/paths.ts
@@ -1123,7 +1123,7 @@ git commit -m "feat(icons): 26 SVG paths from design bundle"
 
 ### Task 20: Icon.tsx — base component
 
-- [ ] **Step 1:** `src/components/icons/Icon.tsx`
+- [x] **Step 1:** `src/components/icons/Icon.tsx`
 
 ```typescript
 import React from 'react';
@@ -1153,7 +1153,7 @@ export const Icon: React.FC<IconProps & { children: React.ReactNode }> = ({
 };
 ```
 
-- [ ] **Step 2:** Коммит
+- [x] **Step 2:** Коммит
 
 ```bash
 git add src/components/icons/Icon.tsx
@@ -1164,7 +1164,7 @@ git commit -m "feat(icons): base Icon component (theme-aware color)"
 
 ### Task 21: index.tsx — 26 named exports
 
-- [ ] **Step 1:** `src/components/icons/index.tsx`
+- [x] **Step 1:** `src/components/icons/index.tsx`
 
 ```typescript
 import React from 'react';
@@ -1261,7 +1261,7 @@ export const IcSettings = (p: IconProps) => (
 export type { IconProps };
 ```
 
-- [ ] **Step 2:** Typecheck + коммит
+- [x] **Step 2:** Typecheck + коммит
 
 ```bash
 npm run typecheck
