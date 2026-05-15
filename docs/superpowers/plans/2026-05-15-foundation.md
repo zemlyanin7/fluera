@@ -2127,7 +2127,7 @@ git commit -m "chore(assets): 38 .ttf шрифтов для 6 скриптов"
 
 ### Task 40: app.json — expo-font config plugin
 
-- [ ] **Step 1:** Заменить `app.json`:
+- [x] **Step 1:** Заменить `app.json`:
 
 ```json
 {
@@ -2212,18 +2212,13 @@ git commit -m "chore(assets): 38 .ttf шрифтов для 6 скриптов"
 
 В `package.json` должно быть `"main": "expo-router/entry"`.
 
-- [ ] **Step 2:** Удалить App.tsx и index.ts (expo-router использует app/ entry)
+- [x] **Step 2:** Удалить App.tsx и index.ts (expo-router использует app/ entry)
 
 ```bash
 rm -f App.tsx index.ts
 ```
 
-- [ ] **Step 3:** Коммит
-
-```bash
-git add app.json package.json
-git commit -m "chore: app.json с expo-router + expo-font config plugin (38 fonts)"
-```
+- [x] **Step 3:** Коммит — выполнено с расхождением: `expo-font` plugin оставлен bare string (без массива fonts), поскольку Task 39 (скачать 38 .ttf) ещё не выполнен. Полный config plugin будет добавлен после того, как файлы окажутся в `assets/fonts/`. См. коммит `chore: app.json (Fluera bundle/scheme/router/localization) — fonts plugin будет дополнен после Task 39`.
 
 ---
 
@@ -2231,7 +2226,7 @@ git commit -m "chore: app.json с expo-router + expo-font config plugin (38 font
 
 ### Task 41: app/_layout.tsx — root Stack + bridge mount
 
-- [ ] **Step 1:** Создать `app/_layout.tsx` (полный код в спеке §11.1 + bridge mount + routing decision):
+- [x] **Step 1:** Создать `app/_layout.tsx` (полный код в спеке §11.1 + bridge mount + routing decision):
 
 ```typescript
 import React, { useEffect } from 'react';
@@ -2283,7 +2278,7 @@ export default function RootLayout() {
 }
 ```
 
-- [ ] **Step 2:** Коммит `feat(app): root layout + bridge mount + routing decision`
+- [x] **Step 2:** Коммит `feat(app): root layout + bridge mount + routing decision`
 
 ---
 
@@ -2318,7 +2313,7 @@ export default function NotFound() {
 
 ### Task 43: (onboarding) — 3 step stubs
 
-- [ ] **Step 1:** `app/(onboarding)/_layout.tsx`
+- [x] **Step 1:** `app/(onboarding)/_layout.tsx`
 
 ```typescript
 import { Stack } from 'expo-router';
@@ -2327,7 +2322,7 @@ export default function OnboardingLayout() {
 }
 ```
 
-- [ ] **Step 2:** `app/(onboarding)/index.tsx`
+- [x] **Step 2:** `app/(onboarding)/index.tsx`
 
 ```typescript
 import React from 'react';
@@ -2362,13 +2357,13 @@ export default function OnboardingStep1() {
 }
 ```
 
-- [ ] **Step 3:** `app/(onboarding)/book-lang.tsx` — копия шага 1, но:
+- [x] **Step 3:** `app/(onboarding)/book-lang.tsx` — копия шага 1, но:
   - `SectionLabel`: "Step 2 / 3"
   - `Headline`: `t('onboarding.step2.title')`
   - `hint`: "Stub — book-lang picker реализуется в #8."
   - `Link href="/(onboarding)/native-lang"`
 
-- [ ] **Step 4:** `app/(onboarding)/native-lang.tsx`
+- [x] **Step 4:** `app/(onboarding)/native-lang.tsx`
 
 ```typescript
 import React from 'react';
@@ -2408,13 +2403,13 @@ export default function OnboardingStep3() {
 }
 ```
 
-- [ ] **Step 5:** Коммит `feat(app): (onboarding) 3-step stub flow`
+- [x] **Step 5:** Коммит `feat(app): (onboarding) 3-step stub flow`
 
 ---
 
 ### Task 44: (tabs) layout + 4 экрана
 
-- [ ] **Step 1:** `app/(tabs)/_layout.tsx`
+- [x] **Step 1:** `app/(tabs)/_layout.tsx`
 
 ```typescript
 import { Tabs } from 'expo-router';
@@ -2431,7 +2426,7 @@ export default function TabsLayout() {
 }
 ```
 
-- [ ] **Step 2:** `app/(tabs)/index.tsx` — Library
+- [x] **Step 2:** `app/(tabs)/index.tsx` — Library
 
 ```typescript
 import React from 'react';
@@ -2493,7 +2488,7 @@ export default function LibraryScreen() {
 }
 ```
 
-- [ ] **Step 3:** `app/(tabs)/deck.tsx`
+- [x] **Step 3:** `app/(tabs)/deck.tsx`
 
 ```typescript
 import React from 'react';
@@ -2519,11 +2514,11 @@ export default function DeckScreen() {
 }
 ```
 
-- [ ] **Step 4:** `app/(tabs)/stats.tsx` — структура идентична deck.tsx, заменить:
+- [x] **Step 4:** `app/(tabs)/stats.tsx` — структура идентична deck.tsx, заменить:
   - `Headline`: "Your reading"
   - `hint`: "Streaks/charts/achievements — sub-project #7."
 
-- [ ] **Step 5:** `app/(tabs)/settings.tsx`
+- [x] **Step 5:** `app/(tabs)/settings.tsx`
 
 ```typescript
 import React from 'react';
@@ -2601,13 +2596,13 @@ export default function SettingsScreen() {
 }
 ```
 
-- [ ] **Step 6:** Коммит `feat(app): (tabs) layout + Library card + Settings ThemePicker`
+- [x] **Step 6:** Коммит `feat(app): (tabs) layout + Library card + Settings ThemePicker`
 
 ---
 
 ### Task 45: app/reader/[bookId].tsx — Reader smoke
 
-- [ ] **Step 1:** `app/reader/[bookId].tsx`
+- [x] **Step 1:** `app/reader/[bookId].tsx`
 
 ```typescript
 import React, { useState, useRef } from 'react';
@@ -2751,13 +2746,13 @@ export default function ReaderScreen() {
 }
 ```
 
-- [ ] **Step 2:** Коммит `feat(app): Reader smoke c Borges, tap-highlight, theme sheet`
+- [x] **Step 2:** Коммит `feat(app): Reader smoke c Borges, tap-highlight, theme sheet`
 
 ---
 
 ### Task 46: word + deck/session + import stubs
 
-- [ ] **Step 1:** `app/word/[wordId].tsx`
+- [x] **Step 1:** `app/word/[wordId].tsx`
 
 ```typescript
 import React from 'react';
@@ -2789,7 +2784,7 @@ export default function WordModal() {
 }
 ```
 
-- [ ] **Step 2:** `app/deck/session.tsx`
+- [x] **Step 2:** `app/deck/session.tsx`
 
 ```typescript
 import React from 'react';
@@ -2822,7 +2817,7 @@ export default function DeckSession() {
 }
 ```
 
-- [ ] **Step 3:** `app/import.tsx`
+- [x] **Step 3:** `app/import.tsx`
 
 ```typescript
 import React from 'react';
@@ -2855,13 +2850,13 @@ export default function ImportModal() {
 }
 ```
 
-- [ ] **Step 4:** Коммит `feat(app): word/deck/import stubs c правильными presentation modes`
+- [x] **Step 4:** Коммит `feat(app): word/deck/import stubs c правильными presentation modes`
 
 ---
 
 ### Task 47: (playground) — UI showcase
 
-- [ ] **Step 1:** `app/(playground)/_layout.tsx`
+- [x] **Step 1:** `app/(playground)/_layout.tsx`
 
 ```typescript
 import { Stack, Redirect } from 'expo-router';
@@ -2871,7 +2866,7 @@ export default function PlaygroundLayout() {
 }
 ```
 
-- [ ] **Step 2:** `app/(playground)/index.tsx`
+- [x] **Step 2:** `app/(playground)/index.tsx`
 
 ```typescript
 import React from 'react';
@@ -2984,7 +2979,7 @@ export default function Playground() {
 }
 ```
 
-- [ ] **Step 3:** Коммит `feat(app): (playground) dev-only showcase`
+- [x] **Step 3:** Коммит `feat(app): (playground) dev-only showcase`
 
 ---
 
