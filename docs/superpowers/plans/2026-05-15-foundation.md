@@ -665,7 +665,7 @@ git commit -m "feat(theme): bridge + barrel export"
 
 ### Task 14: content.ts (ContentItem / InlineNode / BookChapter / BookFootnotes)
 
-- [ ] **Step 1:** `src/types/content.ts` — полный код из спеки §6.1. Включает:
+- [x] **Step 1:** `src/types/content.ts` — полный код из спеки §6.1. Включает:
   - InlineNode (text, bold, italic, link, sup, sub, footnote-ref)
   - ParagraphStyle
   - ContentItem (heading.id, image.aspectRatio, blockquote.items: ContentItem[], list.items: ContentItem[][], separator, table-row)
@@ -712,7 +712,7 @@ export interface BookFootnotes {
 export const MAX_INLINE_DEPTH = 20;
 ```
 
-- [ ] **Step 2:** Коммит
+- [x] **Step 2:** Коммит
 
 ```bash
 git add src/types/content.ts
@@ -723,7 +723,7 @@ git commit -m "feat(types): canonical ContentItem / InlineNode / BookChapter / B
 
 ### Task 15: settings.ts + types barrel
 
-- [ ] **Step 1:** `src/types/settings.ts` — полный код из спеки §6.2:
+- [x] **Step 1:** `src/types/settings.ts` — полный код из спеки §6.2:
 
 ```typescript
 export type ThemeId = 'light' | 'sepia' | 'dark';
@@ -772,14 +772,14 @@ export const DEFAULT_SETTINGS: SettingsState = {
 };
 ```
 
-- [ ] **Step 2:** `src/types/index.ts`
+- [x] **Step 2:** `src/types/index.ts`
 
 ```typescript
 export * from './content';
 export * from './settings';
 ```
 
-- [ ] **Step 3:** Коммит
+- [x] **Step 3:** Коммит
 
 ```bash
 git add src/types/
@@ -790,7 +790,7 @@ git commit -m "feat(types): SettingsState + branded language types"
 
 ### Task 16: splitWords.ts (TDD)
 
-- [ ] **Step 1:** Тест `__tests__/utils/splitWords.test.ts`
+- [x] **Step 1:** Тест `__tests__/utils/splitWords.test.ts`
 
 ```typescript
 import { splitWords } from '@/utils/splitWords';
@@ -813,13 +813,13 @@ describe('splitWords', () => {
 });
 ```
 
-- [ ] **Step 2:** FAIL
+- [x] **Step 2:** FAIL
 
 ```bash
 npm test -- __tests__/utils/splitWords.test.ts
 ```
 
-- [ ] **Step 3:** `src/utils/splitWords.ts`
+- [x] **Step 3:** `src/utils/splitWords.ts`
 
 ```typescript
 export type WordToken =
@@ -843,9 +843,9 @@ export function splitWords(input: string): WordToken[] {
 }
 ```
 
-- [ ] **Step 4:** PASS — 7 tests
+- [x] **Step 4:** PASS — 7 tests
 
-- [ ] **Step 5:** Коммит
+- [x] **Step 5:** Коммит
 
 ```bash
 git add __tests__/utils/splitWords.test.ts src/utils/splitWords.ts
@@ -856,7 +856,7 @@ git commit -m "feat(utils): splitWords minimal tokenizer (TDD)"
 
 ### Task 17: constants.ts
 
-- [ ] **Step 1:** `src/utils/constants.ts`
+- [x] **Step 1:** `src/utils/constants.ts`
 
 ```typescript
 export const APP_NAME = 'Fluera';
@@ -867,7 +867,7 @@ export const TABBAR_INSET = 14;
 export const TABBAR_BOTTOM = 18;
 ```
 
-- [ ] **Step 2:** Коммит
+- [x] **Step 2:** Коммит
 
 ```bash
 git add src/utils/constants.ts
