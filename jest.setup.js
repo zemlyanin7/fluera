@@ -3,7 +3,12 @@ jest.mock('react-native-unistyles', () => ({
     configure: jest.fn(),
     create: (factory) => {
       const result = typeof factory === 'function'
-        ? factory({ ink: '#000', paper: '#fff', accent: '#c0392b' }, {})
+        ? factory(
+            { ink: '#000', paper: '#fff', accent: '#c0392b', ink2: '#333', ink3: '#888',
+              accentSoft: '#c0392b22', knownSoft: '#22cc8822', learningSoft: '#ffcc0022',
+              known: '#22cc88', learning: '#ffcc00' },
+            { insets: { top: 0, right: 0, bottom: 0, left: 0 } },
+          )
         : factory;
       return Object.assign(result, { useVariants: jest.fn() });
     },
