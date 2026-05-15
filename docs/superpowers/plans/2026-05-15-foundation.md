@@ -141,7 +141,7 @@ git commit -m "chore: init fresh Expo SDK 55 + TypeScript project"
 
 ### Task 4: Установить все зависимости
 
-- [ ] **Step 1:** Runtime deps через expo install
+- [x] **Step 1:** Runtime deps через expo install
 
 ```bash
 npx expo install expo-router expo-blur expo-font expo-linear-gradient \
@@ -151,14 +151,14 @@ npx expo install expo-router expo-blur expo-font expo-linear-gradient \
   react-native-svg
 ```
 
-- [ ] **Step 2:** Styling/state/i18n через npm
+- [x] **Step 2:** Styling/state/i18n через npm
 
 ```bash
 npm install react-native-unistyles@^3 @gorhom/bottom-sheet@^5 \
   zustand@^5 i18next react-i18next
 ```
 
-- [ ] **Step 3:** Dev-deps
+- [x] **Step 3:** Dev-deps
 
 ```bash
 npm install --save-dev jest jest-expo @testing-library/react-native \
@@ -166,7 +166,7 @@ npm install --save-dev jest jest-expo @testing-library/react-native \
   babel-plugin-module-resolver eslint@^9 eslint-config-expo@~55.0.0
 ```
 
-- [ ] **Step 4:** Проверка совместимости
+- [x] **Step 4:** Проверка совместимости
 
 ```bash
 npx expo doctor
@@ -174,7 +174,7 @@ npx expo doctor
 
 Expected: OK либо некритичные warnings.
 
-- [ ] **Step 5:** Коммит
+- [x] **Step 5:** Коммит
 
 ```bash
 git add package.json package-lock.json
@@ -185,7 +185,7 @@ git commit -m "chore: install runtime + dev dependencies"
 
 ### Task 5: TypeScript strict + path alias
 
-- [ ] **Step 1:** Заменить `tsconfig.json`
+- [x] **Step 1:** Заменить `tsconfig.json`
 
 ```json
 {
@@ -203,7 +203,7 @@ git commit -m "chore: install runtime + dev dependencies"
 }
 ```
 
-- [ ] **Step 2:** Проверка
+- [x] **Step 2:** Проверка
 
 ```bash
 npm run typecheck
@@ -211,7 +211,7 @@ npm run typecheck
 
 Expected: 0 errors.
 
-- [ ] **Step 3:** Коммит
+- [x] **Step 3:** Коммит
 
 ```bash
 git add tsconfig.json
@@ -222,7 +222,7 @@ git commit -m "chore: TypeScript strict + @/* path alias"
 
 ### Task 6: Babel config с Reanimated + alias
 
-- [ ] **Step 1:** Заменить `babel.config.js`
+- [x] **Step 1:** Заменить `babel.config.js`
 
 ```javascript
 module.exports = function (api) {
@@ -237,7 +237,7 @@ module.exports = function (api) {
 };
 ```
 
-- [ ] **Step 2:** Коммит
+- [x] **Step 2:** Коммит
 
 ```bash
 git add babel.config.js
@@ -248,7 +248,7 @@ git commit -m "chore: Babel config + Reanimated plugin + alias"
 
 ### Task 7: Jest конфиг + моки
 
-- [ ] **Step 1:** `jest.config.js`
+- [x] **Step 1:** `jest.config.js`
 
 ```javascript
 module.exports = {
@@ -262,7 +262,7 @@ module.exports = {
 };
 ```
 
-- [ ] **Step 2:** `jest.setup.js`
+- [x] **Step 2:** `jest.setup.js`
 
 ```javascript
 jest.mock('react-native-unistyles', () => ({
@@ -315,7 +315,7 @@ jest.mock('expo-splash-screen', () => ({ preventAutoHideAsync: jest.fn(), hideAs
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 ```
 
-- [ ] **Step 3:** Проверить
+- [x] **Step 3:** Проверить
 
 ```bash
 npm test
@@ -323,7 +323,7 @@ npm test
 
 Expected: 0 tests / OK.
 
-- [ ] **Step 4:** Коммит
+- [x] **Step 4:** Коммит
 
 ```bash
 git add jest.config.js jest.setup.js
@@ -334,7 +334,7 @@ git commit -m "chore: Jest configuration with native-module mocks"
 
 ### Task 8: ESLint flat config
 
-- [ ] **Step 1:** `eslint.config.js`
+- [x] **Step 1:** `eslint.config.js`
 
 ```javascript
 const { defineConfig } = require('eslint/config');
@@ -352,7 +352,7 @@ module.exports = defineConfig([
 ]);
 ```
 
-- [ ] **Step 2:** Lint
+- [x] **Step 2:** Lint
 
 ```bash
 npm run lint
@@ -360,7 +360,7 @@ npm run lint
 
 Expected: 0 errors.
 
-- [ ] **Step 3:** Коммит
+- [x] **Step 3:** Коммит
 
 ```bash
 git add eslint.config.js
@@ -371,7 +371,7 @@ git commit -m "chore: ESLint flat config"
 
 ### Task 9: Скаффолд директорий
 
-- [ ] **Step 1:** Создать структуру
+- [x] **Step 1:** Создать структуру
 
 ```bash
 mkdir -p \
@@ -382,13 +382,13 @@ mkdir -p \
   __tests__/theme __tests__/stores __tests__/utils __tests__/components/ui
 ```
 
-- [ ] **Step 2:** .gitkeep для пустых директорий
+- [x] **Step 2:** .gitkeep для пустых директорий
 
 ```bash
 find src __tests__ assets -type d -empty -exec touch {}/.gitkeep \;
 ```
 
-- [ ] **Step 3:** Расширить `.gitignore`:
+- [x] **Step 3:** Расширить `.gitignore`:
 
 ```
 .expo/
@@ -411,7 +411,7 @@ node_modules/
 coverage/
 ```
 
-- [ ] **Step 4:** Коммит
+- [x] **Step 4:** Коммит
 
 ```bash
 git add -A
