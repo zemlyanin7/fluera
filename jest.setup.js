@@ -16,30 +16,34 @@ jest.mock('react-native-unistyles', () => ({
 }));
 
 jest.mock('@gorhom/bottom-sheet', () => {
+  const React = require('react');
   const RN = require('react-native');
   return {
     __esModule: true,
-    default: ({ children }) => RN.createElement(RN.View, null, children),
-    BottomSheetView: ({ children }) => RN.createElement(RN.View, null, children),
+    default: React.forwardRef(({ children }, _ref) => React.createElement(RN.View, null, children)),
+    BottomSheetView: ({ children }) => React.createElement(RN.View, null, children),
     BottomSheetBackdrop: () => null,
   };
 });
 
 jest.mock('react-native-svg', () => {
+  const React = require('react');
   const RN = require('react-native');
-  const PT = ({ children }) => RN.createElement(RN.View, null, children);
+  const PT = ({ children }) => React.createElement(RN.View, null, children);
   return { Svg: PT, Path: PT, Circle: PT, Rect: PT, G: PT, Defs: PT,
            LinearGradient: PT, Stop: PT };
 });
 
 jest.mock('expo-blur', () => {
+  const React = require('react');
   const RN = require('react-native');
-  return { BlurView: ({ children }) => RN.createElement(RN.View, null, children) };
+  return { BlurView: ({ children }) => React.createElement(RN.View, null, children) };
 });
 
 jest.mock('expo-linear-gradient', () => {
+  const React = require('react');
   const RN = require('react-native');
-  return { LinearGradient: ({ children }) => RN.createElement(RN.View, null, children) };
+  return { LinearGradient: ({ children }) => React.createElement(RN.View, null, children) };
 });
 
 jest.mock('expo-font', () => ({ useFonts: () => [true, null], isLoaded: () => true }));
