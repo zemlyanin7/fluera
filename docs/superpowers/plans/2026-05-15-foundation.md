@@ -1399,7 +1399,7 @@ export const Pill: React.FC<{ tone?: PillTone; icon?: React.ReactNode; children:
 
 ### Task 27: Button (TDD, 7 tests)
 
-- [ ] **Step 1:** Тест `__tests__/components/ui/Button.test.tsx`
+- [x] **Step 1:** Тест `__tests__/components/ui/Button.test.tsx`
 
 ```typescript
 import React from 'react';
@@ -1437,9 +1437,9 @@ describe('Button', () => {
 });
 ```
 
-- [ ] **Step 2:** FAIL
+- [x] **Step 2:** FAIL
 
-- [ ] **Step 3:** `src/components/ui/Button.tsx`
+- [x] **Step 3:** `src/components/ui/Button.tsx`
 
 ```typescript
 import React from 'react';
@@ -1494,9 +1494,9 @@ export const Button: React.FC<Props> = ({
 };
 ```
 
-- [ ] **Step 4:** PASS — 7 tests
+- [x] **Step 4:** PASS — 7 tests
 
-- [ ] **Step 5:** Коммит `feat(ui): Button primary/accent/ghost + tests`
+- [x] **Step 5:** Коммит `feat(ui): Button primary/accent/ghost + tests`
 
 ---
 
@@ -1690,7 +1690,7 @@ export const BookCover: React.FC<Props> = ({ book, w = 78, h = 108 }) => {
 
 ### Task 33: Sheet (TDD, 2 tests) — gorhom wrapper
 
-- [ ] **Step 1:** Тест `__tests__/components/ui/Sheet.test.tsx`
+- [x] **Step 1:** Тест `__tests__/components/ui/Sheet.test.tsx`
 
 ```typescript
 import React from 'react';
@@ -1711,9 +1711,9 @@ describe('Sheet', () => {
 });
 ```
 
-- [ ] **Step 2:** FAIL
+- [x] **Step 2:** FAIL
 
-- [ ] **Step 3:** `src/components/ui/Sheet.tsx`
+- [x] **Step 3:** `src/components/ui/Sheet.tsx`
 
 ```typescript
 import React, { forwardRef, useCallback } from 'react';
@@ -1749,21 +1749,21 @@ export const Sheet = forwardRef<SheetRef, Props>(({ snapPoints, onClose, childre
 Sheet.displayName = 'Sheet';
 ```
 
-- [ ] **Step 4:** PASS
+- [x] **Step 4:** PASS
 
-- [ ] **Step 5:** Коммит `feat(ui): Sheet wrapper над gorhom bottom-sheet + tests`
+- [x] **Step 5:** Коммит `feat(ui): Sheet wrapper над gorhom bottom-sheet + tests`
 
 ---
 
 ### Task 34: TabBar (TDD, 2 tests) — blur tab-bar
 
-- [ ] **Step 1:** Установить `@react-navigation/bottom-tabs` (для типа)
+- [x] **Step 1:** Установить `@react-navigation/bottom-tabs` (для типа)
 
 ```bash
 npx expo install @react-navigation/native @react-navigation/bottom-tabs
 ```
 
-- [ ] **Step 2:** Тест `__tests__/components/ui/TabBar.test.tsx`
+- [x] **Step 2:** Тест `__tests__/components/ui/TabBar.test.tsx`
 
 ```typescript
 import React from 'react';
@@ -1800,9 +1800,9 @@ describe('TabBar', () => {
 });
 ```
 
-- [ ] **Step 3:** FAIL
+- [x] **Step 3:** FAIL
 
-- [ ] **Step 4:** `src/components/ui/TabBar.tsx`
+- [x] **Step 4:** `src/components/ui/TabBar.tsx`
 
 ```typescript
 import React from 'react';
@@ -1883,7 +1883,7 @@ export const TabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => (
 );
 ```
 
-- [ ] **Step 5:** PASS, коммит `feat(ui): TabBar 4-tab floating с blur (TDD)`
+- [x] **Step 5:** PASS, коммит `feat(ui): TabBar 4-tab floating с blur (TDD)`
 
 ---
 
