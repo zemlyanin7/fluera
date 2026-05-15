@@ -99,20 +99,20 @@ git commit -m "chore: wipe legacy code for full rewrite (Foundation #1)"
 
 ### Task 3: create-expo-app
 
-- [ ] **Step 1:** Шаблон в /tmp
+- [x] **Step 1:** Шаблон в /tmp
 
 ```bash
 cd /tmp && npx create-expo-app@latest fluera-init --template blank-typescript
 ```
 
-- [ ] **Step 2:** Скопировать в репо
+- [x] **Step 2:** Скопировать в репо
 
 ```bash
 cd /Users/andrei/development/Mobile/Fluera
 cp -r /tmp/fluera-init/{app,assets,App.tsx,index.ts,app.json,package.json,tsconfig.json,babel.config.js,.gitignore} .
 ```
 
-- [ ] **Step 3:** Скрипты в `package.json` — заменить блок `scripts`:
+- [x] **Step 3:** Скрипты в `package.json` — заменить блок `scripts`:
 
 ```json
 "scripts": {
@@ -129,7 +129,7 @@ cp -r /tmp/fluera-init/{app,assets,App.tsx,index.ts,app.json,package.json,tsconf
 
 Также установить `"name": "fluera"`, `"main": "expo-router/entry"`.
 
-- [ ] **Step 4:** Удалить tmp + коммит
+- [x] **Step 4:** Удалить tmp + коммит
 
 ```bash
 rm -rf /tmp/fluera-init
