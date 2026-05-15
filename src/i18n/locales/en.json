@@ -10,5 +10,6 @@
     "theme": { "title": "Paper", "day": "Day", "sepia": "Sepia", "night": "Night", "auto": "Auto Day/Night" },
     "font":  { "title": "Reading", "size": "Size", "typeface": "Typeface", "serif": "Source Serif", "sans": "Geist" }
   },
-  "library": { "empty": "No books yet" }
+  "library": { "empty": "No books yet" },
+  "notFound": { "title": "Page not found", "back": "Go back" }
 }

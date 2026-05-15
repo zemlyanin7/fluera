@@ -10,5 +10,6 @@
     "theme": { "title": "Бумага", "day": "День", "sepia": "Сепия", "night": "Ночь", "auto": "Авто День/Ночь" },
     "font":  { "title": "Чтение", "size": "Размер", "typeface": "Шрифт", "serif": "Source Serif", "sans": "Geist" }
   },
-  "library": { "empty": "Книг пока нет" }
+  "library": { "empty": "Книг пока нет" },
+  "notFound": { "title": "Страница не найдена", "back": "Вернуться" }
 }

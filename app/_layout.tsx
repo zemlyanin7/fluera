@@ -12,7 +12,6 @@ import { StyleSheet } from 'react-native';
 
 import '@/theme'; // side-effect: StyleSheet.configure
 import { attachThemeBridge } from '@/theme/bridge';
-import { useSettingsStore } from '@/stores/settingsStore';
 import { i18nReady } from '@/i18n'; // I4: ждём готовности i18n до hideAsync
 
 void SplashScreen.preventAutoHideAsync();

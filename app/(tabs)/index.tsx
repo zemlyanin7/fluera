@@ -1,5 +1,5 @@
 // Library — фиксированная карточка Borges, тап → Reader.
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
@@ -11,6 +11,7 @@ import {
   Pill,
   ProgressBar,
 } from '@/components/ui';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 const styles = StyleSheet.create((theme) => ({
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 12 },
@@ -31,10 +32,16 @@ const styles = StyleSheet.create((theme) => ({
 
 export default function LibraryScreen() {
   const router = useRouter();
+  const uiLanguage = useSettingsStore((s) => s.uiLanguage);
+  // M3: дата в UI-локали, без хардкода. Зависимость только от смены языка/дня.
+  const todayLabel = useMemo(
+    () => new Intl.DateTimeFormat(uiLanguage, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()),
+    [uiLanguage],
+  );
   return (
     <PhoneShell>
       <View style={styles.header}>
-        <SectionLabel>Tuesday, 15 May</SectionLabel>
+        <SectionLabel>{todayLabel}</SectionLabel>
         <View style={styles.spacer2} />
         <Headline level={1}>Library</Headline>
       </View>

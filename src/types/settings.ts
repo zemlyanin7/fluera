@@ -1,3 +1,8 @@
+// M5: типы языков — это constrained string union'ы из supported-set,
+// НЕ branded types в строгом смысле (nominal-типизация через intersection
+// с __brand-полем не используется). Если в будущем потребуется усиление
+// типобезопасности, можно добавить asNativeLanguage(v: string): NativeLanguage
+// + brand. Сейчас union достаточен — компилятор ловит литералы вне набора.
 export type ThemeId = 'light' | 'sepia' | 'dark';
 export type FontFamilyMode = 'serif' | 'sans';
 export type ScrollMode = 'page' | 'scroll';

@@ -1,14 +1,9 @@
-// Reader smoke: топ-бар (back + chapter title + IcFontSize), ScrollView с
-// параграфами Borges, тап по слову → подсветка accent, Sheet с темой Day/Sepia/Night.
-//
-// Skript-variant: `stylesheet.useVariants({ script })` подменяет fontFamily
-// (и для arabic writingDirection/textAlign).
-//
-// ВАЖНО (I11): word-tap через nested <Text onPress> — Foundation smoke.
-// Background styling нестабилен на Android (рендерится только за глифами,
-// без padding/borderRadius). Реальная реализация в sub-project #4: использовать
-// range-based highlight через onTouchStart math на родительском <Text>, а не
-// nested Text-spans.
+// Reader smoke: топ-бар, ScrollView с параграфами Borges, тап по слову →
+// подсветка accent, Sheet с темой Day/Sepia/Night.
+// Skript-variant: stylesheet.useVariants({ script }) подменяет fontFamily.
+// ВАЖНО (I11): word-tap nested <Text onPress> — Foundation smoke. На Android
+// background рендерится только за глифами. Реальная реализация — в #4
+// (range-based highlight через onTouchStart math на родительском Text).
 import React, { useState, useRef } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -30,26 +25,10 @@ import { scriptTypography } from '@/theme/tokens';
 import type { InlineNode, ContentItem, ThemeId } from '@/types';
 
 const stylesheet = StyleSheet.create((theme) => ({
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-  },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 8 },
   centerLabel: { textAlign: 'center' as const },
-  chapterNum: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 13,
-    color: theme.ink,
-    fontWeight: '600' as const,
-  },
-  bookName: {
-    fontFamily: 'SourceSerif4-Italic',
-    fontStyle: 'italic' as const,
-    fontSize: 12,
-    color: theme.ink3,
-  },
+  chapterNum: { fontFamily: 'Inter-SemiBold', fontSize: 13, color: theme.ink, fontWeight: '600' as const },
+  bookName: { fontFamily: 'SourceSerif4-Italic', fontStyle: 'italic' as const, fontSize: 12, color: theme.ink3 },
   content: { padding: 28, paddingBottom: 80, flexGrow: 1 },
   reading: {
     color: theme.ink,
@@ -59,11 +38,7 @@ const stylesheet = StyleSheet.create((theme) => ({
         cyrillic: { fontFamily: 'Lora-Regular' },
         cjk_jp: { fontFamily: 'ShipporiMinchoB1-Regular' },
         cjk_kr: { fontFamily: 'NotoSerifKR-Regular' },
-        arabic: {
-          fontFamily: 'Amiri-Regular',
-          writingDirection: 'rtl' as const,
-          textAlign: 'right' as const,
-        },
+        arabic: { fontFamily: 'Amiri-Regular', writingDirection: 'rtl' as const, textAlign: 'right' as const },
         devanagari: { fontFamily: 'TiroDevanagariHindi-Regular' },
       },
     },
@@ -73,23 +48,10 @@ const stylesheet = StyleSheet.create((theme) => ({
   wordActive: { backgroundColor: theme.accent, color: theme.paper },
   sheetTitle: { marginBottom: 12 },
   sheetRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  themeChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 14,
-    minWidth: 90,
-    alignItems: 'center',
-    backgroundColor: theme.paper2,
-  },
+  themeChip: { paddingHorizontal: 16, paddingVertical: 14, borderRadius: 14, minWidth: 90, alignItems: 'center', backgroundColor: theme.paper2 },
   themeChipActive: { borderWidth: 2, borderColor: theme.accent },
-  themeChipText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 13,
-    color: theme.ink,
-  },
-  spacer4: { height: 4 },
-  spacer8: { height: 8 },
-  spacer14: { height: 14 },
+  themeChipText: { fontFamily: 'Inter-SemiBold', fontSize: 13, color: theme.ink },
+  spacer4: { height: 4 }, spacer8: { height: 8 }, spacer14: { height: 14 },
 }));
 
 const THEMES: { id: ThemeId; name: string }[] = [
@@ -101,6 +63,35 @@ const THEMES: { id: ThemeId; name: string }[] = [
 // I2: модульный const — массив больше не пересоздаётся каждый рендер
 // (избегаем лишних ре-рендеров BottomSheet).
 const READER_SHEET_SNAPS: (string | number)[] = ['40%'];
+
+// M2: ThemeSheet вынесен из основного компонента, чтобы [bookId].tsx
+// уместился в лимит 200 строк (CLAUDE.md §«Паттерны компонентов»).
+const ThemeSheet = React.forwardRef<SheetRef, { themeId: ThemeId; onPickTheme: (id: ThemeId) => void }>(
+  ({ themeId, onPickTheme }, ref) => (
+    <Sheet ref={ref} snapPoints={READER_SHEET_SNAPS}>
+      <View style={stylesheet.sheetTitle}>
+        <Headline level={2}>Reading</Headline>
+      </View>
+      <SectionLabel>Paper</SectionLabel>
+      <View style={stylesheet.spacer8} />
+      <View style={stylesheet.sheetRow}>
+        {THEMES.map((t) => {
+          const active = themeId === t.id;
+          return (
+            <Pressable
+              key={t.id}
+              onPress={() => onPickTheme(t.id)}
+              style={[stylesheet.themeChip, active && stylesheet.themeChipActive]}
+            >
+              <Text style={stylesheet.themeChipText}>{t.name}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </Sheet>
+  ),
+);
+ThemeSheet.displayName = 'ThemeSheet';
 
 export default function ReaderScreen() {
   const router = useRouter();
@@ -117,17 +108,11 @@ export default function ReaderScreen() {
   const onTap = (id: string) =>
     setActiveWord((prev) => (prev === id ? null : id));
 
-  const renderInline = (
-    node: InlineNode,
-    pi: number,
-    ii: number,
-  ): React.ReactNode => {
+  const renderInline = (node: InlineNode, pi: number, ii: number): React.ReactNode => {
     if (node.type !== 'text') return null;
     const tokens = splitWords(node.text);
     return tokens.map((tok, ti) => {
-      if (tok.kind !== 'word') {
-        return <Text key={`${pi}-${ii}-${ti}-x`}>{tok.text}</Text>;
-      }
+      if (tok.kind !== 'word') return <Text key={`${pi}-${ii}-${ti}-x`}>{tok.text}</Text>;
       const id = `${pi}-${ii}-${ti}`;
       const isActive = activeWord === id;
       return (
@@ -173,10 +158,7 @@ export default function ReaderScreen() {
             The Garden of Forking Paths
           </Text>
         </View>
-        <IconBtn
-          onPress={() => sheetRef.current?.expand()}
-          accessibilityLabel="Settings"
-        >
+        <IconBtn onPress={() => sheetRef.current?.expand()} accessibilityLabel="Settings">
           <IcFontSize size={18} />
         </IconBtn>
       </View>
@@ -189,30 +171,7 @@ export default function ReaderScreen() {
         {BORGES_SAMPLE.items.map((item, pi) => renderItem(item, pi))}
       </ScrollView>
 
-      <Sheet ref={sheetRef} snapPoints={READER_SHEET_SNAPS}>
-        <View style={stylesheet.sheetTitle}>
-          <Headline level={2}>Reading</Headline>
-        </View>
-        <SectionLabel>Paper</SectionLabel>
-        <View style={stylesheet.spacer8} />
-        <View style={stylesheet.sheetRow}>
-          {THEMES.map((t) => {
-            const active = themeId === t.id;
-            return (
-              <Pressable
-                key={t.id}
-                onPress={() => setTheme(t.id, false)}
-                style={[
-                  stylesheet.themeChip,
-                  active && stylesheet.themeChipActive,
-                ]}
-              >
-                <Text style={stylesheet.themeChipText}>{t.name}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </Sheet>
+      <ThemeSheet ref={sheetRef} themeId={themeId} onPickTheme={(id) => setTheme(id, false)} />
     </PhoneShell>
   );
 }

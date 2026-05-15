@@ -23,7 +23,6 @@ export function attachThemeBridge(): () => void {
     (s) => ({ id: s.themeId, auto: s.themeAuto }),
     ({ id, auto }) => {
       if (auto && id === 'sepia') {
-        // eslint-disable-next-line no-console
         console.warn(
           '[theme/bridge] auto=true несовместим с themeId=sepia: ' +
             'adaptiveThemes отключаются, применяется sepia как fixed theme.',

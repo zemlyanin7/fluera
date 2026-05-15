@@ -42,7 +42,6 @@ export const useSettingsStore = create<SettingsStore>()(
     ...DEFAULT_SETTINGS,
     setUiLanguage: (v) => {
       set({ uiLanguage: v });
-      // eslint-disable-next-line import/no-named-as-default-member
       void i18n.changeLanguage(v);
     },
     setNativeLanguage: (v) => set({ nativeLanguage: v }),

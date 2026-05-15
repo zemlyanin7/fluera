@@ -10,5 +10,6 @@
     "theme": { "title": "Папір", "day": "День", "sepia": "Сепія", "night": "Ніч", "auto": "Авто День/Ніч" },
     "font":  { "title": "Читання", "size": "Розмір", "typeface": "Шрифт", "serif": "Source Serif", "sans": "Geist" }
   },
-  "library": { "empty": "Книг ще немає" }
+  "library": { "empty": "Книг ще немає" },
+  "notFound": { "title": "Сторінку не знайдено", "back": "Повернутися" }
 }
