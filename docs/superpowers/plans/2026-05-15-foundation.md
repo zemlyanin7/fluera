@@ -424,7 +424,7 @@ git commit -m "chore: scaffold src/ tree + .gitignore"
 
 ### Task 10: tokens.ts
 
-- [ ] **Step 1:** Создать `src/theme/tokens.ts`:
+- [x] **Step 1:** Создать `src/theme/tokens.ts`:
 
 ```typescript
 export const palettes = {
@@ -481,7 +481,7 @@ export type PaletteId = keyof typeof palettes;
 export type ScriptTypographyId = keyof typeof scriptTypography;
 ```
 
-- [ ] **Step 2:** Коммит
+- [x] **Step 2:** Коммит
 
 ```bash
 git add src/theme/tokens.ts
@@ -492,7 +492,7 @@ git commit -m "feat(theme): palette + semantic + scriptTypography tokens"
 
 ### Task 11: scripts.ts (TDD)
 
-- [ ] **Step 1:** Тест `__tests__/theme/scripts.test.ts`
+- [x] **Step 1:** Тест `__tests__/theme/scripts.test.ts`
 
 ```typescript
 import { scriptForLang } from '@/theme/scripts';
@@ -517,13 +517,13 @@ describe('scriptForLang', () => {
 });
 ```
 
-- [ ] **Step 2:** Запустить — FAIL
+- [x] **Step 2:** Запустить — FAIL
 
 ```bash
 npm test -- __tests__/theme/scripts.test.ts
 ```
 
-- [ ] **Step 3:** `src/theme/scripts.ts`
+- [x] **Step 3:** `src/theme/scripts.ts`
 
 ```typescript
 import { scriptTypography } from './tokens';
@@ -544,13 +544,13 @@ export function scriptForLang(lang: string): ScriptId {
 }
 ```
 
-- [ ] **Step 4:** PASS — 20 tests
+- [x] **Step 4:** PASS — 20 tests
 
 ```bash
 npm test -- __tests__/theme/scripts.test.ts
 ```
 
-- [ ] **Step 5:** Коммит
+- [x] **Step 5:** Коммит
 
 ```bash
 git add __tests__/theme/scripts.test.ts src/theme/scripts.ts
@@ -561,7 +561,7 @@ git commit -m "feat(theme): scriptForLang BCP-47 mapping + tests"
 
 ### Task 12: unistyles.ts конфиг + module augmentation
 
-- [ ] **Step 1:** Создать `src/theme/unistyles.ts`
+- [x] **Step 1:** Создать `src/theme/unistyles.ts`
 
 ```typescript
 import { StyleSheet } from 'react-native-unistyles';
@@ -593,13 +593,13 @@ StyleSheet.configure({
 export { appThemes };
 ```
 
-- [ ] **Step 2:** Typecheck
+- [x] **Step 2:** Typecheck
 
 ```bash
 npm run typecheck
 ```
 
-- [ ] **Step 3:** Коммит
+- [x] **Step 3:** Коммит
 
 ```bash
 git add src/theme/unistyles.ts
@@ -610,7 +610,7 @@ git commit -m "feat(theme): Unistyles v3 config + module augmentation"
 
 ### Task 13: bridge.ts + barrel
 
-- [ ] **Step 1:** `src/theme/bridge.ts`
+- [x] **Step 1:** `src/theme/bridge.ts`
 
 ```typescript
 import { UnistylesRuntime } from 'react-native-unistyles';
@@ -637,7 +637,7 @@ export function attachThemeBridge(): () => void {
 }
 ```
 
-- [ ] **Step 2:** `src/theme/index.ts` — barrel
+- [x] **Step 2:** `src/theme/index.ts` — barrel
 
 ```typescript
 export * from './tokens';
@@ -646,13 +646,13 @@ export * from './bridge';
 import './unistyles'; // side-effect: StyleSheet.configure
 ```
 
-- [ ] **Step 3:** Typecheck
+- [x] **Step 3:** Typecheck
 
 ```bash
 npm run typecheck
 ```
 
-- [ ] **Step 4:** Коммит
+- [x] **Step 4:** Коммит
 
 ```bash
 git add src/theme/bridge.ts src/theme/index.ts
