@@ -1,3 +1,6 @@
+// Cos2: ассоциативный иллюстративный текст, НЕ настоящий Borges.
+// Использован для smoke-сцены Reader (Foundation #1). Реальные книги придут
+// из import + parsers (sub-project #3).
 import type { BookChapter, InlineNode } from '@/types/content';
 
 const text = (s: string): InlineNode => ({ type: 'text', text: s });
