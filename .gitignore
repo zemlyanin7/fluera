@@ -53,3 +53,4 @@ android/app/build/
 .vscode/
 .idea/
 coverage/
+.superpowers/

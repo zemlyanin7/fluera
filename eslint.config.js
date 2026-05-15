@@ -7,7 +7,6 @@ module.exports = defineConfig([
     ignores: ['node_modules/', '.expo/', 'ios/', 'android/', 'assets/', 'dist/'],
     rules: {
       'react/jsx-no-undef': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
 ]);
