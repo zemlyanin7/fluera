@@ -1,0 +1,44 @@
+export type ThemeId = 'light' | 'sepia' | 'dark';
+export type FontFamilyMode = 'serif' | 'sans';
+export type ScrollMode = 'page' | 'scroll';
+export type ProficiencyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'auto';
+export type TapToTranslateBehavior = 'instant' | 'delay' | 'long-press';
+export type AutoAddToDeck = 'always' | 'never' | 'ask';
+
+export const SUPPORTED_NATIVE_LANGUAGES = ['en','ru','pl','uk','es','fr','de'] as const;
+export type NativeLanguage = (typeof SUPPORTED_NATIVE_LANGUAGES)[number];
+export const SUPPORTED_BOOK_LANGUAGES = ['en','ru','pl','uk','es','fr','de','it','pt','ja','ko','ar','hi'] as const;
+export type BookLanguage = (typeof SUPPORTED_BOOK_LANGUAGES)[number];
+export type UILanguage = 'en' | 'ru' | 'pl' | 'uk';
+
+export interface SettingsState {
+  uiLanguage: UILanguage;
+  nativeLanguage: NativeLanguage;
+  bookLanguage: BookLanguage;
+  themeId: ThemeId;
+  themeAuto: boolean;
+  fontFamilyMode: FontFamilyMode;
+  fontSize: number;
+  scrollMode: ScrollMode;
+  highlightUnknown: boolean;
+  showSentenceTranslation: boolean;
+  pageFlipAnim: boolean;
+  bookLanguageLevel: ProficiencyLevel;
+  tapToTranslateBehavior: TapToTranslateBehavior;
+  autoAddToDeck: AutoAddToDeck;
+  showPhonetics: boolean;
+  lookupHistoryEnabled: boolean;
+  readingSessionGoalMinutes: number;
+  onboardingCompleted: boolean;
+}
+
+export const DEFAULT_SETTINGS: SettingsState = {
+  uiLanguage: 'en', nativeLanguage: 'ru', bookLanguage: 'en',
+  themeId: 'light', themeAuto: false,
+  fontFamilyMode: 'serif', fontSize: 19, scrollMode: 'scroll',
+  highlightUnknown: false, showSentenceTranslation: false, pageFlipAnim: true,
+  bookLanguageLevel: 'auto', tapToTranslateBehavior: 'instant',
+  autoAddToDeck: 'ask', showPhonetics: false,
+  lookupHistoryEnabled: true, readingSessionGoalMinutes: 15,
+  onboardingCompleted: false,
+};
