@@ -1,142 +1,144 @@
-# Fluera — Development Rules
+# Fluera — Правила разработки
 
-## Язык общения
+## Общие правила
 
-Всё общение с пользователем ведётся на русском языке.
+- **Язык**: вся документация, комментарии в коде и общение — на русском языке
+- Никогда не выдумывать информацию — если не уверен, прямо говори об этом
 
-## Project Overview
 
-Fluera is a multilingual reader app for learning languages through reading. React Native (Expo) mobile app with Fastify backend.
+## Обзор проекта
 
-- **Spec:** `docs/superpowers/specs/2026-03-13-fluera-design.md`
-- **Research Brief:** `doc/fluera-research-brief-v3.docx`
+Fluera — мультиязычное приложение-читалка для изучения языков через чтение. Мобильное приложение на React Native (Expo) с бэкендом на Fastify.
 
-## Tech Stack
+- **Спецификация:** `docs/superpowers/specs/2026-03-13-fluera-design.md`
+- **Исследовательский бриф:** `doc/fluera-research-brief-v3.docx`
 
-- **Framework:** React Native with Expo (Expo Router for navigation)
-- **Language:** TypeScript (strict mode)
-- **State:** Zustand (client state) + TanStack React Query (server state)
-- **UI:** Tamagui (themed components)
-- **Database:** WatermelonDB (offline-first SQLite)
-- **Animations:** Reanimated 3
+## Технологический стек
+
+- **Фреймворк:** React Native с Expo (Expo Router для навигации)
+- **Язык:** TypeScript (strict mode)
+- **Состояние:** Zustand (клиентское состояние) + TanStack React Query (серверное состояние)
+- **UI:** Tamagui (тематизированные компоненты)
+- **База данных:** WatermelonDB (offline-first SQLite)
+- **Анимации:** Reanimated 3
 - **i18n:** i18next + react-i18next
-- **Testing:** Jest + React Native Testing Library
-- **Backend:** Fastify + PostgreSQL + Redis (in `backend/` directory when added)
+- **Тестирование:** Jest + React Native Testing Library
+- **Бэкенд:** Fastify + PostgreSQL + Redis (в директории `backend/`, когда будет добавлен)
 
-## Architecture Rules
+## Правила архитектуры
 
-### File Structure
-- Routes go in `app/` (Expo Router file-based routing)
-- All non-route code goes in `src/`
-- Components are organized by feature domain: `src/components/reader/`, `src/components/library/`, etc.
-- Shared UI components go in `src/components/ui/`
-- Business logic goes in `src/services/`
-- Zustand stores go in `src/stores/`
-- Custom hooks go in `src/hooks/`
-- Database schema and models go in `src/db/`
+### Структура файлов
+- Роуты располагаются в `app/` (файловая маршрутизация Expo Router)
+- Весь код, не относящийся к роутам, — в `src/`
+- Компоненты организованы по доменам: `src/components/reader/`, `src/components/library/` и т.д.
+- Общие UI-компоненты — в `src/components/ui/`
+- Бизнес-логика — в `src/services/`
+- Zustand-сторы — в `src/stores/`
+- Кастомные хуки — в `src/hooks/`
+- Схема и модели базы данных — в `src/db/`
 
-### State Management
-- **Zustand** for UI state (reader position, theme, settings). No Redux.
-- **React Query** for server data (OPDS catalogs, sync API, translations). Never store server data in Zustand.
-- **WatermelonDB** for persistent offline data (books, words, progress). Access via model classes, never raw SQL.
-- Do NOT mix state layers. A component should use either Zustand OR React Query for a given piece of data, not both.
+### Управление состоянием
+- **Zustand** — для UI-состояния (позиция в читалке, тема, настройки). Без Redux.
+- **React Query** — для серверных данных (каталоги OPDS, API синхронизации, переводы). Никогда не хранить серверные данные в Zustand.
+- **WatermelonDB** — для персистентных офлайн-данных (книги, слова, прогресс). Доступ через классы моделей, никогда не через сырой SQL.
+- НЕ смешивать слои состояния. Компонент должен использовать либо Zustand, либо React Query для конкретного куска данных, но не оба одновременно.
 
-### Component Patterns
-- Functional components only. No class components.
-- Use Tamagui components (`XStack`, `YStack`, `Text`, `Button`, etc.) instead of raw React Native views.
-- Use Tamagui theme tokens for colors — never hardcode hex values in components. Theme tokens are defined in `src/theme/`.
-- Prefer `const` exports for components. Use `React.memo()` only when profiling shows it's needed.
-- Keep components under 200 lines. Extract sub-components or hooks when approaching this limit.
+### Паттерны компонентов
+- Только функциональные компоненты. Без классов.
+- Использовать компоненты Tamagui (`XStack`, `YStack`, `Text`, `Button` и т.д.) вместо нативных View из React Native.
+- Использовать токены темы Tamagui для цветов — никогда не хардкодить hex-значения в компонентах. Токены темы определены в `src/theme/`.
+- Предпочитать `const`-экспорты для компонентов. Использовать `React.memo()` только когда профилирование показало необходимость.
+- Компоненты — не более 200 строк. Выделять подкомпоненты или хуки при приближении к лимиту.
 
 ### TypeScript
-- Strict mode enabled. No `any` types except in third-party library wrappers.
-- Use `interface` for object shapes, `type` for unions/intersections.
-- Export types from the file where they are defined, not from barrel files.
-- Prefer `unknown` over `any` for untyped external data, then narrow with type guards.
+- Strict mode включён. Никаких `any`, кроме обёрток над сторонними библиотеками.
+- Использовать `interface` для описания объектов, `type` — для объединений/пересечений.
+- Экспортировать типы из файла, где они определены, а не из barrel-файлов.
+- Предпочитать `unknown` вместо `any` для нетипизированных внешних данных, затем сужать тип через type guards.
 
-### Translations (i18n)
-- All user-facing strings MUST use i18next `t()` function. Never hardcode strings.
-- Translation keys use dot notation: `library.bookCard.progress`, `reader.translation.loading`
-- Locale files are in `src/i18n/locales/{lang}.json`
-- MVP languages: `en`, `ru`, `pl`, `uk`
-- `bookLanguage` + `nativeLanguage` are always parameterized — never assume a specific language pair.
+### Переводы (i18n)
+- Все строки для пользователя ОБЯЗАНЫ использовать функцию `t()` из i18next. Никогда не хардкодить строки.
+- Ключи переводов используют точечную нотацию: `library.bookCard.progress`, `reader.translation.loading`
+- Файлы локалей — в `src/i18n/locales/{lang}.json`
+- Языки для MVP: `en`, `ru`, `pl`, `uk`
+- `bookLanguage` + `nativeLanguage` всегда параметризованы — никогда не предполагать конкретную языковую пару.
 
-### Reader
-- Epub renders in WebView via @epubjs-react-native. Communication via `postMessage`/`onMessage` bridge.
-- FB2 renders as native React Native components. Parser uses fast-xml-parser.
-- Word highlighting and tap detection are handled differently per format — check the format-specific component.
-- Translation popup is a shared component used by both readers.
+### Читалка
+- EPUB рендерится в WebView через @epubjs-react-native. Коммуникация через мост `postMessage`/`onMessage`.
+- FB2 рендерится как нативные компоненты React Native. Парсер использует fast-xml-parser.
+- Подсветка слов и обработка нажатий реализованы по-разному для каждого формата — проверяй формат-специфичный компонент.
+- Попап перевода — общий компонент, используемый обеими читалками.
 
-### Database (WatermelonDB)
-- Schema changes require migrations in `src/db/migrations/`
-- `WordStatus` table stores global word knowledge (one entry per unique word per language pair)
-- `WordOccurrence` table stores per-book context (where a word was encountered)
-- Never query the database directly in components — use hooks (`useWordStatus`, `useBookProgress`, etc.)
+### База данных (WatermelonDB)
+- Изменения схемы требуют миграций в `src/db/migrations/`
+- Таблица `WordStatus` хранит глобальное знание слов (одна запись на уникальное слово на языковую пару)
+- Таблица `WordOccurrence` хранит контекст по книге (где слово было встречено)
+- Никогда не делать запросы к БД напрямую из компонентов — использовать хуки (`useWordStatus`, `useBookProgress` и т.д.)
 
-### LLM Translation
-- All LLM calls go through `src/services/translation/TranslationService.ts`
-- Primary: DeepSeek V3.2. Fallback: Gemini Flash-Lite. Premium (v2): Claude Haiku.
-- Always check TranslationCache before making API calls.
-- Cache key: `SHA-256(lowercase(word) + context_window + lang_pair)` truncated to 32 chars.
-- Timeouts: 3s primary, 5s fallback. One retry before fallback.
-- Never expose API keys in client code. Use environment variables via Expo constants.
+### LLM-перевод
+- Все вызовы LLM проходят через `src/services/translation/TranslationService.ts`
+- Основной: DeepSeek V3.2. Запасной: Gemini Flash-Lite. Премиум (v2): Claude Haiku.
+- Всегда проверять TranslationCache перед вызовами API.
+- Ключ кэша: `SHA-256(lowercase(word) + context_window + lang_pair)`, усечённый до 32 символов.
+- Таймауты: 3с основной, 5с запасной. Одна повторная попытка перед переключением на запасной.
+- Никогда не выставлять API-ключи в клиентском коде. Использовать переменные окружения через Expo constants.
 
-## Code Quality
+## Качество кода
 
-### Testing
-- Write tests for services and business logic. Test files next to source: `MyService.test.ts`.
-- Use React Native Testing Library for component tests.
-- Test translation service with mocked LLM responses.
-- Test WatermelonDB models with in-memory database.
-- Run `npx expo lint` before committing.
+### Тестирование
+- Писать тесты для сервисов и бизнес-логики. Файлы тестов рядом с исходниками: `MyService.test.ts`.
+- Использовать React Native Testing Library для тестов компонентов.
+- Тестировать сервис перевода с замоканными ответами LLM.
+- Тестировать модели WatermelonDB с in-memory базой данных.
+- Запускать `npx expo lint` перед коммитом.
 
-### Git Conventions
-- Branch naming: `feat/`, `fix/`, `refactor/`, `docs/`, `chore/`
-- Commit messages: conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
-- Keep commits atomic — one logical change per commit.
+### Соглашения Git
+- Именование веток: `feat/`, `fix/`, `refactor/`, `docs/`, `chore/`
+- Сообщения коммитов: conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
+- Коммиты атомарные — одно логическое изменение на коммит.
 
-### Security
-- No API keys, tokens, or secrets in code. Use `.env` files (gitignored) + Expo constants.
-- Validate all OPDS XML input before parsing (defense against XXE).
-- Sanitize user-entered catalog URLs.
-- Use HTTPS for all API calls.
-- Run OWASP mobile security checker (`.claude/skills/owasp-mobile-security-checker/`) before releases.
+### Безопасность
+- Никаких API-ключей, токенов или секретов в коде. Использовать `.env` файлы (в gitignore) + Expo constants.
+- Валидировать весь OPDS XML перед парсингом (защита от XXE).
+- Санитизировать URL каталогов, введённые пользователем.
+- Использовать HTTPS для всех вызовов API.
+- Запускать OWASP mobile security checker (`.claude/skills/owasp-mobile-security-checker/`) перед релизами.
 
-### Performance
-- Reader must be smooth — no jank during scrolling or word highlighting.
-- Translation popup should appear in <500ms (cache hit) or <3s (API call).
-- Book difficulty calculation runs in background thread (`InteractionManager.runAfterInteractions()`).
-- Use `React.lazy` for non-critical screens (Stats, Settings).
-- Profile with Flipper/React DevTools before optimizing — don't premature-optimize.
+### Производительность
+- Читалка должна работать плавно — никаких подвисаний при скролле или подсветке слов.
+- Попап перевода должен появляться за <500мс (кэш-хит) или <3с (вызов API).
+- Расчёт сложности книги выполняется в фоновом потоке (`InteractionManager.runAfterInteractions()`).
+- Использовать `React.lazy` для некритичных экранов (Статистика, Настройки).
+- Профилировать через Flipper/React DevTools перед оптимизацией — не оптимизировать преждевременно.
 
-## Commands
+## Команды
 
 ```bash
-# Development
-npx expo start                    # Start dev server
-npx expo start --ios              # iOS simulator
-npx expo start --android          # Android emulator
+# Разработка
+npx expo start                    # Запуск dev-сервера
+npx expo start --ios              # iOS-симулятор
+npx expo start --android          # Android-эмулятор
 
-# Testing
-npx jest                          # Run all tests
-npx jest --watch                  # Watch mode
-npx expo lint                     # Lint
+# Тестирование
+npx jest                          # Запуск всех тестов
+npx jest --watch                  # Режим наблюдения
+npx expo lint                     # Линтинг
 
-# Build
-npx eas build --platform ios      # iOS build
-npx eas build --platform android  # Android build
+# Сборка
+npx eas build --platform ios      # Сборка для iOS
+npx eas build --platform android  # Сборка для Android
 ```
 
-## Skills Available
+## Доступные навыки (Skills)
 
-Project-local skills in `.claude/skills/`:
-- `react-native-expert` — RN architecture, Expo Router, platform handling
-- `react-expert` — React patterns, hooks, state management
-- `typescript-pro` — Advanced TypeScript types and patterns
-- `javascript-pro` — Modern JS, async patterns
-- `api-designer` — REST API design patterns
-- `architecture-designer` — System architecture decisions
-- `code-reviewer` — Code review checklist
-- `database-optimizer` — Query and index optimization
-- `test-master` — Testing methodology and patterns
-- `owasp-mobile-security-checker` — Mobile security audit scripts
+Локальные навыки проекта в `.claude/skills/`:
+- `react-native-expert` — архитектура RN, Expo Router, платформенная обработка
+- `react-expert` — паттерны React, хуки, управление состоянием
+- `typescript-pro` — продвинутые типы и паттерны TypeScript
+- `javascript-pro` — современный JS, асинхронные паттерны
+- `api-designer` — паттерны проектирования REST API
+- `architecture-designer` — архитектурные решения системы
+- `code-reviewer` — чеклист код-ревью
+- `database-optimizer` — оптимизация запросов и индексов
+- `test-master` — методология и паттерны тестирования
+- `owasp-mobile-security-checker` — скрипты аудита мобильной безопасности
