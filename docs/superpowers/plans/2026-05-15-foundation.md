@@ -880,7 +880,7 @@ git commit -m "feat(utils): layout constants"
 
 ### Task 18: settingsStore.ts (TDD, 19 tests)
 
-- [ ] **Step 1:** Тест `__tests__/stores/settingsStore.test.ts` — 19 кейсов:
+- [x] **Step 1:** Тест `__tests__/stores/settingsStore.test.ts` — 19 кейсов:
 
 ```typescript
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -981,13 +981,13 @@ describe('settingsStore', () => {
 });
 ```
 
-- [ ] **Step 2:** FAIL
+- [x] **Step 2:** FAIL
 
 ```bash
 npm test -- __tests__/stores/settingsStore.test.ts
 ```
 
-- [ ] **Step 3:** `src/stores/settingsStore.ts`
+- [x] **Step 3:** `src/stores/settingsStore.ts`
 
 ```typescript
 import { create } from 'zustand';
@@ -1047,9 +1047,9 @@ export const useSettingsStore = create<SettingsStore>()(
 );
 ```
 
-- [ ] **Step 4:** PASS
+- [x] **Step 4:** PASS
 
-- [ ] **Step 5:** Коммит
+- [x] **Step 5:** Коммит
 
 ```bash
 git add __tests__/stores/settingsStore.test.ts src/stores/settingsStore.ts
@@ -3154,7 +3154,7 @@ npm run lint           # expo lint
   - [ ] app/ структура → Tasks 41-47
   - [ ] 38 шрифтов в bundle → Tasks 39-40
   - [ ] Unistyles v3 c themes+variants → Tasks 10-13
-  - [ ] SettingsStore рабочий → Task 18
+  - [x] SettingsStore рабочий → Task 18
   - [ ] 12 примитивов + 26 иконок видны в playground → Tasks 19-35, 47
   - [ ] i18n en/ru/pl/uk → Tasks 36-37
   - [ ] Smoke на iOS + Android → Tasks 49-50
