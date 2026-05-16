@@ -26,7 +26,7 @@ const ALLOWLIST = [
   'readingSessionGoalMinutes',
   // Onboarding state
   'onboardingCompleted',
-] as const satisfies ReadonlyArray<keyof SettingsState>;
+] as const satisfies readonly (keyof SettingsState)[];
 
 type PersistedKeys = (typeof ALLOWLIST)[number];
 type PersistedSettings = Pick<SettingsState, PersistedKeys>;

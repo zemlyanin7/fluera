@@ -6,7 +6,7 @@ import type {
 } from './ITranslationService';
 
 export class NoOpTranslationService implements ITranslationService {
-  // eslint-disable-next-line @typescript-eslint/require-await
+   
   async translate(_input: TranslationInput): Promise<TranslationResult> {
     return { status: 'pending' };
   }

@@ -103,7 +103,7 @@ export class BookRepository {
   }
 
   async list(opts: BookListOpts = {}): Promise<BookRecord[]> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const clauses: any[] = [];
     if (opts.language) clauses.push(Q.where('language', opts.language));
     if (opts.archived !== undefined) clauses.push(Q.where('archived', opts.archived));

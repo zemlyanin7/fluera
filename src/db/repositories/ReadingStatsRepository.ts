@@ -102,7 +102,7 @@ export class ReadingStatsRepository {
     toDate: string,
     bookId?: string | null,
   ): Promise<ReadingStatsRecord[]> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const clauses: any[] = [
       Q.where('date', Q.gte(fromDate)),
       Q.where('date', Q.lte(toDate)),
