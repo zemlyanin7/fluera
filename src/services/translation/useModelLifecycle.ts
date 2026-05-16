@@ -4,7 +4,8 @@ import { useCallback, useRef } from 'react';
 import { useLlmStatusStore } from '@/stores/llmStatusStore';
 import { ModelStore } from './ModelStore';
 import { ModelDownloader } from './ModelDownloader';
-import { MODEL_MANIFEST } from './modelManifest';
+import { MODEL_MANIFEST, getModelLocalPath } from './modelManifest';
+import { excludeFromBackup } from './excludeFromBackup';
 
 export interface UseModelLifecycleResult {
   refreshStatus: () => Promise<void>;
@@ -41,6 +42,7 @@ export function useModelLifecycle(): UseModelLifecycleResult {
 
     if (res.ok) {
       await store.markInstalled(MODEL_MANIFEST.sha256);
+      await excludeFromBackup(getModelLocalPath());
       setStatus('installed');
     } else {
       setError(`Download failed: ${res.code ?? 'unknown'} ${res.errorMessage ?? ''}`);
