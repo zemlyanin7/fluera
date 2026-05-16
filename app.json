@@ -79,7 +79,8 @@
           ]
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "./plugins/with-backup-rules.js"
     ],
     "experiments": {
       "typedRoutes": true
