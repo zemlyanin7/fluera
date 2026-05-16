@@ -54,3 +54,6 @@ android/app/build/
 .idea/
 coverage/
 .superpowers/
+
+# Local sample books for dev/testing (не коммитим — могут быть копирайтные)
+books/

@@ -38,7 +38,7 @@ async function excludeFromBackupIOS(): Promise<void> {
     `${baseDir}${DB_NAME}.db-shm`,
     `${baseDir}${DB_NAME}.db-journal`,
   ];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const fs = FileSystem as any;
   if (typeof fs.setBackupAttributeAsync !== 'function') {
     // expo-file-system без этого API — fallback на config plugin
