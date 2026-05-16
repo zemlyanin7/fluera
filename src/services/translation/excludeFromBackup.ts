@@ -1,6 +1,6 @@
 // Best-effort backup-exclusion. iOS: должен установить
 // NSURLIsExcludedFromBackupKey=true чтобы Time Machine / iCloud не
-// синкало 700MB модель. Android: настраивается через manifest
+// синкало ~440MB модель. Android: настраивается через manifest
 // <full-backup-content> (см. CLAUDE.md security).
 //
 // expo-file-system SDK 54 НЕ экспортирует setItemValueAsync — exclusion
@@ -12,7 +12,7 @@ export async function excludeFromBackup(path: string): Promise<void> {
   if (Platform.OS !== 'ios') return;
   // TODO(v2): integrate expo-file-system v2 setItemValueAsync OR
   // custom native module setting NSURLIsExcludedFromBackupKey.
-  // Без этого модель попадает в iCloud backup (~700MB лишнего трафика
+  // Без этого модель попадает в iCloud backup (~440MB лишнего трафика
   // на user'а на каждый device sync).
   if (__DEV__) console.log('[backup] would exclude', path);
 }

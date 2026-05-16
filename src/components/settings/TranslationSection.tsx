@@ -69,7 +69,7 @@ export function TranslationSection() {
             }}
           >
             <Text style={{ color: theme.paper, fontFamily: 'Inter-SemiBold' }}>
-              Скачать модель (~700MB)
+              Скачать модель (~440MB)
             </Text>
           </Pressable>
         )}

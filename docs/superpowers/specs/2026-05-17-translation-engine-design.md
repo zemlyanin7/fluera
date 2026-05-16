@@ -93,7 +93,7 @@ API-ключей. Cache hit <500ms, cold inference <3s (Pixel 7 / iPhone 13).
 | LLM runtime        | `llama.rn`                                | `^0.5.x`         |
 | Model format       | GGUF (llama.cpp)                          | —                |
 | Quantization       | IQ1_S (1.25-bit)                          | —                |
-| Model              | Hy-MT1.5-1.8B-1.25bit-GGUF (tencent)      | ~700MB           |
+| Model              | Hy-MT1.5-1.8B-1.25bit-GGUF (tencent)      | ~440MB           |
 | Download           | `expo-file-system` `downloadAsync`        | SDK 54           |
 | Integrity          | `expo-crypto` SHA-256                     | SDK 54           |
 | Cache (memory)     | self-built LRU Map (~500 entries)         | —                |
@@ -173,7 +173,7 @@ API-ключей. Cache hit <500ms, cold inference <3s (Pixel 7 / iPhone 13).
     name: 'Hy-MT1.5-1.8B-1.25bit',
     version: 1,
     sha256: '<32-byte hex>',
-    sizeBytes: 700_000_000, // approx
+    sizeBytes: 440_000_000, // approx — 1.8B × 1.25-bit + GGUF overhead
     url: 'https://huggingface.co/...',
   } as const;
   ```
@@ -566,7 +566,7 @@ type TranslationPopupState =
 auto-trigger download (с возможностью пропустить):
 
 - Screen: "Скачать языковую модель"
-  - Текст: "1.8B параметров, ~700MB. Нужен Wi-Fi."
+  - Текст: "1.8B параметров (1.25-bit quant), ~440MB. Нужен Wi-Fi."
   - "Download now" / "Skip (download later)".
 - Skip → app работает в `model not installed` mode (tap → "Установите модель в Settings").
 
@@ -620,7 +620,7 @@ auto-trigger download (с возможностью пропустить):
 | Inference (warm, 1 word)       | <3s       | 1.5-2.5s          |
 | Inference (cold)               | <10s      | 5-8s              |
 | Warm-up post-splash            | <8s       | 5-7s              |
-| Download 700MB on Wi-Fi 100Mbps| ~60s      | ~60s              |
+| Download 440MB on Wi-Fi 100Mbps| ~35s      | ~40s              |
 
 ### 12.2 Memory
 
@@ -798,7 +798,7 @@ interface LlamaContext {
    реальный SHA-256 с HuggingFace. Поставлю placeholder в manifest, заменим
    перед smoke.
 
-2. **App Store review:** автоматический download 700MB при первом запуске
+2. **App Store review:** автоматический download 440MB при первом запуске
    может вызвать review issues. Add explicit user CTA в onboarding.
 
 3. **Android low-end devices:** что делать при <3GB RAM? Show warning / disable
