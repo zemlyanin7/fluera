@@ -6,8 +6,19 @@ import { Sheet, type SheetRef, Headline } from '@/components/ui';
 export type TranslationPopupState =
   | { kind: 'closed' }
   | { kind: 'opening'; word: string; sentence: string }
-  | { kind: 'pending'; word: string; sentence: string }
-  | { kind: 'success'; word: string; translation: string; partOfSpeech?: string }
+  | {
+      kind: 'pending';
+      word: string;
+      sentence: string;
+      reason?: 'loading_model' | 'inferring';
+    }
+  | {
+      kind: 'success';
+      word: string;
+      translation: string;
+      partOfSpeech?: string;
+      source?: 'memory' | 'db' | 'inference';
+    }
   | { kind: 'error'; word: string; reason: string };
 
 interface Props {
@@ -38,7 +49,9 @@ export const TranslationPopup = React.memo(function TranslationPopup({ state, on
             <>
               <ActivityIndicator color={theme.accent} />
               <Text style={{ color: theme.ink2, marginTop: 8 }}>
-                Перевод недоступен (sub-project #4 не реализован)
+                {state.reason === 'loading_model'
+                  ? 'Загружается модель перевода…'
+                  : 'Переводим…'}
               </Text>
             </>
           )}
@@ -47,6 +60,11 @@ export const TranslationPopup = React.memo(function TranslationPopup({ state, on
               <Text style={{ color: theme.ink, fontSize: 18 }}>{state.translation}</Text>
               {state.partOfSpeech && (
                 <Text style={{ color: theme.ink3, marginTop: 4 }}>{state.partOfSpeech}</Text>
+              )}
+              {(state.source === 'memory' || state.source === 'db') && (
+                <Text style={{ color: theme.ink3, marginTop: 6, fontSize: 11 }}>
+                  из кэша
+                </Text>
               )}
             </>
           )}

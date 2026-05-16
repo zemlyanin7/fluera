@@ -17,10 +17,8 @@ import {
   TranslationPopup,
   type TranslationPopupState,
 } from '@/components/reader';
-import { NoOpTranslationService } from '@/services/translation/NoOpTranslationService';
+import { useTranslationService } from '@/services/translation/TranslationServiceContext';
 import type { BookLanguage, NativeLanguage } from '@/types/settings';
-
-const translation = new NoOpTranslationService();
 
 export default function ReaderScreen() {
   const router = useRouter();
@@ -29,6 +27,7 @@ export default function ReaderScreen() {
   const { theme } = useUnistyles();
   const fontSize = useSettingsStore((s) => s.fontSize);
   const nativeLanguage = useSettingsStore((s) => s.nativeLanguage);
+  const translation = useTranslationService();
   const { state, jumpToChapter, setCurrentChapter, savePosition } = useReaderEngine(bookId);
   const bookLang: BookLanguage = (state.book?.language as BookLanguage) ?? 'en';
   const script = scriptForLang(bookLang);
@@ -54,12 +53,25 @@ export default function ReaderScreen() {
       if (res.status === 'pending') {
         setPopup({ kind: 'pending', word, sentence });
       } else if (res.status === 'ok' && res.translation) {
-        setPopup({ kind: 'success', word, translation: res.translation });
+        setPopup({
+          kind: 'success',
+          word,
+          translation: res.translation,
+          source: res.source,
+        });
+      } else if (res.errorCode === 'MODEL_LOADING') {
+        setPopup({ kind: 'pending', word, sentence, reason: 'loading_model' });
+      } else if (res.errorCode === 'MODEL_NOT_INSTALLED') {
+        setPopup({
+          kind: 'error',
+          word,
+          reason: 'Установите языковую модель в Настройках',
+        });
       } else {
         setPopup({ kind: 'error', word, reason: res.errorMessage ?? 'unknown' });
       }
     },
-    [bookLang, nativeLanguage],
+    [translation, bookLang, nativeLanguage],
   );
 
   const onTopFlatItemChange = useCallback(
