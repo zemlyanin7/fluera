@@ -1,8 +1,9 @@
-// Корневой layout: монтирует bridge Settings → Unistyles, инициализирует i18n
-// (через side-effect import + i18nReady promise) и разводит навигацию по флагу
-// onboardingCompleted декларативным <Redirect/>, чтобы не было flash (tabs)
-// перед onboarding.
-import React, { useEffect, useState } from 'react';
+// Корневой layout. Hydration gate: splash виден пока не готовы ВСЕ три:
+//   1. i18nReady — переводы загружены (Foundation)
+//   2. settingsHydrated — AsyncStorage persist прочитан (Phase 7 #2)
+//   3. DatabaseProvider — WatermelonDB SQLite инициализирован (Phase 7 #2)
+// Без всех трёх ничего не показываем — иначе theme/lang flash при cold-start.
+import React, { useCallback, useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -12,49 +13,66 @@ import { StyleSheet } from 'react-native';
 
 import '@/theme'; // side-effect: StyleSheet.configure
 import { attachThemeBridge } from '@/theme/bridge';
-import { i18nReady } from '@/i18n'; // I4: ждём готовности i18n до hideAsync
+import { i18nReady } from '@/i18n';
+import { useSettingsStore } from '@/stores/settingsStore';
+import { DatabaseProvider } from '@/db/DatabaseContext';
 
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  // ВАЖНО: НЕ читаем onboardingCompleted на корневом layout, чтобы Stack не
-  // ремонтировался при completeOnboarding(). Разводку делает <_layout> внутри
-  // отдельных групп через Redirect (см. (onboarding)/_layout, (tabs)/_layout).
-  const [ready, setReady] = useState(false);
+  // Не читаем onboardingCompleted здесь — разводит (onboarding|tabs)/_layout.
+  const [preReady, setPreReady] = useState(false);
+  const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
     const unsubscribe = attachThemeBridge();
-    // I4: дождёмся i18n, потом снимаем splash. До этого момента Stack не
-    // монтируется (см. ниже `if (!ready) return null`).
-    void i18nReady.then(() => {
-      setReady(true);
-      void SplashScreen.hideAsync();
-    });
+    const settingsHydrated = useSettingsStore.persist.hasHydrated()
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => {
+          const off = useSettingsStore.persist.onFinishHydration(() => {
+            off();
+            resolve();
+          });
+        });
+    void Promise.all([i18nReady, settingsHydrated]).then(() => setPreReady(true));
     return unsubscribe;
   }, []);
 
-  if (!ready) return null;
+  // SplashScreen.hideAsync только когда И preReady, И dbReady — оба условия.
+  const onDbReady = useCallback(() => {
+    setDbReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (preReady && dbReady) {
+      void SplashScreen.hideAsync();
+    }
+  }, [preReady, dbReady]);
+
+  if (!preReady) return null;
 
   return (
     <GestureHandlerRootView style={StyleSheet.absoluteFill}>
       <SafeAreaProvider>
         <StatusBar style="auto" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(onboarding)" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="(playground)" />
-          <Stack.Screen name="reader/[bookId]" />
-          <Stack.Screen
-            name="word/[wordId]"
-            options={{ presentation: 'transparentModal', animation: 'fade' }}
-          />
-          <Stack.Screen
-            name="deck/session"
-            options={{ presentation: 'fullScreenModal' }}
-          />
-          <Stack.Screen name="import" options={{ presentation: 'modal' }} />
-        </Stack>
+        <DatabaseProvider onReady={onDbReady} fallback={null}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(onboarding)" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(playground)" />
+            <Stack.Screen name="reader/[bookId]" />
+            <Stack.Screen
+              name="word/[wordId]"
+              options={{ presentation: 'transparentModal', animation: 'fade' }}
+            />
+            <Stack.Screen
+              name="deck/session"
+              options={{ presentation: 'fullScreenModal' }}
+            />
+            <Stack.Screen name="import" options={{ presentation: 'modal' }} />
+          </Stack>
+        </DatabaseProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
