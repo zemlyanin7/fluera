@@ -48,7 +48,8 @@ export class ParserError extends Error {
     message: string,
     public details?: unknown,
   ) {
-    super(message);
+    // Префикс с кодом — для удобного matching в тестах и логах.
+    super(`[${code}] ${message}`);
     this.name = 'ParserError';
   }
 }
