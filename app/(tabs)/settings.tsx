@@ -5,6 +5,7 @@ import React from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet as RN } from 'react-native';
 import { useUnistyles } from 'react-native-unistyles';
 import { PhoneShell, Headline, SectionLabel } from '@/components/ui';
+import { TranslationSection } from '@/components/settings/TranslationSection';
 import { useSettingsStore } from '@/stores/settingsStore';
 import {
   ThemeId,
@@ -95,6 +96,8 @@ export default function SettingsScreen() {
             })}
           </View>
         </View>
+
+        <TranslationSection />
 
         <Headline level={3}>
           Остальные настройки → sub-project #8 Onboarding polish.
