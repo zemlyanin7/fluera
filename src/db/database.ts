@@ -10,6 +10,7 @@ import {
   WordStatusModel, WordOccurrenceModel, ReviewLogModel,
   TranslationCacheModel, OPDSCatalogModel, ReadingStatsModel,
 } from './models';
+import { seedBorgesIfEmpty } from './seed/borges';
 
 const modelClasses = [
   BookModel, ChapterModel, ReadingPositionModel, BookmarkModel,
@@ -27,5 +28,16 @@ export async function createDatabase(): Promise<Database> {
       console.warn('[db] SQLite setup error:', err);
     },
   });
-  return new Database({ adapter, modelClasses });
+  const db = new Database({ adapter, modelClasses });
+  // Borges seed только в __DEV__ + явное opt-out через EXPO_PUBLIC_FLUERA_SEED_BORGES=0.
+  // В production builds сидинг не запускается. eas.json profiles должны явно
+  // unset эту переменную для prod.
+  if (__DEV__ && process.env.EXPO_PUBLIC_FLUERA_SEED_BORGES !== '0') {
+    try {
+      await seedBorgesIfEmpty(db);
+    } catch (err) {
+      console.warn('[db] Borges seed failed:', err);
+    }
+  }
+  return db;
 }
