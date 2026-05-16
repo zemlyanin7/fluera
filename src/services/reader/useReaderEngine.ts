@@ -92,6 +92,16 @@ export function useReaderEngine(
         }
 
         dispatch({ type: 'CHAPTERS_READY', chapters: parsed.chapters });
+
+        // Restore сохранённой позиции — scroll к initialChapterIndex после mount.
+        // Defer чтобы BookRenderer успел сделать первый render.
+        if (initialChapterIndex > 0) {
+          setTimeout(() => {
+            if (!cancelled) {
+              dispatch({ type: 'REQUEST_SCROLL_TO_CHAPTER', index: initialChapterIndex });
+            }
+          }, 50);
+        }
       } catch (e) {
         if (!cancelled) dispatch({ type: 'ERROR', message: (e as Error).message });
       }

@@ -61,12 +61,29 @@ export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function
     return m;
   }, [flatItems]);
 
-  useImperativeHandle(ref, () => ({
-    scrollToChapter: (chapterIndex: number) => {
+  // Сохраняем последний запрошенный chapter idx — для retry при scrollToIndexFailed.
+  const pendingScrollRef = useRef<number | null>(null);
+
+  const doScroll = useCallback(
+    (chapterIndex: number, attempt: number) => {
       const idx = chapterStartMap.get(chapterIndex);
       if (idx === undefined || !listRef.current) return;
-      listRef.current.scrollToIndex({ index: idx, animated: true, viewPosition: 0 });
+      pendingScrollRef.current = idx;
+      try {
+        listRef.current.scrollToIndex({
+          index: idx,
+          animated: attempt === 0,
+          viewPosition: 0,
+        });
+      } catch {
+        // retry уже через onScrollToIndexFailed
+      }
     },
+    [chapterStartMap],
+  );
+
+  useImperativeHandle(ref, () => ({
+    scrollToChapter: (chapterIndex: number) => doScroll(chapterIndex, 0),
   }));
 
   const keyExtractor = useCallback((it: FlatItem) => {
@@ -121,9 +138,23 @@ export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function
       viewabilityConfig={viewabilityConfig}
       onViewableItemsChanged={onViewableItemsChanged}
       onScrollToIndexFailed={(info) => {
-        // Fallback на approximate offset (FlatList не measured ещё)
-        const offset = info.averageItemLength * info.index;
-        listRef.current?.scrollToOffset({ offset, animated: false });
+        // Items ещё не measured. Сначала прокрутимся к approximate offset
+        // чтобы FlatList отрисовал нужный диапазон, потом retry exact.
+        const approxOffset = info.averageItemLength * info.index;
+        listRef.current?.scrollToOffset({ offset: approxOffset, animated: false });
+        setTimeout(() => {
+          if (pendingScrollRef.current !== null) {
+            try {
+              listRef.current?.scrollToIndex({
+                index: pendingScrollRef.current,
+                animated: false,
+                viewPosition: 0,
+              });
+            } catch {
+              // continue silently
+            }
+          }
+        }, 150);
       }}
       contentContainerStyle={{ padding: 28, paddingBottom: 80 }}
     />
