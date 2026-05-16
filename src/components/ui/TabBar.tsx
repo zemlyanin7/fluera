@@ -1,7 +1,7 @@
-// Плавающий 4-табовый таб-бар с blur-фоном — кастомный tabBar для @react-navigation/bottom-tabs
+// Docked 4-табовый таб-бар — кастомный tabBar для @react-navigation/bottom-tabs.
+// Прижат к низу, paper bg, hairline-разделитель сверху, padding под home-indicator.
 import React from 'react';
-import { Pressable, Text, View, ViewStyle, TextStyle, Platform, StyleSheet as RN } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { Pressable, Text, View, ViewStyle, TextStyle, StyleSheet as RN } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -16,24 +16,15 @@ const TAB_META: Record<string, { i18nKey: string; Ic: React.FC<{ size?: number; 
 };
 
 const styles = StyleSheet.create((theme, rt) => ({
+  // Docked variant: TabBar прижат к низу экрана, без скруглений и floating-зазора.
+  // Padding bottom = home-indicator inset (iOS) / nav-bar inset (Android edge-to-edge).
   container: {
-    position: 'absolute',
-    left: 14, right: 14,
-    bottom: 18 + rt.insets.bottom,
-    height: 60,
-    borderRadius: 22,
+    height: 60 + rt.insets.bottom,
+    paddingBottom: rt.insets.bottom,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 8,
-  } satisfies ViewStyle,
-  // C3 + I1: rgba-токен paperOverlay (~30% alpha) — НЕ убивает BlurView,
-  // не конкатенирует hex к paper (защита от перехода на oklch).
-  blurBg: {
-    ...RN.absoluteFillObject,
-    backgroundColor: theme.paperOverlay,
+    borderTopWidth: RN.hairlineWidth,
+    borderTopColor: theme.ink3,
+    backgroundColor: theme.paper,
   } satisfies ViewStyle,
   row: { flex: 1, flexDirection: 'row', paddingHorizontal: 6 } satisfies ViewStyle,
   tab: {
@@ -54,13 +45,6 @@ export const TabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
   const { t } = useTranslation();
   return (
     <View style={styles.container}>
-      <BlurView
-        intensity={80}
-        tint="default"
-        experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : 'none'}
-        style={RN.absoluteFillObject}
-      />
-      <View style={styles.blurBg} />
       <View style={styles.row}>
         {state.routes.map((route, index) => {
           const meta = TAB_META[route.name];
