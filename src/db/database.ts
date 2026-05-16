@@ -4,7 +4,8 @@
 import { Database } from '@nozbe/watermelondb';
 import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
 import { Platform } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+// expo-file-system v19 переехал на legacy для documentDirectory + setBackupAttributeAsync
+import * as FileSystem from 'expo-file-system/legacy';
 import { schema } from './schema';
 import { migrations } from './migrations';
 import {
