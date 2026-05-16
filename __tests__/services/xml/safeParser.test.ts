@@ -1,4 +1,4 @@
-import { assertSafeXml } from '@/services/xml/safeParser';
+import { assertSafeXml, assertSafeXmlPermissive } from '@/services/xml/safeParser';
 
 describe('assertSafeXml', () => {
   test('reject ANY DOCTYPE (даже без ENTITY)', () => {
@@ -42,5 +42,31 @@ describe('assertSafeXml', () => {
   test('кастомный maxBytes 5MB для OPDS', () => {
     const big = '<root>' + 'a'.repeat(6 * 1024 * 1024) + '</root>';
     expect(() => assertSafeXml(big, { maxBytes: 5 * 1024 * 1024 })).toThrow(/too large/i);
+  });
+});
+
+describe('assertSafeXmlPermissive', () => {
+  test('allows HTML5 DOCTYPE', () => {
+    expect(() => assertSafeXmlPermissive('<!DOCTYPE html><html><body/></html>')).not.toThrow();
+  });
+
+  test('rejects DOCTYPE with ENTITY', () => {
+    expect(() => assertSafeXmlPermissive('<!DOCTYPE foo [<!ENTITY x "y">]><html/>')).toThrow(/Unsafe DOCTYPE/);
+  });
+
+  test('rejects DOCTYPE with SYSTEM', () => {
+    expect(() => assertSafeXmlPermissive('<!DOCTYPE foo SYSTEM "evil.dtd"><html/>')).toThrow(/Unsafe DOCTYPE/);
+  });
+
+  test('rejects DOCTYPE with PUBLIC', () => {
+    expect(() => assertSafeXmlPermissive('<!DOCTYPE html PUBLIC "-//W3C" "evil.dtd"><html/>')).toThrow(/Unsafe DOCTYPE/);
+  });
+
+  test('rejects xml-stylesheet PI', () => {
+    expect(() => assertSafeXmlPermissive('<?xml-stylesheet href="evil.xsl"?><x/>')).toThrow(/stylesheet/i);
+  });
+
+  test('accepts XHTML без doctype', () => {
+    expect(() => assertSafeXmlPermissive('<html xmlns="http://www.w3.org/1999/xhtml"><body><p>hi</p></body></html>')).not.toThrow();
   });
 });

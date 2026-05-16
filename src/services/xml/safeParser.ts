@@ -26,3 +26,25 @@ export function assertSafeXml(source: string, opts: SafeXmlOpts = {}): void {
     throw new Error('XML stylesheet processing instruction rejected');
   }
 }
+
+const DANGEROUS_DOCTYPE_RX = /<!DOCTYPE[^>]*\b(ENTITY|SYSTEM|PUBLIC)\b/i;
+
+/**
+ * Менее строгая версия для EPUB XHTML. EPUB файлы часто содержат
+ * `<!DOCTYPE html>` (HTML5 doctype без entity) — это безопасно. Но любой
+ * DOCTYPE с ENTITY/SYSTEM/PUBLIC — отвергаем (XXE).
+ *
+ * НЕ использовать для OPF / container.xml / FB2 — там strict assertSafeXml.
+ */
+export function assertSafeXmlPermissive(source: string, opts: SafeXmlOpts = {}): void {
+  const cap = opts.maxBytes ?? DEFAULT_MAX_BYTES;
+  if (source.length > cap) {
+    throw new Error(`XML payload too large (>${cap} bytes)`);
+  }
+  if (DANGEROUS_DOCTYPE_RX.test(source)) {
+    throw new Error('Unsafe DOCTYPE (ENTITY/SYSTEM/PUBLIC) rejected');
+  }
+  if (/<\?xml-stylesheet/i.test(source)) {
+    throw new Error('XML stylesheet processing instruction rejected');
+  }
+}
