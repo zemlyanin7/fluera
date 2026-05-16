@@ -13,7 +13,7 @@ import {
   WordStatusModel, WordOccurrenceModel, ReviewLogModel,
   TranslationCacheModel, OPDSCatalogModel, ReadingStatsModel,
 } from './models';
-import { seedBorgesIfEmpty } from './seed/borges';
+import { pruneBrokenSeedRecords } from './seed/borges';
 
 const DB_NAME = 'fluera';
 
@@ -67,14 +67,14 @@ export async function createDatabase(): Promise<Database> {
   const db = new Database({ adapter, modelClasses });
   // Backup exclusion — НЕ ждём чтобы не блокировать createDatabase
   void excludeFromBackupIOS();
-  // Borges seed только в __DEV__ + явное opt-out через EXPO_PUBLIC_FLUERA_SEED_BORGES=0.
-  // В production builds сидинг не запускается. eas.json profiles должны явно
-  // unset эту переменную для prod.
-  if (__DEV__ && process.env.EXPO_PUBLIC_FLUERA_SEED_BORGES !== '0') {
+  // С приходом sub-project #3 (real Import flow) seed-книга больше не нужна.
+  // Очищаем сломанные seed-записи (filePath = '/dev/null/...') из БД старых
+  // dev-builds — иначе reader падает при попытке открыть несуществующий файл.
+  if (__DEV__) {
     try {
-      await seedBorgesIfEmpty(db);
+      await pruneBrokenSeedRecords(db);
     } catch (err) {
-      console.warn('[db] Borges seed failed:', err);
+      console.warn('[db] prune broken seed failed:', err);
     }
   }
   return db;

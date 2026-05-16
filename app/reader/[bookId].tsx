@@ -65,8 +65,21 @@ export default function ReaderScreen() {
   if (state.status === 'error') {
     return (
       <PhoneShell>
-        <View style={{ flex: 1, padding: 18, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: theme.ink, fontSize: 16 }}>Ошибка: {state.error}</Text>
+        <ReaderTopBar
+          chapterIndex={0}
+          chapterTitle={null}
+          onBack={() => router.back()}
+          onOpenSettings={() => {}}
+        />
+        <View
+          style={{ flex: 1, padding: 18, justifyContent: 'center', alignItems: 'center', gap: 12 }}
+        >
+          <Text style={{ color: theme.ink, fontSize: 16, textAlign: 'center' }}>
+            Ошибка: {state.error}
+          </Text>
+          <Text style={{ color: theme.ink3, fontSize: 13, textAlign: 'center' }}>
+            Tap back ↑ или удалите книгу из Library
+          </Text>
         </View>
       </PhoneShell>
     );
@@ -75,6 +88,12 @@ export default function ReaderScreen() {
   if (state.status !== 'ready' || !state.currentChapter || !state.book) {
     return (
       <PhoneShell>
+        <ReaderTopBar
+          chapterIndex={0}
+          chapterTitle={null}
+          onBack={() => router.back()}
+          onOpenSettings={() => {}}
+        />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator color={theme.accent} />
         </View>

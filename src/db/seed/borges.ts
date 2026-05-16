@@ -1,30 +1,19 @@
-// Borges sample book — dev-only seed для пустой БД. Idempotent.
-// Запускается из createDatabase() только при __DEV__ + ENV != '0'.
-import { Database } from '@nozbe/watermelondb';
-import { BookRepository } from '@/db/repositories/BookRepository';
-import { ChapterRepository } from '@/db/repositories/ChapterRepository';
+// Был Borges-seed для пустой БД (sub-project #2).
+// Sub-project #3 поставил real ImportPipeline — seed-книга больше не нужна.
+// Эта функция чистит старые сломанные seed-записи из dev-builds
+// (filePath='/dev/null/...' → reader падает при чтении файла).
+import { Database, Q } from '@nozbe/watermelondb';
+import { BookModel } from '@/db/models';
 
-const BORGES_TITLE = 'The Garden of Forking Paths';
-
-export async function seedBorgesIfEmpty(db: Database): Promise<void> {
-  const books = new BookRepository(db);
-  const existing = await books.list();
-  if (existing.length > 0) return;
-  const book = await books.create({
-    title: BORGES_TITLE,
-    author: 'J. L. Borges',
-    language: 'en',
-    format: 'epub',
-    filePath: '/dev/null/borges.epub',
-    source: 'import',
-    totalChars: 5000,
+export async function pruneBrokenSeedRecords(db: Database): Promise<number> {
+  const books = db.collections.get<BookModel>('books');
+  // Любая запись с filePath, начинающимся с '/dev/null' — заведомо сломанная.
+  const broken = await books.query(Q.where('file_path', Q.like('/dev/null%'))).fetch();
+  if (broken.length === 0) return 0;
+  await db.write(async () => {
+    for (const b of broken) {
+      await b.destroyPermanently();
+    }
   });
-  const chapters = new ChapterRepository(db);
-  await chapters.create({
-    bookId: book.id,
-    title: 'I.',
-    orderIndex: 0,
-    startChar: 0,
-    endChar: 5000,
-  });
+  return broken.length;
 }
