@@ -17,12 +17,10 @@ export interface UseReaderEngineOptions {
 
 export interface UseReaderEngineResult {
   state: ReaderState;
-  /** Scroll-jump к chapter (из TOC). */
   jumpToChapter: (index: number) => void;
-  /** Обновить currentChapterIndex (вызывает BookRenderer onViewableItemsChanged). */
   setCurrentChapter: (index: number) => void;
-  /** Debounced save позиции (chapter index + offset within chapter). */
-  savePosition: (chapterIndex: number, characterOffset: number) => void;
+  /** Save (chapter index + scroll offsetY). Debounced + flush на unmount. */
+  savePosition: (chapterIndex: number, offsetY: number) => void;
 }
 
 export function useReaderEngine(
@@ -32,10 +30,7 @@ export function useReaderEngine(
   const db = useDatabase();
   const [state, dispatch] = useReducer(readerReducer, initialReaderState);
   const savePositionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingPositionRef = useRef<{ chapterIndex: number; offset: number }>({
-    chapterIndex: 0,
-    offset: 0,
-  });
+  const pendingPositionRef = useRef<{ chapterIndex: number; offset: number } | null>(null);
   const bookFormatRef = useRef<string | null>(null);
 
   const parseBook =
@@ -45,6 +40,26 @@ export function useReaderEngine(
       const reg = createDefaultParserRegistry();
       return reg.get(format).parse(bytes);
     });
+
+  // Helper: пишет последнюю pending позицию в БД синхронно (fire-and-forget).
+  const flushPendingPosition = useCallback(() => {
+    const pending = pendingPositionRef.current;
+    if (!pending) return;
+    pendingPositionRef.current = null;
+    const positions = new ReadingPositionRepository(db);
+    positions
+      .upsert({
+        bookId,
+        chapterOrderIndex: pending.chapterIndex,
+        positionData: {
+          type: bookFormatRef.current === 'epub' ? 'epub-cfi' : 'fb2-item',
+          value: pending.offset.toString(),
+        },
+      })
+      .catch((e) => {
+        console.warn('flushPendingPosition failed:', e);
+      });
+  }, [db, bookId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,13 +108,15 @@ export function useReaderEngine(
 
         dispatch({ type: 'CHAPTERS_READY', chapters: parsed.chapters });
 
-        // Restore сохранённой позиции — scroll к initialChapterIndex после mount.
-        // Defer чтобы BookRenderer успел сделать первый render.
-        if (initialChapterIndex > 0) {
+        // Restore точной позиции — pixel offset. Defer чтобы BookRenderer успел mount.
+        if (initialOffset > 0) {
           setTimeout(() => {
-            if (!cancelled) {
-              dispatch({ type: 'REQUEST_SCROLL_TO_CHAPTER', index: initialChapterIndex });
-            }
+            if (!cancelled) dispatch({ type: 'REQUEST_SCROLL_TO_OFFSET', offset: initialOffset });
+          }, 50);
+        } else if (initialChapterIndex > 0) {
+          // Fallback: если только глава известна (старые записи), скроллим к ней.
+          setTimeout(() => {
+            if (!cancelled) dispatch({ type: 'REQUEST_SCROLL_TO_CHAPTER', index: initialChapterIndex });
           }, 50);
         }
       } catch (e) {
@@ -122,38 +139,27 @@ export function useReaderEngine(
   }, []);
 
   const savePosition = useCallback(
-    (chapterIndex: number, characterOffset: number) => {
-      pendingPositionRef.current = { chapterIndex, offset: characterOffset };
+    (chapterIndex: number, offsetY: number) => {
+      pendingPositionRef.current = { chapterIndex, offset: offsetY };
       if (savePositionTimerRef.current) return;
-      savePositionTimerRef.current = setTimeout(async () => {
-        const positions = new ReadingPositionRepository(db);
-        const { chapterIndex: ci, offset } = pendingPositionRef.current;
-        try {
-          await positions.upsert({
-            bookId,
-            chapterOrderIndex: ci,
-            positionData: {
-              type: bookFormatRef.current === 'epub' ? 'epub-cfi' : 'fb2-item',
-              value: offset.toString(),
-            },
-          });
-        } catch (e) {
-          console.warn('savePosition failed:', e);
-        }
+      savePositionTimerRef.current = setTimeout(() => {
         savePositionTimerRef.current = null;
+        flushPendingPosition();
       }, 500);
     },
-    [db, bookId],
+    [flushPendingPosition],
   );
 
+  // Unmount: flush любой pending position перед уходом со screen.
   useEffect(() => {
     return () => {
       if (savePositionTimerRef.current) {
         clearTimeout(savePositionTimerRef.current);
         savePositionTimerRef.current = null;
       }
+      flushPendingPosition();
     };
-  }, []);
+  }, [flushPendingPosition]);
 
   return { state, jumpToChapter, setCurrentChapter, savePosition };
 }

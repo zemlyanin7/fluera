@@ -1,21 +1,19 @@
 // Reader engine state machine. См. spec §2.5, §4.3, §8.
-// Continuous-scroll model: chapters[] загружается весь parsedBook сразу,
-// UI рендерит как один flat FlatList. currentChapterIndex обновляется
-// onViewableItemsChanged для подсветки в TopBar/TOC.
 import type { BookRecord } from '@/db/repositories/BookRepository';
 import type { BookChapter } from '@/types/content';
 
 export interface ReaderState {
   book: BookRecord | null;
-  /** Все главы книги (загружаются после parse). До этого пуст. */
   chapters: BookChapter[];
   chapterMeta: { index: number; title: string | null }[];
-  /** Индекс главы, в которой пользователь сейчас (для TopBar). */
+  /** Индекс главы, в которой пользователь сейчас (для TopBar/TOC highlight). */
   currentChapterIndex: number;
-  /** Восстановленный character_offset для scroll-to-position. */
+  /** Сохранённый pixel-offset для scroll-restore. */
   initialOffset: number;
-  /** Команда BookRenderer проскроллить к chapter (TOC tap). */
+  /** TOC tap: скроллить к chapter-marker. */
   scrollToChapterRequest: { index: number; token: number } | null;
+  /** Initial restore: скроллить к exact pixel offset. */
+  scrollToOffsetRequest: { offset: number; token: number } | null;
   status: 'idle' | 'loading' | 'parsing' | 'ready' | 'error';
   error: string | null;
 }
@@ -27,6 +25,7 @@ export const initialReaderState: ReaderState = {
   currentChapterIndex: 0,
   initialOffset: 0,
   scrollToChapterRequest: null,
+  scrollToOffsetRequest: null,
   status: 'idle',
   error: null,
 };
@@ -43,6 +42,7 @@ export type ReaderAction =
   | { type: 'CHAPTERS_READY'; chapters: BookChapter[] }
   | { type: 'SET_CURRENT_CHAPTER'; index: number }
   | { type: 'REQUEST_SCROLL_TO_CHAPTER'; index: number }
+  | { type: 'REQUEST_SCROLL_TO_OFFSET'; offset: number }
   | { type: 'ERROR'; message: string };
 
 export function readerReducer(state: ReaderState, action: ReaderAction): ReaderState {
@@ -68,6 +68,11 @@ export function readerReducer(state: ReaderState, action: ReaderAction): ReaderS
         ...state,
         scrollToChapterRequest: { index: action.index, token: Date.now() },
         currentChapterIndex: action.index,
+      };
+    case 'REQUEST_SCROLL_TO_OFFSET':
+      return {
+        ...state,
+        scrollToOffsetRequest: { offset: action.offset, token: Date.now() },
       };
     case 'ERROR':
       return { ...state, status: 'error', error: action.message };

@@ -18,6 +18,7 @@ type FlatItem =
 
 export interface BookRendererHandle {
   scrollToChapter: (chapterIndex: number) => void;
+  scrollToOffset: (offsetY: number) => void;
 }
 
 interface Props {
@@ -84,6 +85,9 @@ export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function
 
   useImperativeHandle(ref, () => ({
     scrollToChapter: (chapterIndex: number) => doScroll(chapterIndex),
+    scrollToOffset: (offsetY: number) => {
+      listRef.current?.scrollToOffset({ offset: offsetY, animated: false });
+    },
   }));
 
   const keyExtractor = useCallback((it: FlatItem) => {

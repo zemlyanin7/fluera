@@ -70,14 +70,12 @@ export default function ReaderScreen() {
     [savePosition, state.currentChapterIndex],
   );
 
-  // Реагируем на REQUEST_SCROLL_TO_CHAPTER (TOC tap + initial restore).
-  // Показываем veil + выполняем scroll. Veil снимется когда target станет visible.
+  // TOC tap → scroll to chapter marker.
   useEffect(() => {
     if (!state.scrollToChapterRequest) return;
     const target = state.scrollToChapterRequest.index;
     setVeilTarget(target);
     bookRendererRef.current?.scrollToChapter(target);
-    // Safety timeout — если onViewableItemsChanged не сработает.
     if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
     veilTimeoutRef.current = setTimeout(() => setVeilTarget(null), 2000);
     return () => {
@@ -85,7 +83,22 @@ export default function ReaderScreen() {
     };
   }, [state.scrollToChapterRequest]);
 
-  // Снимаем veil когда target chapter стал текущим (после scroll completion).
+  // Initial restore → exact pixel offset.
+  useEffect(() => {
+    if (!state.scrollToOffsetRequest) return;
+    setVeilTarget(state.currentChapterIndex);
+    bookRendererRef.current?.scrollToOffset(state.scrollToOffsetRequest.offset);
+    if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
+    // Offset restore не вызывает chapter change, поэтому держим veil
+    // через timer а не onViewableItemsChanged.
+    veilTimeoutRef.current = setTimeout(() => setVeilTarget(null), 600);
+    return () => {
+      if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.scrollToOffsetRequest]);
+
+  // Снимаем veil когда target chapter стал текущим (для TOC jump).
   useEffect(() => {
     if (veilTarget !== null && state.currentChapterIndex === veilTarget) {
       if (veilTimeoutRef.current) {

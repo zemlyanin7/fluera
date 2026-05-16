@@ -58,4 +58,12 @@ describe('readerReducer', () => {
     expect(s.scrollToChapterRequest?.index).toBe(5);
     expect(s.currentChapterIndex).toBe(5);
   });
+
+  it('emits scroll-to-offset request on REQUEST_SCROLL_TO_OFFSET', () => {
+    const s = readerReducer(
+      { ...initialReaderState, status: 'ready' },
+      { type: 'REQUEST_SCROLL_TO_OFFSET', offset: 1234 },
+    );
+    expect(s.scrollToOffsetRequest?.offset).toBe(1234);
+  });
 });
