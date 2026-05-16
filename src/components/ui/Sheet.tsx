@@ -1,8 +1,10 @@
-// Обёртка над @gorhom/bottom-sheet с темой Fluera и стандартным backdrop
-import React, { forwardRef, useCallback } from 'react';
-import { ViewStyle } from 'react-native';
+// Обёртка над @gorhom/bottom-sheet с темой Fluera и стандартным backdrop.
+// theme.* читается inline через useUnistyles() — иначе закэшированный
+// StyleSheet.create не подхватывает смену темы (см. PhoneShell.tsx).
+import React, { forwardRef, useCallback, useMemo } from 'react';
+import { ViewStyle, StyleSheet as RN } from 'react-native';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetView } from '@gorhom/bottom-sheet';
-import { StyleSheet } from 'react-native-unistyles';
+import { useUnistyles } from 'react-native-unistyles';
 
 export type SheetRef = BottomSheet;
 // I3: prop НЕ readonly — gorhom bottom-sheet типизирует snapPoints как
@@ -11,13 +13,22 @@ export type SheetRef = BottomSheet;
 // module-level константой (см. I2).
 interface Props { snapPoints: (string|number)[]; onClose?: () => void; children: React.ReactNode; }
 
-const styles = StyleSheet.create((theme) => ({
-  bg: { backgroundColor: theme.paper, borderTopLeftRadius: 28, borderTopRightRadius: 28 } satisfies ViewStyle,
-  handle: { backgroundColor: `${theme.ink}2E`, width: 36, height: 4, borderRadius: 99 } satisfies ViewStyle,
+const staticStyles = RN.create({
+  bgBase: { borderTopLeftRadius: 28, borderTopRightRadius: 28 } satisfies ViewStyle,
+  handleBase: { width: 36, height: 4, borderRadius: 99 } satisfies ViewStyle,
   content: { paddingHorizontal: 22, paddingBottom: 32 } satisfies ViewStyle,
-}));
+});
 
 export const Sheet = forwardRef<SheetRef, Props>(({ snapPoints, onClose, children }, ref) => {
+  const { theme } = useUnistyles();
+  const bgStyle = useMemo<ViewStyle>(
+    () => ({ ...staticStyles.bgBase, backgroundColor: theme.paper }),
+    [theme.paper],
+  );
+  const handleStyle = useMemo<ViewStyle>(
+    () => ({ ...staticStyles.handleBase, backgroundColor: `${theme.ink}2E` }),
+    [theme.ink],
+  );
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
       <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.15} />
@@ -27,9 +38,9 @@ export const Sheet = forwardRef<SheetRef, Props>(({ snapPoints, onClose, childre
   const handleChange = useCallback((i: number) => { if (i === -1) onClose?.(); }, [onClose]);
   return (
     <BottomSheet ref={ref} snapPoints={snapPoints} index={-1}
-      enablePanDownToClose backgroundStyle={styles.bg} handleIndicatorStyle={styles.handle}
+      enablePanDownToClose backgroundStyle={bgStyle} handleIndicatorStyle={handleStyle}
       backdropComponent={renderBackdrop} onChange={handleChange}>
-      <BottomSheetView style={styles.content}>{children}</BottomSheetView>
+      <BottomSheetView style={staticStyles.content}>{children}</BottomSheetView>
     </BottomSheet>
   );
 });

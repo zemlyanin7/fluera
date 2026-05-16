@@ -1,6 +1,9 @@
+// SVG-обёртка для иконок: theme.ink — default stroke, перекрывается prop `color`.
+// theme.ink читается inline через useUnistyles() — иначе закэшированный
+// StyleSheet.create не подхватывает смену темы (см. PhoneShell.tsx).
 import React from 'react';
 import { Svg } from 'react-native-svg';
-import { StyleSheet } from 'react-native-unistyles';
+import { useUnistyles } from 'react-native-unistyles';
 
 export interface IconProps {
   size?: number;
@@ -9,16 +12,11 @@ export interface IconProps {
   fill?: string;
 }
 
-// Unistyles 3.x StyleSheet.create требует style-объекты, поэтому оборачиваем
-// цвет темы в style и читаем поле color.
-const styles = StyleSheet.create((theme) => ({
-  defaultColor: { color: theme.ink },
-}));
-
 export const Icon: React.FC<IconProps & { children: React.ReactNode }> = ({
   size = 22, color, strokeWidth = 1.8, fill = 'none', children,
 }) => {
-  const resolvedColor = color ?? (styles.defaultColor.color as string);
+  const { theme } = useUnistyles();
+  const resolvedColor = color ?? theme.ink;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24"
          fill={fill} stroke={resolvedColor} strokeWidth={strokeWidth}

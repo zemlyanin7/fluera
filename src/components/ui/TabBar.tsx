@@ -1,8 +1,14 @@
 // Docked 4-табовый таб-бар — кастомный tabBar для @react-navigation/bottom-tabs.
 // Прижат к низу, paper bg, hairline-разделитель сверху, padding под home-indicator.
+//
+// ВАЖНО: theme.* читается inline через useUnistyles().theme, а не через
+// закэшированный StyleSheet.create((theme) => ...). Причина: native ShadowTree
+// react-native-unistyles 3.x не обновляет закэшированные style-объекты при
+// смене темы (issue #1179) — TabBar bg оставался cream на dark.
+// Inline-чтение гарантирует свежее значение на каждом re-render.
 import React from 'react';
 import { Pressable, Text, View, ViewStyle, TextStyle, StyleSheet as RN } from 'react-native';
-import { StyleSheet } from 'react-native-unistyles';
+import { useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { IcBook, IcCards, IcGraph, IcSettings } from '@/components/icons';
@@ -15,15 +21,13 @@ const TAB_META: Record<string, { i18nKey: string; Ic: React.FC<{ size?: number; 
   settings: { i18nKey: 'tabs.you',   Ic: IcSettings },
 };
 
-const styles = StyleSheet.create((theme) => ({
-  // Docked variant: TabBar прижат к низу. Safe-area под home-indicator управляется
-  // навигационным контейнером Tabs (react-navigation сам прибавляет insets.bottom).
+// Не-theme-зависимые стили оставляем в обычном RN.StyleSheet — менять надо
+// ТОЛЬКО theme-зависимые свойства (color/backgroundColor/borderColor).
+const staticStyles = RN.create({
   container: {
     height: 60,
     overflow: 'hidden',
     borderTopWidth: RN.hairlineWidth,
-    borderTopColor: theme.ink3,
-    backgroundColor: theme.paper,
   } satisfies ViewStyle,
   row: { flex: 1, flexDirection: 'row', paddingHorizontal: 6 } satisfies ViewStyle,
   tab: {
@@ -33,18 +37,17 @@ const styles = StyleSheet.create((theme) => ({
   } satisfies ViewStyle,
   label: {
     fontFamily: 'Inter-SemiBold', fontSize: 10, fontWeight: '600',
-    letterSpacing: 0.2, color: theme.ink3,
+    letterSpacing: 0.2,
   } satisfies TextStyle,
-  labelActive: { color: theme.ink },
   dot: { width: 4, height: 4, borderRadius: 99, backgroundColor: 'transparent', marginTop: 2 } satisfies ViewStyle,
-  dotActive: { backgroundColor: theme.accent },
-}));
+});
 
 export const TabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
   const { t } = useTranslation();
+  const { theme } = useUnistyles();
   return (
-    <View style={styles.container}>
-      <View style={styles.row}>
+    <View style={[staticStyles.container, { borderTopColor: theme.ink3, backgroundColor: theme.paper }]}>
+      <View style={staticStyles.row}>
         {state.routes.map((route, index) => {
           const meta = TAB_META[route.name];
           if (!meta) return null;
@@ -54,12 +57,12 @@ export const TabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
             if (!isActive && !ev.defaultPrevented) navigation.navigate(route.name);
           };
           return (
-            <Pressable key={route.key} onPress={onPress} style={styles.tab}>
-              <meta.Ic size={20} />
-              <Text style={[styles.label, isActive && styles.labelActive]}>
+            <Pressable key={route.key} onPress={onPress} style={staticStyles.tab}>
+              <meta.Ic size={20} color={isActive ? theme.ink : theme.ink3} />
+              <Text style={[staticStyles.label, { color: isActive ? theme.ink : theme.ink3 }]}>
                 {t(meta.i18nKey)}
               </Text>
-              <View style={[styles.dot, isActive && styles.dotActive]} />
+              <View style={[staticStyles.dot, isActive && { backgroundColor: theme.accent }]} />
             </Pressable>
           );
         })}

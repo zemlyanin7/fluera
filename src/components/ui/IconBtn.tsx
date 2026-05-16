@@ -1,7 +1,9 @@
-// Квадратная иконка-кнопка 36x36 с вариантами solid / accent
+// Квадратная иконка-кнопка 36x36 с вариантами solid / accent.
+// theme.* читается inline через useUnistyles() — иначе закэшированный
+// StyleSheet.create не подхватывает смену темы (см. PhoneShell.tsx).
 import React from 'react';
-import { Pressable, ViewStyle } from 'react-native';
-import { StyleSheet } from 'react-native-unistyles';
+import { Pressable, ViewStyle, StyleSheet as RN } from 'react-native';
+import { useUnistyles } from 'react-native-unistyles';
 import { HIT_SLOP_DEFAULT } from '@/utils/constants';
 
 interface Props {
@@ -12,26 +14,31 @@ interface Props {
   accessibilityLabel?: string;
 }
 
-const styles = StyleSheet.create((theme) => ({
-  base: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: `${theme.ink}0F` } satisfies ViewStyle,
-  solid:  { backgroundColor: theme.ink },
-  accent: { backgroundColor: theme.accent },
-  pressed: { opacity: 0.6 },
-}));
+const staticStyles = RN.create({
+  base: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' } satisfies ViewStyle,
+  pressed: { opacity: 0.6 } satisfies ViewStyle,
+});
 
-export const IconBtn: React.FC<Props> = ({ onPress, solid = false, accent = false, children, accessibilityLabel }) => (
-  <Pressable
-    onPress={onPress}
-    hitSlop={HIT_SLOP_DEFAULT}
-    accessibilityRole="button"
-    accessibilityLabel={accessibilityLabel}
-    style={({ pressed }) => [
-      styles.base,
-      solid && styles.solid,
-      accent && styles.accent,
-      pressed && styles.pressed,
-    ]}
-  >
-    {children}
-  </Pressable>
-);
+export const IconBtn: React.FC<Props> = ({ onPress, solid = false, accent = false, children, accessibilityLabel }) => {
+  const { theme } = useUnistyles();
+  const bg: ViewStyle = accent
+    ? { backgroundColor: theme.accent }
+    : solid
+    ? { backgroundColor: theme.ink }
+    : { backgroundColor: `${theme.ink}0F` };
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={HIT_SLOP_DEFAULT}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      style={({ pressed }) => [
+        staticStyles.base,
+        bg,
+        pressed && staticStyles.pressed,
+      ]}
+    >
+      {children}
+    </Pressable>
+  );
+};

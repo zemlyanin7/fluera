@@ -1,7 +1,9 @@
 // Settings — реальный ThemePicker (Day/Sepia/Night/Auto) и bookLanguage smoke-picker.
+// theme.* читается inline через useUnistyles() — иначе закэшированный
+// StyleSheet.create не подхватывает смену темы (см. PhoneShell.tsx).
 import React from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
-import { StyleSheet } from 'react-native-unistyles';
+import { View, Text, Pressable, ScrollView, StyleSheet as RN } from 'react-native';
+import { useUnistyles } from 'react-native-unistyles';
 import { PhoneShell, Headline, SectionLabel } from '@/components/ui';
 import { useSettingsStore } from '@/stores/settingsStore';
 import {
@@ -16,7 +18,7 @@ const themes: { id: ThemeId; name: string }[] = [
   { id: 'dark', name: 'Night' },
 ];
 
-const styles = StyleSheet.create((theme) => ({
+const staticStyles = RN.create({
   content: { padding: 22, gap: 18 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   rowSpaced: { marginTop: 8 },
@@ -24,12 +26,9 @@ const styles = StyleSheet.create((theme) => ({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: `${theme.ink}0F`,
   },
-  chipActive: { backgroundColor: theme.ink },
-  chipText: { color: theme.ink, fontFamily: 'Inter-SemiBold' },
-  chipTextActive: { color: theme.paper },
-}));
+  chipText: { fontFamily: 'Inter-SemiBold' },
+});
 
 export default function SettingsScreen() {
   const themeId = useSettingsStore((s) => s.themeId);
@@ -37,22 +36,28 @@ export default function SettingsScreen() {
   const setTheme = useSettingsStore((s) => s.setTheme);
   const bookLang = useSettingsStore((s) => s.bookLanguage);
   const setLang = useSettingsStore((s) => s.setBookLanguage);
+  const { theme } = useUnistyles();
+
+  const chipIdleBg = { backgroundColor: `${theme.ink}0F` };
+  const chipActiveBg = { backgroundColor: theme.ink };
+  const chipIdleText = { color: theme.ink };
+  const chipActiveText = { color: theme.paper };
 
   return (
     <PhoneShell>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={staticStyles.content}>
         <View>
           <SectionLabel>Paper</SectionLabel>
-          <View style={[styles.row, styles.rowSpaced]}>
+          <View style={[staticStyles.row, staticStyles.rowSpaced]}>
             {themes.map((t) => {
               const active = !themeAuto && themeId === t.id;
               return (
                 <Pressable
                   key={t.id}
                   onPress={() => setTheme(t.id, false)}
-                  style={[styles.chip, active && styles.chipActive]}
+                  style={[staticStyles.chip, active ? chipActiveBg : chipIdleBg]}
                 >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                  <Text style={[staticStyles.chipText, active ? chipActiveText : chipIdleText]}>
                     {t.name}
                   </Text>
                 </Pressable>
@@ -60,9 +65,9 @@ export default function SettingsScreen() {
             })}
             <Pressable
               onPress={() => setTheme(themeId, !themeAuto)}
-              style={[styles.chip, themeAuto && styles.chipActive]}
+              style={[staticStyles.chip, themeAuto ? chipActiveBg : chipIdleBg]}
             >
-              <Text style={[styles.chipText, themeAuto && styles.chipTextActive]}>
+              <Text style={[staticStyles.chipText, themeAuto ? chipActiveText : chipIdleText]}>
                 Auto
               </Text>
             </Pressable>
@@ -71,17 +76,17 @@ export default function SettingsScreen() {
 
         <View>
           <SectionLabel>Book language (smoke)</SectionLabel>
-          <View style={[styles.row, styles.rowSpaced]}>
+          <View style={[staticStyles.row, staticStyles.rowSpaced]}>
             {SUPPORTED_BOOK_LANGUAGES.map((l) => {
               const active = bookLang === l;
               return (
                 <Pressable
                   key={l}
                   onPress={() => setLang(l as BookLanguage)}
-                  style={[styles.chip, active && styles.chipActive]}
+                  style={[staticStyles.chip, active ? chipActiveBg : chipIdleBg]}
                 >
                   <Text
-                    style={[styles.chipText, active && styles.chipTextActive]}
+                    style={[staticStyles.chipText, active ? chipActiveText : chipIdleText]}
                   >
                     {l}
                   </Text>

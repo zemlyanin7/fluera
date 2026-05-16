@@ -1,8 +1,10 @@
 // Library — фиксированная карточка Borges, тап → Reader.
+// theme.paper2 читается inline через useUnistyles() — иначе закэшированный
+// StyleSheet.create не подхватывает смену темы (см. PhoneShell.tsx).
 import React, { useMemo } from 'react';
-import { View, Pressable } from 'react-native';
+import { View, Pressable, StyleSheet as RN } from 'react-native';
 import { useRouter } from 'expo-router';
-import { StyleSheet } from 'react-native-unistyles';
+import { useUnistyles } from 'react-native-unistyles';
 import {
   PhoneShell,
   Headline,
@@ -13,11 +15,10 @@ import {
 } from '@/components/ui';
 import { useSettingsStore } from '@/stores/settingsStore';
 
-const styles = StyleSheet.create((theme) => ({
+const staticStyles = RN.create({
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 12 },
   cardWrap: { paddingHorizontal: 18, paddingBottom: 14 },
   card: {
-    backgroundColor: theme.paper2,
     borderRadius: 22,
     padding: 18,
     flexDirection: 'row',
@@ -28,11 +29,12 @@ const styles = StyleSheet.create((theme) => ({
   bottom: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
   progressWrap: { flex: 1 },
   spacer2: { height: 2 },
-}));
+});
 
 export default function LibraryScreen() {
   const router = useRouter();
   const uiLanguage = useSettingsStore((s) => s.uiLanguage);
+  const { theme } = useUnistyles();
   // M3: дата в UI-локали, без хардкода. Зависимость только от смены языка/дня.
   const todayLabel = useMemo(
     () => new Intl.DateTimeFormat(uiLanguage, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()),
@@ -40,15 +42,15 @@ export default function LibraryScreen() {
   );
   return (
     <PhoneShell>
-      <View style={styles.header}>
+      <View style={staticStyles.header}>
         <SectionLabel>{todayLabel}</SectionLabel>
-        <View style={styles.spacer2} />
+        <View style={staticStyles.spacer2} />
         <Headline level={1}>Library</Headline>
       </View>
-      <View style={styles.cardWrap}>
+      <View style={staticStyles.cardWrap}>
         <Pressable
           onPress={() => router.push('/reader/borges')}
-          style={styles.card}
+          style={[staticStyles.card, { backgroundColor: theme.paper2 }]}
         >
           <BookCover
             book={{
@@ -59,16 +61,16 @@ export default function LibraryScreen() {
             w={92}
             h={130}
           />
-          <View style={styles.meta}>
+          <View style={staticStyles.meta}>
             <View>
               <Headline level={3}>The Garden of Forking Paths</Headline>
-              <View style={styles.pills}>
+              <View style={staticStyles.pills}>
                 <Pill>EN</Pill>
                 <Pill tone="accent">14-day streak</Pill>
               </View>
             </View>
-            <View style={styles.bottom}>
-              <View style={styles.progressWrap}>
+            <View style={staticStyles.bottom}>
+              <View style={staticStyles.progressWrap}>
                 <ProgressBar value={0.13} tone="accent" />
               </View>
             </View>

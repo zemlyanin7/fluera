@@ -39,6 +39,10 @@ jest.mock('react-native-unistyles', () => {
       setAdaptiveThemes: jest.fn(),
       colorScheme: 'light',
     },
+    // useUnistyles() hook — возвращает текущую тему как объект.
+    // В native ShadowTree это reactive-прокси, но для unit-тестов достаточно
+    // отдать тот же themeStub, что и в StyleSheet.create.
+    useUnistyles: () => ({ theme: themeStub, rt: { insets: { top: 0, right: 0, bottom: 0, left: 0 } } }),
   };
 });
 
