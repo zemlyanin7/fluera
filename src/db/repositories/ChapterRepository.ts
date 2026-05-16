@@ -55,12 +55,12 @@ export class ChapterRepository {
    */
   async bulkCreate(
     bookId: string,
-    chapters: Array<{
+    chapters: {
       title: string | null;
       orderIndex: number;
       startChar: number;
       endChar: number;
-    }>,
+    }[],
   ): Promise<void> {
     return this.db.write(async () => {
       for (const ch of chapters) {

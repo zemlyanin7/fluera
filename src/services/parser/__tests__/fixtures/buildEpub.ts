@@ -3,7 +3,7 @@
 import { zipSync } from 'fflate';
 
 export interface EpubBuildInput {
-  manifest: Array<{ id: string; href: string; mediaType: string }>;
+  manifest: { id: string; href: string; mediaType: string }[];
   spine: string[];
   metadata?: { title?: string; creator?: string; language?: string; coverId?: string };
   files: Record<string, string | Uint8Array>;

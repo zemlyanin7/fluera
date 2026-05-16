@@ -4,7 +4,7 @@ import type { BookChapter } from '@/types/content';
 
 export interface ReaderState {
   book: BookRecord | null;
-  chapterMeta: Array<{ index: number; title: string | null }>;
+  chapterMeta: { index: number; title: string | null }[];
   currentChapterIndex: number;
   currentChapter: BookChapter | null;
   initialOffset: number;
@@ -27,7 +27,7 @@ export type ReaderAction =
   | {
       type: 'BOOK_LOADED';
       book: BookRecord;
-      chapterMeta: Array<{ index: number; title: string | null }>;
+      chapterMeta: { index: number; title: string | null }[];
       initialChapterIndex: number;
       initialOffset: number;
     }
