@@ -176,9 +176,10 @@ Fluera — мультиязычное мобильное приложение-ч
 - **BookLanguage (язык книги)** MVP: 13 — тот же набор
   (см. `SUPPORTED_BOOK_LANGUAGES`).
   Локальная LLM #4 поддерживает все пары `bookLanguage × nativeLanguage`.
-- **NativeLanguage (родной)** v1: 7 — `en`, `ru`, `pl`, `uk`, `es`, `fr`, `de`
-  (см. `SUPPORTED_NATIVE_LANGUAGES`). Расширение до 13 — в v2 или раньше
-  (зависит от качества LLM-перевода для оставшихся пар).
+- **NativeLanguage (родной)** MVP: 13 — тот же набор
+  (см. `SUPPORTED_NATIVE_LANGUAGES`). Полная симметрия UI=Native=Book.
+  Локальная LLM #4 ОБЯЗАНА покрывать все 13×13 = 169 пар (даже если для
+  некоторых пар качество ниже — должна быть хоть какая-то поддержка).
 - `bookLanguage` + `nativeLanguage` всегда параметризованы — никогда не
   предполагать конкретную языковую пару в коде/тестах.
 - Для RTL-языков (`ar` в UI и Book) использовать `I18nManager.isRTL` +

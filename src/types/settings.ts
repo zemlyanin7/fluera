@@ -10,13 +10,17 @@ export type ProficiencyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'auto';
 export type TapToTranslateBehavior = 'instant' | 'delay' | 'long-press';
 export type AutoAddToDeck = 'always' | 'never' | 'ask';
 
-export const SUPPORTED_NATIVE_LANGUAGES = ['en','ru','pl','uk','es','fr','de'] as const;
+// Полная симметрия 3 наборов языков: UI = Native = Book = 13 значений.
+// Пользователь может выбрать любую языковую пару из 13×13 = 169 комбинаций.
+// Локальная LLM #4 должна покрывать все пары.
+export const SUPPORTED_NATIVE_LANGUAGES = [
+  'en','ru','pl','uk','es','fr','de','it','pt','ja','ko','ar','hi',
+] as const;
 export type NativeLanguage = (typeof SUPPORTED_NATIVE_LANGUAGES)[number];
-export const SUPPORTED_BOOK_LANGUAGES = ['en','ru','pl','uk','es','fr','de','it','pt','ja','ko','ar','hi'] as const;
+export const SUPPORTED_BOOK_LANGUAGES = [
+  'en','ru','pl','uk','es','fr','de','it','pt','ja','ko','ar','hi',
+] as const;
 export type BookLanguage = (typeof SUPPORTED_BOOK_LANGUAGES)[number];
-// UI-язык = язык интерфейса. Совпадает с BookLanguage (13) для симметрии:
-// пользователь может смотреть интерфейс на любом языке, который мы поддерживаем
-// как book-язык. Переводы UI в src/i18n/locales/*.json.
 export const SUPPORTED_UI_LANGUAGES = [
   'en','ru','pl','uk','es','fr','de','it','pt','ja','ko','ar','hi',
 ] as const;
