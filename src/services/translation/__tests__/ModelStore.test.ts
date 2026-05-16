@@ -37,12 +37,12 @@ describe('ModelStore', () => {
 
   it('markInstalled() writes SecureStore', async () => {
     await new ModelStore().markInstalled('sha-hash');
-    expect(SecureStore.setItemAsync).toHaveBeenCalledWith('llm:model-installed-v1', 'sha-hash');
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith('llm_model_installed_v1', 'sha-hash');
   });
 
   it('wipe() deletes file and clears mark', async () => {
     await new ModelStore().wipe();
     expect(FileSystem.deleteAsync).toHaveBeenCalled();
-    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('llm:model-installed-v1');
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('llm_model_installed_v1');
   });
 });

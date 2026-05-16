@@ -5,7 +5,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as SecureStore from 'expo-secure-store';
 import { getModelLocalPath } from './modelManifest';
 
-const SECURE_STORE_KEY = 'llm:model-installed-v1';
+// SecureStore keys: только alphanumeric + `.`, `-`, `_`. `:` запрещён.
+const SECURE_STORE_KEY = 'llm_model_installed_v1';
 
 export class ModelStore {
   async isInstalled(): Promise<boolean> {
