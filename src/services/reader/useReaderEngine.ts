@@ -1,6 +1,7 @@
 // useReaderEngine: React hook обёртка над reducer + side effects.
 // Continuous-scroll: после parse кладёт ВСЕ chapters в state.
 import { useEffect, useReducer, useCallback, useRef } from 'react';
+import { AppState } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useDatabase } from '@/db/DatabaseContext';
 import { BookRepository } from '@/db/repositories/BookRepository';
@@ -41,7 +42,7 @@ export function useReaderEngine(
       return reg.get(format).parse(bytes);
     });
 
-  // Helper: пишет последнюю pending позицию в БД синхронно (fire-and-forget).
+  // Helper: пишет последнюю pending позицию в БД (fire-and-forget).
   const flushPendingPosition = useCallback(() => {
     const pending = pendingPositionRef.current;
     if (!pending) return;
@@ -56,8 +57,11 @@ export function useReaderEngine(
           value: pending.offset.toString(),
         },
       })
+      .then(() => {
+        if (__DEV__) console.log('[reader] saved position', pending);
+      })
       .catch((e) => {
-        console.warn('flushPendingPosition failed:', e);
+        console.warn('[reader] flushPendingPosition failed:', e);
       });
   }, [db, bookId]);
 
@@ -145,7 +149,7 @@ export function useReaderEngine(
       savePositionTimerRef.current = setTimeout(() => {
         savePositionTimerRef.current = null;
         flushPendingPosition();
-      }, 500);
+      }, 200);
     },
     [flushPendingPosition],
   );
@@ -159,6 +163,21 @@ export function useReaderEngine(
       }
       flushPendingPosition();
     };
+  }, [flushPendingPosition]);
+
+  // AppState: flush при уходе app в background/inactive (iOS swipe-kill не
+  // вызывает unmount React, поэтому unmount-cleanup может не сработать).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'background' || next === 'inactive') {
+        if (savePositionTimerRef.current) {
+          clearTimeout(savePositionTimerRef.current);
+          savePositionTimerRef.current = null;
+        }
+        flushPendingPosition();
+      }
+    });
+    return () => sub.remove();
   }, [flushPendingPosition]);
 
   return { state, jumpToChapter, setCurrentChapter, savePosition };
