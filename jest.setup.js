@@ -100,3 +100,43 @@ jest.mock('expo-font', () => ({ useFonts: () => [true, null], isLoaded: () => tr
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }], locale: 'en-US' }));
 jest.mock('expo-splash-screen', () => ({ preventAutoHideAsync: jest.fn(), hideAsync: jest.fn() }));
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+
+// #2 Data layer — мок AsyncStorage (in-memory Map, persist через тесты)
+jest.mock('@react-native-async-storage/async-storage', () => {
+  const store = new Map();
+  return {
+    __esModule: true,
+    default: {
+      getItem: jest.fn((k) => Promise.resolve(store.has(k) ? store.get(k) : null)),
+      setItem: jest.fn((k, v) => { store.set(k, v); return Promise.resolve(); }),
+      removeItem: jest.fn((k) => { store.delete(k); return Promise.resolve(); }),
+      clear: jest.fn(() => { store.clear(); return Promise.resolve(); }),
+      getAllKeys: jest.fn(() => Promise.resolve(Array.from(store.keys()))),
+      multiGet: jest.fn((keys) => Promise.resolve(keys.map((k) => [k, store.get(k) ?? null]))),
+    },
+  };
+});
+
+// expo-secure-store — in-memory mock
+jest.mock('expo-secure-store', () => {
+  const store = new Map();
+  return {
+    getItemAsync: jest.fn((k) => Promise.resolve(store.get(k) ?? null)),
+    setItemAsync: jest.fn((k, v) => { store.set(k, v); return Promise.resolve(); }),
+    deleteItemAsync: jest.fn((k) => { store.delete(k); return Promise.resolve(); }),
+  };
+});
+
+// expo-crypto — детерминированный SHA-256 через node:crypto для тестов
+jest.mock('expo-crypto', () => {
+  const nodeCrypto = require('crypto');
+  return {
+    CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
+    digestStringAsync: jest.fn((_algo, input) =>
+      Promise.resolve(nodeCrypto.createHash('sha256').update(input).digest('hex')),
+    ),
+  };
+});
+
+// react-native-get-random-values — no-op в jest (jsdom поставляет crypto.getRandomValues)
+jest.mock('react-native-get-random-values', () => ({}));
