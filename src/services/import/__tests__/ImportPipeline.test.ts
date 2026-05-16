@@ -91,6 +91,31 @@ describe('ImportPipeline', () => {
     expect(fsHelpers.__getFile(result.filePath)).toBeDefined();
   });
 
+  it('rejects scanned EPUB (image-only, totalChars=0)', async () => {
+    const epubBytes = buildEpub({
+      metadata: { title: 'Scanned' },
+      manifest: [
+        { id: 'p1', href: 'p1.xhtml', mediaType: 'application/xhtml+xml' },
+        { id: 'img', href: 'images/scan1.jpg', mediaType: 'image/jpeg' },
+      ],
+      spine: ['p1'],
+      files: {
+        'p1.xhtml': simpleXhtml('<div><img src="images/scan1.jpg" alt=""/></div>'),
+        'images/scan1.jpg': new Uint8Array([0xff, 0xd8, 0xff, 0xe0]),
+      },
+    });
+    fsHelpers.__setFile('file:///scanned.epub', epubBytes);
+    const db = await createTestDatabase();
+    const pipeline = new ImportPipeline(db, createDefaultParserRegistry());
+    await expect(
+      pipeline.import({
+        uri: 'file:///scanned.epub',
+        name: 'scanned.epub',
+        size: epubBytes.length,
+      }),
+    ).rejects.toThrow(/NO_TEXT_CONTENT/);
+  });
+
   it('rolls back on parser failure', async () => {
     fsHelpers.__setFile('file:///broken.epub', new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0xff, 0xff]));
     const db = await createTestDatabase();

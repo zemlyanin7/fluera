@@ -63,6 +63,17 @@ export class ImportPipeline {
       const parser = this.parsers.get(format);
       const parsed = await parser.parse(bytes);
 
+      // Защита от scanned EPUB / image-only книг — текст недоступен,
+      // tap-перевод не работает (нужен OCR — out of scope #3).
+      if (parsed.totalChars === 0) {
+        throw new ParserError(
+          'NO_TEXT_CONTENT',
+          'Книга содержит только изображения (scanned/image-only). ' +
+            'Для tap-перевода нужен текстовый EPUB или FB2. ' +
+            'Попробуй версию книги с XHTML-текстом (например, Project Gutenberg).',
+        );
+      }
+
       bookId = uuidV4();
       const bookDir = `${docsDir()}books/${bookId}/`;
       const imagesDir = `${bookDir}images/`;

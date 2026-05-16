@@ -40,6 +40,7 @@ export type ParserErrorCode =
   | 'FB2_INVALID_XML'
   | 'XML_UNSAFE'
   | 'IMAGE_TOO_LARGE'
+  | 'NO_TEXT_CONTENT'
   | 'IO_ERROR';
 
 export class ParserError extends Error {
