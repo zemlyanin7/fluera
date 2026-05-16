@@ -84,6 +84,13 @@ export function useReaderEngine(
         const parsed = await parseBook(bytes, book.filePath);
         if (cancelled) return;
 
+        if (parsed.totalChars === 0) {
+          throw new Error(
+            'Книга содержит только изображения (scanned). Текст недоступен для перевода. ' +
+              'Удалите её из Library и импортируйте текстовую версию EPUB или FB2.',
+          );
+        }
+
         dispatch({ type: 'CHAPTERS_READY', chapters: parsed.chapters });
       } catch (e) {
         if (!cancelled) dispatch({ type: 'ERROR', message: (e as Error).message });

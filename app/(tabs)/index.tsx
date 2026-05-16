@@ -1,19 +1,46 @@
 // Library — список книг из useBookList + кнопка Import.
 // При пустой коллекции — empty state + CTA «Import a book».
-import React, { useMemo } from 'react';
-import { View, Pressable, ScrollView, Text } from 'react-native';
+import React, { useMemo, useCallback } from 'react';
+import { View, Pressable, ScrollView, Text, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUnistyles } from 'react-native-unistyles';
 import { PhoneShell, Headline, SectionLabel, Pill, ProgressBar } from '@/components/ui';
 import { CoverThumbnail } from '@/components/reader';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useBookList } from '@/hooks/data';
+import { useDatabase } from '@/db/DatabaseContext';
+import { BookRepository } from '@/db/repositories/BookRepository';
 
 export default function LibraryScreen() {
   const router = useRouter();
   const uiLanguage = useSettingsStore((s) => s.uiLanguage);
   const { theme } = useUnistyles();
+  const db = useDatabase();
   const { books, isLoading } = useBookList();
+
+  const onLongPressBook = useCallback(
+    (bookId: string, title: string) => {
+      Alert.alert(
+        'Удалить книгу?',
+        `«${title}» будет удалена из библиотеки.`,
+        [
+          { text: 'Отмена', style: 'cancel' },
+          {
+            text: 'Удалить',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await new BookRepository(db).delete(bookId);
+              } catch (e) {
+                Alert.alert('Ошибка', (e as Error).message);
+              }
+            },
+          },
+        ],
+      );
+    },
+    [db],
+  );
   const todayLabel = useMemo(
     () =>
       new Intl.DateTimeFormat(uiLanguage, {
@@ -64,6 +91,8 @@ export default function LibraryScreen() {
             <Pressable
               accessibilityLabel={`Open ${book.title}`}
               onPress={() => router.push(`/reader/${book.id}`)}
+              onLongPress={() => onLongPressBook(book.id, book.title)}
+              delayLongPress={500}
               style={{
                 borderRadius: 22,
                 padding: 18,
