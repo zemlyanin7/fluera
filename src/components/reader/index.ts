@@ -11,3 +11,4 @@ export { TranslationPopup, type TranslationPopupState } from './TranslationPopup
 export { ReaderTopBar } from './ReaderTopBar';
 export { ReaderControlsSheet } from './ReaderControlsSheet';
 export { ChapterNavBar } from './ChapterNavBar';
+export { CoverThumbnail } from './CoverThumbnail';
