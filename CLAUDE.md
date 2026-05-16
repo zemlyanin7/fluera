@@ -169,14 +169,21 @@ Fluera — мультиязычное мобильное приложение-ч
 - Все строки для пользователя ОБЯЗАНЫ использовать функцию `t()` из i18next.
 - Ключи переводов используют точечную нотацию: `library.bookCard.progress`.
 - Файлы локалей — в `src/i18n/locales/{lang}.json`.
-- **UILanguage (язык интерфейса)** MVP: 4 — `en`, `ru`, `pl`, `uk`.
-  Только эти 4 имеют переводы UI-строк в `src/i18n/locales/`.
-- **BookLanguage (язык книги)** MVP: 13 — `en`, `ru`, `pl`, `uk`, `es`, `fr`,
-  `de`, `it`, `pt`, `ja`, `ko`, `ar`, `hi` (см. `SUPPORTED_BOOK_LANGUAGES`).
+- **UILanguage (язык интерфейса)** MVP: 13 — `en`, `ru`, `pl`, `uk`, `es`,
+  `fr`, `de`, `it`, `pt`, `ja`, `ko`, `ar`, `hi`
+  (см. `SUPPORTED_UI_LANGUAGES`). Все 13 имеют переводы UI-строк в
+  `src/i18n/locales/`.
+- **BookLanguage (язык книги)** MVP: 13 — тот же набор
+  (см. `SUPPORTED_BOOK_LANGUAGES`).
   Локальная LLM #4 поддерживает все пары `bookLanguage × nativeLanguage`.
-- **NativeLanguage (родной)** = тот же набор что BookLanguage (13).
+- **NativeLanguage (родной)** v1: 7 — `en`, `ru`, `pl`, `uk`, `es`, `fr`, `de`
+  (см. `SUPPORTED_NATIVE_LANGUAGES`). Расширение до 13 — в v2 или раньше
+  (зависит от качества LLM-перевода для оставшихся пар).
 - `bookLanguage` + `nativeLanguage` всегда параметризованы — никогда не
   предполагать конкретную языковую пару в коде/тестах.
+- Для RTL-языков (`ar` в UI и Book) использовать `I18nManager.isRTL` +
+  layout-direction flip. Темы Foundation уже содержат `isRTL: true` в
+  `arabic` script-варианте — типографика RTL работает out-of-the-box.
 
 ### Читалка (sub-project #3)
 - EPUB парсер пишем С НУЛЯ: zip-распаковка + XHTML-парсинг → ContentItem[].

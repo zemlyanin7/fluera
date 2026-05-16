@@ -5,8 +5,19 @@ import en from './locales/en.json';
 import ru from './locales/ru.json';
 import pl from './locales/pl.json';
 import uk from './locales/uk.json';
+import es from './locales/es.json';
+import fr from './locales/fr.json';
+import de from './locales/de.json';
+import it from './locales/it.json';
+import pt from './locales/pt.json';
+import ja from './locales/ja.json';
+import ko from './locales/ko.json';
+import ar from './locales/ar.json';
+import hi from './locales/hi.json';
 
-const SUPPORTED = ['en', 'ru', 'pl', 'uk'] as const;
+export const SUPPORTED = [
+  'en','ru','pl','uk','es','fr','de','it','pt','ja','ko','ar','hi',
+] as const;
 type SupportedLang = (typeof SUPPORTED)[number];
 
 function detectInitialLang(): SupportedLang {
@@ -37,6 +48,15 @@ export const i18nReady: Promise<unknown> = i18n.use(initReactI18next).init({
     ru: { translation: ru },
     pl: { translation: pl },
     uk: { translation: uk },
+    es: { translation: es },
+    fr: { translation: fr },
+    de: { translation: de },
+    it: { translation: it },
+    pt: { translation: pt },
+    ja: { translation: ja },
+    ko: { translation: ko },
+    ar: { translation: ar },
+    hi: { translation: hi },
   },
   lng: detectInitialLang(),
   fallbackLng: 'en',

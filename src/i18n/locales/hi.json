@@ -1,0 +1,15 @@
+{
+  "common": { "continue": "जारी रखें", "skip": "छोड़ें", "next": "अगला", "back": "वापस", "close": "बंद करें" },
+  "tabs": { "read": "पढ़ें", "deck": "कार्ड", "stats": "आँकड़े", "you": "आप" },
+  "onboarding": {
+    "step1": { "title": "Fluera में आपका स्वागत है" },
+    "step2": { "title": "मैं पढ़ रहा हूँ..." },
+    "step3": { "title": "अनुवाद करें..." }
+  },
+  "settings": {
+    "theme": { "title": "कागज़", "day": "दिन", "sepia": "सीपिया", "night": "रात", "auto": "स्वतः दिन/रात" },
+    "font":  { "title": "पढ़ना", "size": "आकार", "typeface": "फ़ॉन्ट", "serif": "Source Serif", "sans": "Geist" }
+  },
+  "library": { "empty": "अभी कोई किताबें नहीं" },
+  "notFound": { "title": "पेज नहीं मिला", "back": "वापस" }
+}

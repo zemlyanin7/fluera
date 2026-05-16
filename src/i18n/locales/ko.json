@@ -1,0 +1,15 @@
+{
+  "common": { "continue": "계속", "skip": "건너뛰기", "next": "다음", "back": "뒤로", "close": "닫기" },
+  "tabs": { "read": "읽기", "deck": "덱", "stats": "통계", "you": "나" },
+  "onboarding": {
+    "step1": { "title": "Fluera에 오신 것을 환영합니다" },
+    "step2": { "title": "읽고 있는 언어..." },
+    "step3": { "title": "번역할 언어..." }
+  },
+  "settings": {
+    "theme": { "title": "종이", "day": "낮", "sepia": "세피아", "night": "밤", "auto": "자동 낮/밤" },
+    "font":  { "title": "읽기", "size": "크기", "typeface": "글꼴", "serif": "Source Serif", "sans": "Geist" }
+  },
+  "library": { "empty": "아직 책이 없습니다" },
+  "notFound": { "title": "페이지를 찾을 수 없습니다", "back": "돌아가기" }
+}

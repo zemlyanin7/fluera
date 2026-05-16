@@ -1,0 +1,15 @@
+{
+  "common": { "continue": "متابعة", "skip": "تخطي", "next": "التالي", "back": "رجوع", "close": "إغلاق" },
+  "tabs": { "read": "قراءة", "deck": "البطاقات", "stats": "إحصائيات", "you": "أنت" },
+  "onboarding": {
+    "step1": { "title": "مرحبًا بك في Fluera" },
+    "step2": { "title": "أقرأ بـ..." },
+    "step3": { "title": "ترجم إلى..." }
+  },
+  "settings": {
+    "theme": { "title": "ورق", "day": "نهار", "sepia": "سيبيا", "night": "ليل", "auto": "تلقائي نهار/ليل" },
+    "font":  { "title": "قراءة", "size": "الحجم", "typeface": "الخط", "serif": "Source Serif", "sans": "Geist" }
+  },
+  "library": { "empty": "لا توجد كتب بعد" },
+  "notFound": { "title": "الصفحة غير موجودة", "back": "رجوع" }
+}

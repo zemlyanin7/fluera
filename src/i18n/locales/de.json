@@ -1,0 +1,15 @@
+{
+  "common": { "continue": "Weiter", "skip": "Überspringen", "next": "Weiter", "back": "Zurück", "close": "Schließen" },
+  "tabs": { "read": "LESEN", "deck": "KARTEN", "stats": "STATS", "you": "DU" },
+  "onboarding": {
+    "step1": { "title": "Willkommen bei Fluera" },
+    "step2": { "title": "Ich lese auf..." },
+    "step3": { "title": "Übersetzen in..." }
+  },
+  "settings": {
+    "theme": { "title": "Papier", "day": "Tag", "sepia": "Sepia", "night": "Nacht", "auto": "Auto Tag/Nacht" },
+    "font":  { "title": "Lesen", "size": "Größe", "typeface": "Schriftart", "serif": "Source Serif", "sans": "Geist" }
+  },
+  "library": { "empty": "Noch keine Bücher" },
+  "notFound": { "title": "Seite nicht gefunden", "back": "Zurück" }
+}

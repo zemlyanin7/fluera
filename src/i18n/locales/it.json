@@ -1,0 +1,15 @@
+{
+  "common": { "continue": "Continua", "skip": "Salta", "next": "Avanti", "back": "Indietro", "close": "Chiudi" },
+  "tabs": { "read": "LEGGI", "deck": "MAZZO", "stats": "STAT.", "you": "TU" },
+  "onboarding": {
+    "step1": { "title": "Benvenuto in Fluera" },
+    "step2": { "title": "Sto leggendo in..." },
+    "step3": { "title": "Traduci in..." }
+  },
+  "settings": {
+    "theme": { "title": "Carta", "day": "Giorno", "sepia": "Seppia", "night": "Notte", "auto": "Auto Giorno/Notte" },
+    "font":  { "title": "Lettura", "size": "Dimensione", "typeface": "Carattere", "serif": "Source Serif", "sans": "Geist" }
+  },
+  "library": { "empty": "Nessun libro ancora" },
+  "notFound": { "title": "Pagina non trovata", "back": "Indietro" }
+}

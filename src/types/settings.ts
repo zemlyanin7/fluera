@@ -14,7 +14,13 @@ export const SUPPORTED_NATIVE_LANGUAGES = ['en','ru','pl','uk','es','fr','de'] a
 export type NativeLanguage = (typeof SUPPORTED_NATIVE_LANGUAGES)[number];
 export const SUPPORTED_BOOK_LANGUAGES = ['en','ru','pl','uk','es','fr','de','it','pt','ja','ko','ar','hi'] as const;
 export type BookLanguage = (typeof SUPPORTED_BOOK_LANGUAGES)[number];
-export type UILanguage = 'en' | 'ru' | 'pl' | 'uk';
+// UI-язык = язык интерфейса. Совпадает с BookLanguage (13) для симметрии:
+// пользователь может смотреть интерфейс на любом языке, который мы поддерживаем
+// как book-язык. Переводы UI в src/i18n/locales/*.json.
+export const SUPPORTED_UI_LANGUAGES = [
+  'en','ru','pl','uk','es','fr','de','it','pt','ja','ko','ar','hi',
+] as const;
+export type UILanguage = (typeof SUPPORTED_UI_LANGUAGES)[number];
 
 export interface SettingsState {
   uiLanguage: UILanguage;
