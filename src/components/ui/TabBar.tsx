@@ -15,12 +15,11 @@ const TAB_META: Record<string, { i18nKey: string; Ic: React.FC<{ size?: number; 
   settings: { i18nKey: 'tabs.you',   Ic: IcSettings },
 };
 
-const styles = StyleSheet.create((theme, rt) => ({
-  // Docked variant: TabBar прижат к низу экрана, без скруглений и floating-зазора.
-  // Padding bottom = home-indicator inset (iOS) / nav-bar inset (Android edge-to-edge).
+const styles = StyleSheet.create((theme) => ({
+  // Docked variant: TabBar прижат к низу. Safe-area под home-indicator управляется
+  // навигационным контейнером Tabs (react-navigation сам прибавляет insets.bottom).
   container: {
-    height: 60 + rt.insets.bottom,
-    paddingBottom: rt.insets.bottom,
+    height: 60,
     overflow: 'hidden',
     borderTopWidth: RN.hairlineWidth,
     borderTopColor: theme.ink3,
