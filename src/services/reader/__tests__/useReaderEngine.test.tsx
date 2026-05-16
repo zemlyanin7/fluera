@@ -66,7 +66,8 @@ describe('useReaderEngine', () => {
       { wrapper },
     );
     await waitFor(() => expect(result.current.state.status).toBe('ready'));
-    expect(result.current.state.currentChapter?.title).toBe('Ch1');
+    expect(result.current.state.chapters[0]?.title).toBe('Ch1');
+    expect(result.current.state.chapters).toHaveLength(2);
   });
 
   it('savePosition writes to DB after 500ms debounce', async () => {
@@ -93,8 +94,8 @@ describe('useReaderEngine', () => {
       });
     }
 
-    act(() => result.current.savePosition(100));
-    act(() => result.current.savePosition(200));
+    act(() => result.current.savePosition(0, 100));
+    act(() => result.current.savePosition(0, 200));
 
     // Nothing written yet
     expect(await positions.findByBook(book.id)).toBeNull();

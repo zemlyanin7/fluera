@@ -1,5 +1,5 @@
 // useReaderEngine: React hook обёртка над reducer + side effects.
-// См. spec §8.1, §8.3.
+// Continuous-scroll: после parse кладёт ВСЕ chapters в state.
 import { useEffect, useReducer, useCallback, useRef } from 'react';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useDatabase } from '@/db/DatabaseContext';
@@ -9,17 +9,20 @@ import { ReadingPositionRepository } from '@/db/repositories/ReadingPositionRepo
 import { base64Decode } from '@/services/parser/shared/base64Decode';
 import { createDefaultParserRegistry, type ParsedBook } from '@/services/parser';
 import { detectFormatFromBytes } from '@/services/import/detectFormat';
-import { readerReducer, initialReaderState } from './ReaderEngine';
+import { readerReducer, initialReaderState, type ReaderState } from './ReaderEngine';
 
 export interface UseReaderEngineOptions {
-  /** Test injection: кастомный парсер. По дефолту — createDefaultParserRegistry. */
   parseBook?: (bytes: Uint8Array, filename: string) => Promise<ParsedBook>;
 }
 
 export interface UseReaderEngineResult {
-  state: ReturnType<typeof readerReducer>;
-  setChapter: (index: number) => void;
-  savePosition: (characterOffset: number) => void;
+  state: ReaderState;
+  /** Scroll-jump к chapter (из TOC). */
+  jumpToChapter: (index: number) => void;
+  /** Обновить currentChapterIndex (вызывает BookRenderer onViewableItemsChanged). */
+  setCurrentChapter: (index: number) => void;
+  /** Debounced save позиции (chapter index + offset within chapter). */
+  savePosition: (chapterIndex: number, characterOffset: number) => void;
 }
 
 export function useReaderEngine(
@@ -28,9 +31,12 @@ export function useReaderEngine(
 ): UseReaderEngineResult {
   const db = useDatabase();
   const [state, dispatch] = useReducer(readerReducer, initialReaderState);
-  const parsedBookRef = useRef<ParsedBook | null>(null);
   const savePositionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingOffsetRef = useRef<number>(0);
+  const pendingPositionRef = useRef<{ chapterIndex: number; offset: number }>({
+    chapterIndex: 0,
+    offset: 0,
+  });
+  const bookFormatRef = useRef<string | null>(null);
 
   const parseBook =
     opts.parseBook ??
@@ -52,6 +58,7 @@ export function useReaderEngine(
 
         const book = await books.findById(bookId);
         if (!book) throw new Error(`Book ${bookId} not found`);
+        bookFormatRef.current = book.format;
 
         const meta = await chapters.listByBook(bookId);
         const pos = await positions.findByBook(bookId);
@@ -77,9 +84,7 @@ export function useReaderEngine(
         const parsed = await parseBook(bytes, book.filePath);
         if (cancelled) return;
 
-        parsedBookRef.current = parsed;
-        const target = parsed.chapters[initialChapterIndex] ?? parsed.chapters[0];
-        if (target) dispatch({ type: 'CHAPTER_READY', chapter: target });
+        dispatch({ type: 'CHAPTERS_READY', chapters: parsed.chapters });
       } catch (e) {
         if (!cancelled) dispatch({ type: 'ERROR', message: (e as Error).message });
       }
@@ -91,35 +96,28 @@ export function useReaderEngine(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookId, db]);
 
-  // Switch chapter — берёт уже распарсенную книгу из ref.
-  const setChapter = useCallback(
-    (index: number) => {
-      dispatch({ type: 'SET_CHAPTER_INDEX', index });
-      const parsed = parsedBookRef.current;
-      if (!parsed) return;
-      const target = parsed.chapters[index];
-      if (target) {
-        // Микро-defer чтобы reducer успел применить SET_CHAPTER_INDEX
-        Promise.resolve().then(() => dispatch({ type: 'CHAPTER_READY', chapter: target }));
-      }
-    },
-    [],
-  );
+  const jumpToChapter = useCallback((index: number) => {
+    dispatch({ type: 'REQUEST_SCROLL_TO_CHAPTER', index });
+  }, []);
 
-  // Debounced position save (500ms). При unmount — clearTimeout.
+  const setCurrentChapter = useCallback((index: number) => {
+    dispatch({ type: 'SET_CURRENT_CHAPTER', index });
+  }, []);
+
   const savePosition = useCallback(
-    (characterOffset: number) => {
-      pendingOffsetRef.current = characterOffset;
+    (chapterIndex: number, characterOffset: number) => {
+      pendingPositionRef.current = { chapterIndex, offset: characterOffset };
       if (savePositionTimerRef.current) return;
       savePositionTimerRef.current = setTimeout(async () => {
         const positions = new ReadingPositionRepository(db);
+        const { chapterIndex: ci, offset } = pendingPositionRef.current;
         try {
           await positions.upsert({
             bookId,
-            chapterOrderIndex: state.currentChapterIndex,
+            chapterOrderIndex: ci,
             positionData: {
-              type: state.book?.format === 'epub' ? 'epub-cfi' : 'fb2-item',
-              value: pendingOffsetRef.current.toString(),
+              type: bookFormatRef.current === 'epub' ? 'epub-cfi' : 'fb2-item',
+              value: offset.toString(),
             },
           });
         } catch (e) {
@@ -128,7 +126,7 @@ export function useReaderEngine(
         savePositionTimerRef.current = null;
       }, 500);
     },
-    [db, bookId, state.currentChapterIndex, state.book?.format],
+    [db, bookId],
   );
 
   useEffect(() => {
@@ -140,5 +138,5 @@ export function useReaderEngine(
     };
   }, []);
 
-  return { state, setChapter, savePosition };
+  return { state, jumpToChapter, setCurrentChapter, savePosition };
 }

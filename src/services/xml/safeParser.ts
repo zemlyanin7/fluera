@@ -27,12 +27,16 @@ export function assertSafeXml(source: string, opts: SafeXmlOpts = {}): void {
   }
 }
 
-const DANGEROUS_DOCTYPE_RX = /<!DOCTYPE[^>]*\b(ENTITY|SYSTEM|PUBLIC)\b/i;
+// XXE vector — это inline ENTITY declarations внутри DOCTYPE [...].
+// xmldom v0.9 не резолвит external entities (no PUBLIC/SYSTEM fetch),
+// поэтому PUBLIC/SYSTEM сами по себе безопасны для XHTML 1.x.
+// Отвергаем только реальный риск: ENTITY declaration в inline DTD subset.
+const INLINE_ENTITY_RX = /<!DOCTYPE[^>]*\[[\s\S]*?<!ENTITY/i;
 
 /**
- * Менее строгая версия для EPUB XHTML. EPUB файлы часто содержат
- * `<!DOCTYPE html>` (HTML5 doctype без entity) — это безопасно. Но любой
- * DOCTYPE с ENTITY/SYSTEM/PUBLIC — отвергаем (XXE).
+ * Менее строгая версия для EPUB XHTML. Разрешает стандартные XHTML doctypes
+ * (HTML5 `<!DOCTYPE html>`, XHTML 1.1 PUBLIC). Отвергает inline ENTITY
+ * declarations (XXE / billion laughs).
  *
  * НЕ использовать для OPF / container.xml / FB2 — там strict assertSafeXml.
  */
@@ -41,8 +45,8 @@ export function assertSafeXmlPermissive(source: string, opts: SafeXmlOpts = {}):
   if (source.length > cap) {
     throw new Error(`XML payload too large (>${cap} bytes)`);
   }
-  if (DANGEROUS_DOCTYPE_RX.test(source)) {
-    throw new Error('Unsafe DOCTYPE (ENTITY/SYSTEM/PUBLIC) rejected');
+  if (INLINE_ENTITY_RX.test(source)) {
+    throw new Error('Unsafe DOCTYPE (inline ENTITY declaration) rejected');
   }
   if (/<\?xml-stylesheet/i.test(source)) {
     throw new Error('XML stylesheet processing instruction rejected');

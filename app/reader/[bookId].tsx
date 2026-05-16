@@ -1,7 +1,6 @@
-// Reader screen — переписан поверх ReaderEngine (sub-project #3).
-// Загружает книгу из data layer, парсит файл, рендерит chapter через FlatList.
-// Word-tap → TranslationPopup (NoOp service возвращает pending).
-import React, { useCallback, useRef, useState } from 'react';
+// Reader screen — continuous-scroll model (sub-project #3).
+// Все chapters рендерятся в одном FlatList. TOC sheet вместо prev/next.
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUnistyles } from 'react-native-unistyles';
@@ -10,10 +9,11 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { scriptForLang } from '@/theme/scripts';
 import { useReaderEngine } from '@/services/reader/useReaderEngine';
 import {
-  ChapterRenderer,
+  BookRenderer,
+  type BookRendererHandle,
   ReaderTopBar,
-  ChapterNavBar,
   ReaderControlsSheet,
+  TableOfContentsSheet,
   TranslationPopup,
   type TranslationPopupState,
 } from '@/components/reader';
@@ -29,11 +29,14 @@ export default function ReaderScreen() {
   const { theme } = useUnistyles();
   const fontSize = useSettingsStore((s) => s.fontSize);
   const nativeLanguage = useSettingsStore((s) => s.nativeLanguage);
-  const { state, setChapter, savePosition } = useReaderEngine(bookId);
+  const { state, jumpToChapter, setCurrentChapter, savePosition } = useReaderEngine(bookId);
   const bookLang: BookLanguage = (state.book?.language as BookLanguage) ?? 'en';
   const script = scriptForLang(bookLang);
   const controlsRef = useRef<SheetRef>(null);
+  const tocRef = useRef<SheetRef>(null);
+  const bookRendererRef = useRef<BookRendererHandle>(null);
   const [popup, setPopup] = useState<TranslationPopupState>({ kind: 'closed' });
+  const lastScrollOffsetRef = useRef(0);
 
   const onWordTap = useCallback(
     async (word: string, sentence: string) => {
@@ -57,10 +60,17 @@ export default function ReaderScreen() {
 
   const onScroll = useCallback(
     (offsetY: number) => {
-      savePosition(Math.floor(offsetY));
+      lastScrollOffsetRef.current = offsetY;
+      savePosition(state.currentChapterIndex, Math.floor(offsetY));
     },
-    [savePosition],
+    [savePosition, state.currentChapterIndex],
   );
+
+  // Реагируем на REQUEST_SCROLL_TO_CHAPTER из TOC → передаём в BookRenderer.
+  useEffect(() => {
+    if (!state.scrollToChapterRequest) return;
+    bookRendererRef.current?.scrollToChapter(state.scrollToChapterRequest.index);
+  }, [state.scrollToChapterRequest]);
 
   if (state.status === 'error') {
     return (
@@ -70,6 +80,7 @@ export default function ReaderScreen() {
           chapterTitle={null}
           onBack={() => router.back()}
           onOpenSettings={() => {}}
+          onOpenToc={() => {}}
         />
         <View
           style={{ flex: 1, padding: 18, justifyContent: 'center', alignItems: 'center', gap: 12 }}
@@ -85,7 +96,7 @@ export default function ReaderScreen() {
     );
   }
 
-  if (state.status !== 'ready' || !state.currentChapter || !state.book) {
+  if (state.status !== 'ready' || state.chapters.length === 0 || !state.book) {
     return (
       <PhoneShell>
         <ReaderTopBar
@@ -93,6 +104,7 @@ export default function ReaderScreen() {
           chapterTitle={null}
           onBack={() => router.back()}
           onOpenSettings={() => {}}
+          onOpenToc={() => {}}
         />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator color={theme.accent} />
@@ -101,31 +113,39 @@ export default function ReaderScreen() {
     );
   }
 
+  const currentChapter = state.chapters.find((c) => c.index === state.currentChapterIndex);
+
   return (
     <PhoneShell>
       <ReaderTopBar
         chapterIndex={state.currentChapterIndex}
-        chapterTitle={state.currentChapter.title}
+        chapterTitle={currentChapter?.title ?? null}
         onBack={() => router.back()}
         onOpenSettings={() => controlsRef.current?.expand()}
+        onOpenToc={() => tocRef.current?.expand()}
       />
       <View style={{ flex: 1 }}>
-        <ChapterRenderer
-          chapter={state.currentChapter}
+        <BookRenderer
+          ref={bookRendererRef}
+          chapters={state.chapters}
           onWordTap={onWordTap}
+          onCurrentChapterChange={setCurrentChapter}
           onScroll={onScroll}
           fontSize={fontSize}
           script={script}
           bookId={state.book.id}
         />
       </View>
-      <ChapterNavBar
-        index={state.currentChapterIndex}
-        total={state.chapterMeta.length}
-        onPrev={() => setChapter(state.currentChapterIndex - 1)}
-        onNext={() => setChapter(state.currentChapterIndex + 1)}
-      />
       <ReaderControlsSheet ref={controlsRef} />
+      <TableOfContentsSheet
+        ref={tocRef}
+        chapters={state.chapterMeta.length > 0 ? state.chapterMeta : state.chapters.map((c) => ({ index: c.index, title: c.title }))}
+        currentChapterIndex={state.currentChapterIndex}
+        onPickChapter={(idx) => {
+          tocRef.current?.close();
+          jumpToChapter(idx);
+        }}
+      />
       <TranslationPopup state={popup} onClose={() => setPopup({ kind: 'closed' })} />
     </PhoneShell>
   );

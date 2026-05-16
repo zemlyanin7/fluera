@@ -21,12 +21,18 @@ describe('readerReducer', () => {
     expect(s.status).toBe('parsing');
   });
 
-  it('captures chapter on CHAPTER_READY', () => {
+  it('captures chapters on CHAPTERS_READY', () => {
     const s = readerReducer(
       { ...initialReaderState, status: 'parsing' },
-      { type: 'CHAPTER_READY', chapter: { index: 0, title: null, items: [] } },
+      {
+        type: 'CHAPTERS_READY',
+        chapters: [
+          { index: 0, title: null, items: [] },
+          { index: 1, title: 'Ch2', items: [] },
+        ],
+      },
     );
-    expect(s.currentChapter).not.toBeNull();
+    expect(s.chapters).toHaveLength(2);
     expect(s.status).toBe('ready');
   });
 
@@ -36,14 +42,20 @@ describe('readerReducer', () => {
     expect(s.error).toBe('boom');
   });
 
-  it('switches chapter via SET_CHAPTER_INDEX', () => {
+  it('updates current chapter via SET_CURRENT_CHAPTER', () => {
     const s = readerReducer(
       { ...initialReaderState, status: 'ready', currentChapterIndex: 0 },
-      { type: 'SET_CHAPTER_INDEX', index: 2 },
+      { type: 'SET_CURRENT_CHAPTER', index: 2 },
     );
     expect(s.currentChapterIndex).toBe(2);
-    expect(s.initialOffset).toBe(0);
-    expect(s.currentChapter).toBeNull();
-    expect(s.status).toBe('parsing');
+  });
+
+  it('emits scroll-to-chapter request on REQUEST_SCROLL_TO_CHAPTER', () => {
+    const s = readerReducer(
+      { ...initialReaderState, status: 'ready' },
+      { type: 'REQUEST_SCROLL_TO_CHAPTER', index: 5 },
+    );
+    expect(s.scrollToChapterRequest?.index).toBe(5);
+    expect(s.currentChapterIndex).toBe(5);
   });
 });

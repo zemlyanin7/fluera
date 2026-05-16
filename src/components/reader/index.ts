@@ -1,4 +1,6 @@
 export { ChapterRenderer } from './ChapterRenderer';
+export { BookRenderer, type BookRendererHandle } from './BookRenderer';
+export { TableOfContentsSheet } from './TableOfContentsSheet';
 export { ContentItemRenderer } from './ContentItemRenderer';
 export { ParagraphRender } from './ParagraphRender';
 export { HeadingRender } from './HeadingRender';

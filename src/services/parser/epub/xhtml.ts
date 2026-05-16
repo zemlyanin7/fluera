@@ -5,7 +5,7 @@ import {
   type Node as XmlNode,
 } from '@xmldom/xmldom';
 import type { ContentItem, InlineNode } from '@/types/content';
-import { appendInlineSafe } from '../shared/flattenInline';
+import { appendInlineSafe, flattenInlineText } from '../shared/flattenInline';
 import { sanitizeImageId } from '../shared/sanitizeImageId';
 import { assertSafeXmlPermissive } from '@/services/xml/safeParser';
 
@@ -98,9 +98,9 @@ function parseBlocks(parent: XmlElement, out: ContentItem[]): void {
       }
       const inlines = inlinesOf(el, 0);
       if (inlines.length > 0) {
-        const hasText = inlines.some(
-          (n) => n.type === 'text' && n.text.trim().length > 0,
-        );
+        // Recursive text check — EPUB часто оборачивает текст в <em>/<span>/<i>,
+        // поэтому top-level inlines может не содержать прямого text-нода.
+        const hasText = inlines.some((n) => flattenInlineText(n).trim().length > 0);
         if (hasText) out.push({ type: 'paragraph', inlines });
       }
     } else if (tag === 'hr') {
