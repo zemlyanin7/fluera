@@ -24,7 +24,11 @@ import type { ThemeId } from '@/types/settings';
  *   id === 'sepia' принудительно отключаем adaptiveThemes и применяем sepia
  *   как фиксированную тему.
  */
-let lastAuto: boolean | null = null;
+// Инициализация: configure() задаёт adaptiveThemes:false по умолчанию,
+// поэтому стартовое значение — false. Это позволяет ПЕРВОМУ вызову
+// applyTheme(*, false) сразу пропустить setAdaptiveThemes и не словить
+// race-condition на самом первом переключении.
+let lastAuto: boolean = false;
 
 export function applyTheme(id: ThemeId, auto: boolean): void {
   if (auto && id === 'sepia') {
@@ -32,7 +36,7 @@ export function applyTheme(id: ThemeId, auto: boolean): void {
       '[theme/applyTheme] auto=true несовместим с themeId=sepia: ' +
         'adaptiveThemes отключаются, применяется sepia как fixed theme.',
     );
-    if (lastAuto !== false) {
+    if (lastAuto) {
       UnistylesRuntime.setAdaptiveThemes(false);
       lastAuto = false;
     }
@@ -40,13 +44,13 @@ export function applyTheme(id: ThemeId, auto: boolean): void {
     return;
   }
   if (auto) {
-    if (lastAuto !== true) {
+    if (!lastAuto) {
       UnistylesRuntime.setAdaptiveThemes(true);
       lastAuto = true;
     }
     return;
   }
-  if (lastAuto !== false) {
+  if (lastAuto) {
     UnistylesRuntime.setAdaptiveThemes(false);
     lastAuto = false;
   }
