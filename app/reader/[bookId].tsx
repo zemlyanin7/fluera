@@ -37,6 +37,9 @@ export default function ReaderScreen() {
   const bookRendererRef = useRef<BookRendererHandle>(null);
   const [popup, setPopup] = useState<TranslationPopupState>({ kind: 'closed' });
   const lastScrollOffsetRef = useRef(0);
+  // Прячем content пока initial scroll-restore не завершён — иначе видно
+  // мгновение «началась с 1 страницы».
+  const [restoreVeilVisible, setRestoreVeilVisible] = useState(false);
 
   const onWordTap = useCallback(
     async (word: string, sentence: string) => {
@@ -66,11 +69,25 @@ export default function ReaderScreen() {
     [savePosition, state.currentChapterIndex],
   );
 
-  // Реагируем на REQUEST_SCROLL_TO_CHAPTER из TOC → передаём в BookRenderer.
+  // Реагируем на REQUEST_SCROLL_TO_CHAPTER из TOC и initial restore.
   useEffect(() => {
     if (!state.scrollToChapterRequest) return;
     bookRendererRef.current?.scrollToChapter(state.scrollToChapterRequest.index);
   }, [state.scrollToChapterRequest]);
+
+  // Когда reader впервые становится ready, если есть сохранённая позиция —
+  // показываем veil чтобы скрыть промежуточные кадры до scroll completion.
+  useEffect(() => {
+    if (state.status !== 'ready') return;
+    if (state.initialOffset > 0 || state.currentChapterIndex > 0) {
+      setRestoreVeilVisible(true);
+      const t = setTimeout(() => setRestoreVeilVisible(false), 400);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+    // Только на момент перехода в ready
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.status]);
 
   if (state.status === 'error') {
     return (
@@ -135,6 +152,23 @@ export default function ReaderScreen() {
           script={script}
           bookId={state.book.id}
         />
+        {restoreVeilVisible && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: theme.paper,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <ActivityIndicator color={theme.accent} />
+          </View>
+        )}
       </View>
       <ReaderControlsSheet ref={controlsRef} />
       <TableOfContentsSheet

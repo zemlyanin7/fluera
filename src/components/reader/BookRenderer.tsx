@@ -65,25 +65,25 @@ export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function
   const pendingScrollRef = useRef<number | null>(null);
 
   const doScroll = useCallback(
-    (chapterIndex: number, attempt: number) => {
+    (chapterIndex: number) => {
       const idx = chapterStartMap.get(chapterIndex);
       if (idx === undefined || !listRef.current) return;
       pendingScrollRef.current = idx;
       try {
         listRef.current.scrollToIndex({
           index: idx,
-          animated: attempt === 0,
+          animated: false, // мгновенный прыжок — иначе видна долгая прокрутка
           viewPosition: 0,
         });
       } catch {
-        // retry уже через onScrollToIndexFailed
+        // retry через onScrollToIndexFailed
       }
     },
     [chapterStartMap],
   );
 
   useImperativeHandle(ref, () => ({
-    scrollToChapter: (chapterIndex: number) => doScroll(chapterIndex, 0),
+    scrollToChapter: (chapterIndex: number) => doScroll(chapterIndex),
   }));
 
   const keyExtractor = useCallback((it: FlatItem) => {
@@ -129,9 +129,10 @@ export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function
       data={flatItems}
       keyExtractor={keyExtractor}
       renderItem={renderItem}
-      initialNumToRender={25}
-      windowSize={7}
-      maxToRenderPerBatch={15}
+      initialNumToRender={30}
+      windowSize={9}
+      maxToRenderPerBatch={40}
+      updateCellsBatchingPeriod={50}
       removeClippedSubviews
       onScroll={(e) => props.onScroll(e.nativeEvent.contentOffset.y)}
       scrollEventThrottle={250}
