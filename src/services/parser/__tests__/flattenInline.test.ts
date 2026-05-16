@@ -43,6 +43,7 @@ describe('appendInlineSafe', () => {
   it('preserves structure below limit', () => {
     const arr: InlineNode[] = [];
     appendInlineSafe(arr, { type: 'italic', children: [{ type: 'text', text: 'a' }] }, 5);
-    expect(arr[0].type).toBe('italic');
+    expect(arr).toHaveLength(1);
+    expect(arr[0]?.type).toBe('italic');
   });
 });

@@ -29,11 +29,12 @@ const CP1251_TABLE: number[] = [
 function decodeCp1251(bytes: Uint8Array): string {
   let out = '';
   for (let i = 0; i < bytes.length; i++) {
-    const b = bytes[i];
+    const b = bytes[i] ?? 0;
     if (b < 0x80) {
       out += String.fromCharCode(b);
     } else {
-      out += String.fromCharCode(CP1251_TABLE[b - 0x80]);
+      const code = CP1251_TABLE[b - 0x80] ?? 0xfffd;
+      out += String.fromCharCode(code);
     }
   }
   return out;
@@ -43,7 +44,7 @@ export function detectXmlEncoding(bytes: Uint8Array): SupportedEncoding {
   const head = String.fromCharCode(...bytes.subarray(0, Math.min(256, bytes.length)));
   const m = ENCODING_RX.exec(head);
   if (!m) return 'utf-8';
-  const enc = m[1].toLowerCase();
+  const enc = (m[1] ?? '').toLowerCase();
   if (enc === 'utf-8' || enc === 'utf8') return 'utf-8';
   if (enc === 'windows-1251' || enc === 'cp1251') return 'windows-1251';
   return 'utf-8';
