@@ -1,13 +1,21 @@
 // Production Database factory — SQLiteAdapter через JSI (RN 0.81 + new arch).
-// modelClasses пока пустой — заполнится после Phase 3.
-// Borges seed conditional через __DEV__ + env var (Task 40).
+// Все 10 моделей зарегистрированы — это критично для cross-table queries
+// (иначе "Collection not found" в runtime).
 import { Database } from '@nozbe/watermelondb';
 import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
 import { schema } from './schema';
 import { migrations } from './migrations';
+import {
+  BookModel, ChapterModel, ReadingPositionModel, BookmarkModel,
+  WordStatusModel, WordOccurrenceModel, ReviewLogModel,
+  TranslationCacheModel, OPDSCatalogModel, ReadingStatsModel,
+} from './models';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const modelClasses: any[] = [];
+const modelClasses = [
+  BookModel, ChapterModel, ReadingPositionModel, BookmarkModel,
+  WordStatusModel, WordOccurrenceModel, ReviewLogModel,
+  TranslationCacheModel, OPDSCatalogModel, ReadingStatsModel,
+];
 
 export async function createDatabase(): Promise<Database> {
   const adapter = new SQLiteAdapter({
