@@ -76,5 +76,10 @@ export function readerReducer(state: ReaderState, action: ReaderAction): ReaderS
       };
     case 'ERROR':
       return { ...state, status: 'error', error: action.message };
+    default:
+      // Defensive: hot-reload может оставить useReducer state с stale shape
+      // от старой версии bundle. Без default switch вернёт undefined и
+      // следующий dispatch упадёт на `state.X` access.
+      return state;
   }
 }
