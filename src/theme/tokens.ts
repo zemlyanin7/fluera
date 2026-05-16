@@ -20,20 +20,24 @@ export const palettes = {
   },
 } as const;
 
+// Семантические токены конвертированы из oklch в sRGB hex/rgba: iOS native
+// ShadowTree color-parser в RN 0.81 не понимает oklch и валит native exception
+// "Value is undefined, expected a number" при применении стилей.
+// Конверсия: oklch → OKLab → linear sRGB → gamma → 8-bit (Björn Ottosson formula).
 export const semanticBase = {
-  accent: 'oklch(0.62 0.14 40)', accentSoft: 'oklch(0.62 0.14 40 / 0.12)',
-  accentLine: 'oklch(0.62 0.14 40 / 0.35)',
-  known: 'oklch(0.68 0.06 140)', knownSoft: 'oklch(0.68 0.06 140 / 0.18)',
-  learning: 'oklch(0.78 0.12 75)', learningSoft: 'oklch(0.78 0.12 75 / 0.22)',
-  newSoft: 'oklch(0.62 0.14 40 / 0.18)',
+  accent: '#CB6440', accentSoft: 'rgba(203,100,64,0.12)',
+  accentLine: 'rgba(203,100,64,0.35)',
+  known: '#85A27F', knownSoft: 'rgba(133,162,127,0.18)',
+  learning: '#E4AC59', learningSoft: 'rgba(228,172,89,0.22)',
+  newSoft: 'rgba(203,100,64,0.18)',
 };
 
 export const semanticDark = {
-  accent: 'oklch(0.72 0.12 40)', accentSoft: 'oklch(0.72 0.12 40 / 0.18)',
-  accentLine: 'oklch(0.72 0.12 40 / 0.35)',
-  known: 'oklch(0.74 0.07 140)', knownSoft: 'oklch(0.74 0.07 140 / 0.22)',
-  learning: 'oklch(0.82 0.13 75)', learningSoft: 'oklch(0.82 0.13 75 / 0.25)',
-  newSoft: 'oklch(0.72 0.12 40 / 0.22)',
+  accent: '#E4896A', accentSoft: 'rgba(228,137,106,0.18)',
+  accentLine: 'rgba(228,137,106,0.35)',
+  known: '#94B68C', knownSoft: 'rgba(148,182,140,0.22)',
+  learning: '#F5B75B', learningSoft: 'rgba(245,183,91,0.25)',
+  newSoft: 'rgba(228,137,106,0.22)',
 };
 
 export const scriptTypography = {
