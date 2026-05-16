@@ -37,9 +37,10 @@ export default function ReaderScreen() {
   const bookRendererRef = useRef<BookRendererHandle>(null);
   const [popup, setPopup] = useState<TranslationPopupState>({ kind: 'closed' });
   const lastScrollOffsetRef = useRef(0);
-  // Прячем content пока initial scroll-restore не завершён — иначе видно
-  // мгновение «началась с 1 страницы».
-  const [restoreVeilVisible, setRestoreVeilVisible] = useState(false);
+  // Veil прячет content пока scroll-jump (TOC tap или initial restore) идёт.
+  // Снимается когда target chapter становится видимым (onViewableItemsChanged).
+  const [veilTarget, setVeilTarget] = useState<number | null>(null);
+  const veilTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onWordTap = useCallback(
     async (word: string, sentence: string) => {
@@ -69,25 +70,37 @@ export default function ReaderScreen() {
     [savePosition, state.currentChapterIndex],
   );
 
-  // Реагируем на REQUEST_SCROLL_TO_CHAPTER из TOC и initial restore.
+  // Реагируем на REQUEST_SCROLL_TO_CHAPTER (TOC tap + initial restore).
+  // Показываем veil + выполняем scroll. Veil снимется когда target станет visible.
   useEffect(() => {
     if (!state.scrollToChapterRequest) return;
-    bookRendererRef.current?.scrollToChapter(state.scrollToChapterRequest.index);
+    const target = state.scrollToChapterRequest.index;
+    setVeilTarget(target);
+    bookRendererRef.current?.scrollToChapter(target);
+    // Safety timeout — если onViewableItemsChanged не сработает.
+    if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
+    veilTimeoutRef.current = setTimeout(() => setVeilTarget(null), 2000);
+    return () => {
+      if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
+    };
   }, [state.scrollToChapterRequest]);
 
-  // Когда reader впервые становится ready, если есть сохранённая позиция —
-  // показываем veil чтобы скрыть промежуточные кадры до scroll completion.
+  // Снимаем veil когда target chapter стал текущим (после scroll completion).
   useEffect(() => {
-    if (state.status !== 'ready') return;
-    if (state.initialOffset > 0 || state.currentChapterIndex > 0) {
-      setRestoreVeilVisible(true);
-      const t = setTimeout(() => setRestoreVeilVisible(false), 400);
-      return () => clearTimeout(t);
+    if (veilTarget !== null && state.currentChapterIndex === veilTarget) {
+      if (veilTimeoutRef.current) {
+        clearTimeout(veilTimeoutRef.current);
+        veilTimeoutRef.current = null;
+      }
+      setVeilTarget(null);
     }
-    return undefined;
-    // Только на момент перехода в ready
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.status]);
+  }, [state.currentChapterIndex, veilTarget]);
+
+  useEffect(() => {
+    return () => {
+      if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
+    };
+  }, []);
 
   if (state.status === 'error') {
     return (
@@ -152,7 +165,7 @@ export default function ReaderScreen() {
           script={script}
           bookId={state.book.id}
         />
-        {restoreVeilVisible && (
+        {veilTarget !== null && (
           <View
             pointerEvents="none"
             style={{
