@@ -54,5 +54,9 @@ export function applyTheme(id: ThemeId, auto: boolean): void {
     UnistylesRuntime.setAdaptiveThemes(false);
     lastAuto = false;
   }
-  UnistylesRuntime.setTheme(id);
+  // requestAnimationFrame — workaround #1179: даём ShadowTreeManager
+  // отдельный кадр для применения, чтобы избежать race с React-рендером
+  // и обновить styles, закэшированные в StyleSheet.create. Без rAF
+  // только компоненты с inline useUnistyles().theme обновлялись на iOS.
+  requestAnimationFrame(() => UnistylesRuntime.setTheme(id));
 }
