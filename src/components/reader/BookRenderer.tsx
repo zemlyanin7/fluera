@@ -2,6 +2,11 @@
 // Chapter boundaries отмечены секциями с heading (внутри items уже).
 // Дополнительно вставляем chapter-start marker для onViewableItemsChanged
 // чтобы определять текущую главу для TopBar.
+//
+// Position save/restore: храним top-visible flat item index. scrollToIndex
+// надёжнее scrollToOffset потому что FlatList всегда умеет найти item по
+// индексу (через onScrollToIndexFailed retry). Pixel offset ломается на
+// virtualized lists с unmeasured items.
 import React, { useCallback, useImperativeHandle, useMemo, useRef } from 'react';
 import { FlatList, View } from 'react-native';
 import type { BookChapter, ContentItem } from '@/types/content';
@@ -18,7 +23,7 @@ type FlatItem =
 
 export interface BookRendererHandle {
   scrollToChapter: (chapterIndex: number) => void;
-  scrollToOffset: (offsetY: number) => void;
+  scrollToFlatIndex: (flatIndex: number) => void;
 }
 
 interface Props {
@@ -26,8 +31,8 @@ interface Props {
   onWordTap: (word: string, sentence: string) => void;
   /** Срабатывает при изменении видимой chapter (для TopBar). */
   onCurrentChapterChange: (chapterIndex: number) => void;
-  /** Throttled offsetY callback для savePosition. */
-  onScroll: (offsetY: number) => void;
+  /** Срабатывает при изменении top-visible flat item (для save position). */
+  onTopFlatItemChange: (flatIndex: number) => void;
   fontSize: number;
   script: ScriptId;
   bookId: string;
@@ -62,45 +67,35 @@ export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function
     return m;
   }, [flatItems]);
 
-  // Сохраняем последний запрошенный chapter idx — для retry при scrollToIndexFailed.
+  // Pending flatIndex для retry при onScrollToIndexFailed.
   const pendingScrollRef = useRef<number | null>(null);
-  // Pending scrollToOffset — retry через onContentSizeChange когда content
-  // достаточно вырос. FlatList не может scrollить к offset > content height.
-  const pendingOffsetRef = useRef<number | null>(null);
-  const contentHeightRef = useRef(0);
 
-  const doScroll = useCallback(
-    (chapterIndex: number) => {
-      const idx = chapterStartMap.get(chapterIndex);
-      if (idx === undefined || !listRef.current) return;
-      pendingScrollRef.current = idx;
-      try {
-        listRef.current.scrollToIndex({
-          index: idx,
-          animated: false, // мгновенный прыжок — иначе видна долгая прокрутка
-          viewPosition: 0,
-        });
-      } catch {
-        // retry через onScrollToIndexFailed
-      }
-    },
-    [chapterStartMap],
-  );
-
-  const tryScrollToOffset = useCallback((offsetY: number) => {
-    // Если content уже достаточно длинный — scrollим сразу. Иначе откладываем
-    // до onContentSizeChange.
-    if (contentHeightRef.current >= offsetY + 50) {
-      listRef.current?.scrollToOffset({ offset: offsetY, animated: false });
-      pendingOffsetRef.current = null;
-    } else {
-      pendingOffsetRef.current = offsetY;
+  const doScrollToFlatIndex = useCallback((idx: number) => {
+    if (idx < 0 || !listRef.current) return;
+    pendingScrollRef.current = idx;
+    try {
+      listRef.current.scrollToIndex({
+        index: idx,
+        animated: false,
+        viewPosition: 0,
+      });
+    } catch {
+      // onScrollToIndexFailed обработает.
     }
   }, []);
 
+  const doScrollToChapter = useCallback(
+    (chapterIndex: number) => {
+      const idx = chapterStartMap.get(chapterIndex);
+      if (idx === undefined) return;
+      doScrollToFlatIndex(idx);
+    },
+    [chapterStartMap, doScrollToFlatIndex],
+  );
+
   useImperativeHandle(ref, () => ({
-    scrollToChapter: (chapterIndex: number) => doScroll(chapterIndex),
-    scrollToOffset: (offsetY: number) => tryScrollToOffset(offsetY),
+    scrollToChapter: doScrollToChapter,
+    scrollToFlatIndex: doScrollToFlatIndex,
   }));
 
   const keyExtractor = useCallback((it: FlatItem) => {
@@ -132,11 +127,24 @@ export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function
     minimumViewTime: 50,
   }).current;
 
+  // Используем ref-callback который имеет stable identity, но читает свежие
+  // props через ref. onViewableItemsChanged нельзя менять между renders
+  // (FlatList ругается).
+  const propsRef = useRef(props);
+  propsRef.current = props;
+
   const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: { item: FlatItem }[] }) => {
-      // Берём самый верхний viewable item — определяет current chapter.
-      const first = viewableItems[0]?.item;
-      if (first) props.onCurrentChapterChange(first.chapterIndex);
+    ({
+      viewableItems,
+    }: {
+      viewableItems: { item: FlatItem; index: number | null }[];
+    }) => {
+      const first = viewableItems[0];
+      if (!first) return;
+      if (first.item) propsRef.current.onCurrentChapterChange(first.item.chapterIndex);
+      if (first.index !== null && first.index !== undefined) {
+        propsRef.current.onTopFlatItemChange(first.index);
+      }
     },
   ).current;
 
@@ -151,18 +159,8 @@ export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function
       maxToRenderPerBatch={40}
       updateCellsBatchingPeriod={50}
       removeClippedSubviews
-      onScroll={(e) => props.onScroll(e.nativeEvent.contentOffset.y)}
-      scrollEventThrottle={250}
       viewabilityConfig={viewabilityConfig}
       onViewableItemsChanged={onViewableItemsChanged}
-      onContentSizeChange={(_w, h) => {
-        contentHeightRef.current = h;
-        const pending = pendingOffsetRef.current;
-        if (pending !== null && h >= pending + 50) {
-          listRef.current?.scrollToOffset({ offset: pending, animated: false });
-          pendingOffsetRef.current = null;
-        }
-      }}
       onScrollToIndexFailed={(info) => {
         // Items ещё не measured. Сначала прокрутимся к approximate offset
         // чтобы FlatList отрисовал нужный диапазон, потом retry exact.

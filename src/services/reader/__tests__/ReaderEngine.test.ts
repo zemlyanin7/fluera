@@ -15,7 +15,7 @@ describe('readerReducer', () => {
       book: fakeBook,
       chapterMeta: [{ index: 0, title: 'Ch1' }],
       initialChapterIndex: 0,
-      initialOffset: 0,
+      initialFlatIndex: 0,
     });
     expect(s.book?.id).toBe('b1');
     expect(s.status).toBe('parsing');
@@ -59,11 +59,11 @@ describe('readerReducer', () => {
     expect(s.currentChapterIndex).toBe(5);
   });
 
-  it('emits scroll-to-offset request on REQUEST_SCROLL_TO_OFFSET', () => {
+  it('emits scroll-to-flat-index request on REQUEST_SCROLL_TO_FLAT_INDEX', () => {
     const s = readerReducer(
       { ...initialReaderState, status: 'ready' },
-      { type: 'REQUEST_SCROLL_TO_OFFSET', offset: 1234 },
+      { type: 'REQUEST_SCROLL_TO_FLAT_INDEX', index: 42 },
     );
-    expect(s.scrollToOffsetRequest?.offset).toBe(1234);
+    expect(s.scrollToFlatIndexRequest?.index).toBe(42);
   });
 });

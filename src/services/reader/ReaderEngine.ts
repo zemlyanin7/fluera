@@ -8,12 +8,12 @@ export interface ReaderState {
   chapterMeta: { index: number; title: string | null }[];
   /** Индекс главы, в которой пользователь сейчас (для TopBar/TOC highlight). */
   currentChapterIndex: number;
-  /** Сохранённый pixel-offset для scroll-restore. */
-  initialOffset: number;
+  /** Сохранённый top-visible flat item index для scroll-restore. */
+  initialFlatIndex: number;
   /** TOC tap: скроллить к chapter-marker. */
   scrollToChapterRequest: { index: number; token: number } | null;
-  /** Initial restore: скроллить к exact pixel offset. */
-  scrollToOffsetRequest: { offset: number; token: number } | null;
+  /** Initial restore: scroll к top-visible flat item index. */
+  scrollToFlatIndexRequest: { index: number; token: number } | null;
   status: 'idle' | 'loading' | 'parsing' | 'ready' | 'error';
   error: string | null;
 }
@@ -23,9 +23,9 @@ export const initialReaderState: ReaderState = {
   chapters: [],
   chapterMeta: [],
   currentChapterIndex: 0,
-  initialOffset: 0,
+  initialFlatIndex: 0,
   scrollToChapterRequest: null,
-  scrollToOffsetRequest: null,
+  scrollToFlatIndexRequest: null,
   status: 'idle',
   error: null,
 };
@@ -37,12 +37,12 @@ export type ReaderAction =
       book: BookRecord;
       chapterMeta: { index: number; title: string | null }[];
       initialChapterIndex: number;
-      initialOffset: number;
+      initialFlatIndex: number;
     }
   | { type: 'CHAPTERS_READY'; chapters: BookChapter[] }
   | { type: 'SET_CURRENT_CHAPTER'; index: number }
   | { type: 'REQUEST_SCROLL_TO_CHAPTER'; index: number }
-  | { type: 'REQUEST_SCROLL_TO_OFFSET'; offset: number }
+  | { type: 'REQUEST_SCROLL_TO_FLAT_INDEX'; index: number }
   | { type: 'ERROR'; message: string };
 
 export function readerReducer(state: ReaderState, action: ReaderAction): ReaderState {
@@ -55,7 +55,7 @@ export function readerReducer(state: ReaderState, action: ReaderAction): ReaderS
         book: action.book,
         chapterMeta: action.chapterMeta,
         currentChapterIndex: action.initialChapterIndex,
-        initialOffset: action.initialOffset,
+        initialFlatIndex: action.initialFlatIndex,
         status: 'parsing',
       };
     case 'CHAPTERS_READY':
@@ -69,10 +69,10 @@ export function readerReducer(state: ReaderState, action: ReaderAction): ReaderS
         scrollToChapterRequest: { index: action.index, token: Date.now() },
         currentChapterIndex: action.index,
       };
-    case 'REQUEST_SCROLL_TO_OFFSET':
+    case 'REQUEST_SCROLL_TO_FLAT_INDEX':
       return {
         ...state,
-        scrollToOffsetRequest: { offset: action.offset, token: Date.now() },
+        scrollToFlatIndexRequest: { index: action.index, token: Date.now() },
       };
     case 'ERROR':
       return { ...state, status: 'error', error: action.message };

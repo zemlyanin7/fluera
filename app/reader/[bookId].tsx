@@ -36,7 +36,7 @@ export default function ReaderScreen() {
   const tocRef = useRef<SheetRef>(null);
   const bookRendererRef = useRef<BookRendererHandle>(null);
   const [popup, setPopup] = useState<TranslationPopupState>({ kind: 'closed' });
-  const lastScrollOffsetRef = useRef(0);
+  const lastFlatIndexRef = useRef(0);
   // Veil прячет content пока scroll-jump (TOC tap или initial restore) идёт.
   // Снимается когда target chapter становится видимым (onViewableItemsChanged).
   const [veilTarget, setVeilTarget] = useState<number | null>(null);
@@ -62,13 +62,13 @@ export default function ReaderScreen() {
     [bookLang, nativeLanguage],
   );
 
-  const onScroll = useCallback(
-    (offsetY: number) => {
-      lastScrollOffsetRef.current = offsetY;
-      // Во время restore (veil активен) не save — иначе промежуточные offset
+  const onTopFlatItemChange = useCallback(
+    (flatIndex: number) => {
+      lastFlatIndexRef.current = flatIndex;
+      // Во время restore (veil активен) не save — иначе промежуточные индексы
       // от FlatList'a OVERWRITE'ят сохранённую позицию пользователя.
       if (veilTarget !== null) return;
-      savePosition(state.currentChapterIndex, Math.floor(offsetY));
+      savePosition(state.currentChapterIndex, flatIndex);
     },
     [savePosition, state.currentChapterIndex, veilTarget],
   );
@@ -86,21 +86,19 @@ export default function ReaderScreen() {
     };
   }, [state.scrollToChapterRequest]);
 
-  // Initial restore → exact pixel offset.
+  // Initial restore → exact top-visible flat item index.
   useEffect(() => {
-    if (!state.scrollToOffsetRequest) return;
+    if (!state.scrollToFlatIndexRequest) return;
     setVeilTarget(state.currentChapterIndex);
-    bookRendererRef.current?.scrollToOffset(state.scrollToOffsetRequest.offset);
+    bookRendererRef.current?.scrollToFlatIndex(state.scrollToFlatIndexRequest.index);
     if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
-    // Offset restore не вызывает chapter change. FlatList может scrollить
-    // к offset только после того как content измерен (onContentSizeChange).
-    // 2000ms — запас для больших книг.
+    // 2000ms запас — onScrollToIndexFailed retry может ~150ms.
     veilTimeoutRef.current = setTimeout(() => setVeilTarget(null), 2000);
     return () => {
       if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.scrollToOffsetRequest]);
+  }, [state.scrollToFlatIndexRequest]);
 
   // Снимаем veil когда target chapter стал текущим (для TOC jump).
   useEffect(() => {
@@ -177,7 +175,7 @@ export default function ReaderScreen() {
           chapters={state.chapters}
           onWordTap={onWordTap}
           onCurrentChapterChange={setCurrentChapter}
-          onScroll={onScroll}
+          onTopFlatItemChange={onTopFlatItemChange}
           fontSize={fontSize}
           script={script}
           bookId={state.book.id}

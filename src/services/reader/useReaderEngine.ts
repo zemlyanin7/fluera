@@ -20,8 +20,8 @@ export interface UseReaderEngineResult {
   state: ReaderState;
   jumpToChapter: (index: number) => void;
   setCurrentChapter: (index: number) => void;
-  /** Save (chapter index + scroll offsetY). Debounced + flush на unmount. */
-  savePosition: (chapterIndex: number, offsetY: number) => void;
+  /** Save (chapter index + top-visible flat item index). Debounced + flush на unmount. */
+  savePosition: (chapterIndex: number, flatIndex: number) => void;
 }
 
 export function useReaderEngine(
@@ -31,7 +31,7 @@ export function useReaderEngine(
   const db = useDatabase();
   const [state, dispatch] = useReducer(readerReducer, initialReaderState);
   const savePositionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingPositionRef = useRef<{ chapterIndex: number; offset: number } | null>(null);
+  const pendingPositionRef = useRef<{ chapterIndex: number; flatIndex: number } | null>(null);
   const bookFormatRef = useRef<string | null>(null);
 
   const parseBook =
@@ -54,7 +54,7 @@ export function useReaderEngine(
         chapterOrderIndex: pending.chapterIndex,
         positionData: {
           type: bookFormatRef.current === 'epub' ? 'epub-cfi' : 'fb2-item',
-          value: pending.offset.toString(),
+          value: pending.flatIndex.toString(),
         },
       })
       .then(() => {
@@ -83,7 +83,7 @@ export function useReaderEngine(
         const pos = await positions.findByBook(bookId);
 
         const initialChapterIndex = pos?.chapterOrderIndex ?? 0;
-        const initialOffset = pos?.positionData?.value
+        const initialFlatIndex = pos?.positionData?.value
           ? parseInt(pos.positionData.value, 10) || 0
           : 0;
 
@@ -93,7 +93,7 @@ export function useReaderEngine(
           book,
           chapterMeta: meta.map((m) => ({ index: m.orderIndex, title: m.title })),
           initialChapterIndex,
-          initialOffset,
+          initialFlatIndex,
         });
 
         const base64 = await FileSystem.readAsStringAsync(book.filePath, {
@@ -112,13 +112,15 @@ export function useReaderEngine(
 
         dispatch({ type: 'CHAPTERS_READY', chapters: parsed.chapters });
 
-        // Restore точной позиции — pixel offset. Defer чтобы BookRenderer успел mount.
-        if (initialOffset > 0) {
+        // Restore через flat item index (scrollToIndex надёжнее scrollToOffset
+        // потому что FlatList всегда может найти item по индексу).
+        if (initialFlatIndex > 0) {
           setTimeout(() => {
-            if (!cancelled) dispatch({ type: 'REQUEST_SCROLL_TO_OFFSET', offset: initialOffset });
+            if (!cancelled)
+              dispatch({ type: 'REQUEST_SCROLL_TO_FLAT_INDEX', index: initialFlatIndex });
           }, 50);
         } else if (initialChapterIndex > 0) {
-          // Fallback: если только глава известна (старые записи), скроллим к ней.
+          // Fallback: только глава известна.
           setTimeout(() => {
             if (!cancelled) dispatch({ type: 'REQUEST_SCROLL_TO_CHAPTER', index: initialChapterIndex });
           }, 50);
@@ -143,8 +145,8 @@ export function useReaderEngine(
   }, []);
 
   const savePosition = useCallback(
-    (chapterIndex: number, offsetY: number) => {
-      pendingPositionRef.current = { chapterIndex, offset: offsetY };
+    (chapterIndex: number, flatIndex: number) => {
+      pendingPositionRef.current = { chapterIndex, flatIndex };
       if (savePositionTimerRef.current) return;
       savePositionTimerRef.current = setTimeout(() => {
         savePositionTimerRef.current = null;
