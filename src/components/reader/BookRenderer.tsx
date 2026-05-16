@@ -64,6 +64,10 @@ export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function
 
   // Сохраняем последний запрошенный chapter idx — для retry при scrollToIndexFailed.
   const pendingScrollRef = useRef<number | null>(null);
+  // Pending scrollToOffset — retry через onContentSizeChange когда content
+  // достаточно вырос. FlatList не может scrollить к offset > content height.
+  const pendingOffsetRef = useRef<number | null>(null);
+  const contentHeightRef = useRef(0);
 
   const doScroll = useCallback(
     (chapterIndex: number) => {
@@ -83,11 +87,20 @@ export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function
     [chapterStartMap],
   );
 
+  const tryScrollToOffset = useCallback((offsetY: number) => {
+    // Если content уже достаточно длинный — scrollим сразу. Иначе откладываем
+    // до onContentSizeChange.
+    if (contentHeightRef.current >= offsetY + 50) {
+      listRef.current?.scrollToOffset({ offset: offsetY, animated: false });
+      pendingOffsetRef.current = null;
+    } else {
+      pendingOffsetRef.current = offsetY;
+    }
+  }, []);
+
   useImperativeHandle(ref, () => ({
     scrollToChapter: (chapterIndex: number) => doScroll(chapterIndex),
-    scrollToOffset: (offsetY: number) => {
-      listRef.current?.scrollToOffset({ offset: offsetY, animated: false });
-    },
+    scrollToOffset: (offsetY: number) => tryScrollToOffset(offsetY),
   }));
 
   const keyExtractor = useCallback((it: FlatItem) => {
@@ -142,6 +155,14 @@ export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function
       scrollEventThrottle={250}
       viewabilityConfig={viewabilityConfig}
       onViewableItemsChanged={onViewableItemsChanged}
+      onContentSizeChange={(_w, h) => {
+        contentHeightRef.current = h;
+        const pending = pendingOffsetRef.current;
+        if (pending !== null && h >= pending + 50) {
+          listRef.current?.scrollToOffset({ offset: pending, animated: false });
+          pendingOffsetRef.current = null;
+        }
+      }}
       onScrollToIndexFailed={(info) => {
         // Items ещё не measured. Сначала прокрутимся к approximate offset
         // чтобы FlatList отрисовал нужный диапазон, потом retry exact.

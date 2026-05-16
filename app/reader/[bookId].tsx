@@ -65,9 +65,12 @@ export default function ReaderScreen() {
   const onScroll = useCallback(
     (offsetY: number) => {
       lastScrollOffsetRef.current = offsetY;
+      // Во время restore (veil активен) не save — иначе промежуточные offset
+      // от FlatList'a OVERWRITE'ят сохранённую позицию пользователя.
+      if (veilTarget !== null) return;
       savePosition(state.currentChapterIndex, Math.floor(offsetY));
     },
-    [savePosition, state.currentChapterIndex],
+    [savePosition, state.currentChapterIndex, veilTarget],
   );
 
   // TOC tap → scroll to chapter marker.
@@ -89,9 +92,10 @@ export default function ReaderScreen() {
     setVeilTarget(state.currentChapterIndex);
     bookRendererRef.current?.scrollToOffset(state.scrollToOffsetRequest.offset);
     if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
-    // Offset restore не вызывает chapter change, поэтому держим veil
-    // через timer а не onViewableItemsChanged.
-    veilTimeoutRef.current = setTimeout(() => setVeilTarget(null), 600);
+    // Offset restore не вызывает chapter change. FlatList может scrollить
+    // к offset только после того как content измерен (onContentSizeChange).
+    // 2000ms — запас для больших книг.
+    veilTimeoutRef.current = setTimeout(() => setVeilTarget(null), 2000);
     return () => {
       if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
     };
