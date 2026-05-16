@@ -6,3 +6,4 @@ import './unistyles';
 export * from './tokens';
 export * from './scripts';
 export * from './bridge';
+export * from './applyTheme';

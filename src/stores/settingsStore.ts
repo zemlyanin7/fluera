@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import i18n from '@/i18n';
+import { applyTheme } from '@/theme/applyTheme';
 import {
   DEFAULT_SETTINGS, SettingsState, NativeLanguage, BookLanguage, UILanguage,
   ThemeId, FontFamilyMode, ScrollMode, ProficiencyLevel,
@@ -46,7 +47,13 @@ export const useSettingsStore = create<SettingsStore>()(
     },
     setNativeLanguage: (v) => set({ nativeLanguage: v }),
     setBookLanguage: (v) => set({ bookLanguage: v }),
-    setTheme: (id, auto = false) => set({ themeId: id, themeAuto: auto }),
+    setTheme: (id, auto = false) => {
+      // Сначала обновляем UnistylesRuntime — set() ниже notify подписчиков
+      // синхронно, и к моменту re-render PhoneShell тема уже актуальна.
+      // Иначе useUnistyles читал бы старый theme.paper.
+      applyTheme(id, auto);
+      set({ themeId: id, themeAuto: auto });
+    },
     setFontFamilyMode: (v) => set({ fontFamilyMode: v }),
     setFontSize: (v) => set({ fontSize: clamp(v, 15, 26) }),
     setScrollMode: (v) => set({ scrollMode: v }),
