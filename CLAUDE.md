@@ -5,25 +5,39 @@
 - **Язык**: вся документация, комментарии в коде и общение — на русском языке
 - Никогда не выдумывать информацию — если не уверен, прямо говори об этом
 
-
 ## Обзор проекта
 
-Fluera — мультиязычное приложение-читалка для изучения языков через чтение. Мобильное приложение на React Native (Expo) с бэкендом на Fastify.
+Fluera — мультиязычное мобильное приложение-читалка для изучения языков через
+чтение. **Полностью локальное** приложение: бэкенда в v1 НЕТ, всё работает
+на устройстве (книги, БД, перевод через on-device LLM).
 
-- **Спецификация:** `docs/superpowers/specs/2026-03-13-fluera-design.md`
-- **Исследовательский бриф:** `doc/fluera-research-brief-v3.docx`
+- **Канонический design-doc:** `docs/superpowers/specs/2026-03-13-fluera-design.md`
+  (исходный, частично устаревший — актуальные решения см. в sub-project спеках ниже)
+- **Foundation (готов):** `docs/superpowers/specs/2026-05-15-foundation-design.md`
+- **Sub-projects roadmap:**
+  - #1 Foundation (готов) — темы, шрифты, навигация, primitives
+  - #2 Data layer (в работе) — WatermelonDB, модели, persist
+  - #3 Reader engine — EPUB/FB2 парсеры с нуля
+  - #4 Translation — Hy-MT1.5-1.8B on-device LLM
+  - #5 Library — OPDS, импорт файлов
+  - #6 Deck — FSRS-6 SRS
+  - #7 Stats — графики, streak
+  - #8 Onboarding/Settings polish
 
 ## Технологический стек
 
-- **Фреймворк:** React Native с Expo (Expo Router для навигации)
+- **Фреймворк:** React Native 0.81.5 + Expo SDK 54 (Expo Router для навигации)
 - **Язык:** TypeScript (strict mode)
-- **Состояние:** Zustand (клиентское состояние) + TanStack React Query (серверное состояние)
-- **UI:** Tamagui (тематизированные компоненты)
-- **База данных:** WatermelonDB (offline-first SQLite)
-- **Анимации:** Reanimated 3
-- **i18n:** i18next + react-i18next
-- **Тестирование:** Jest + React Native Testing Library
-- **Бэкенд:** Fastify + PostgreSQL + Redis (в директории `backend/`, когда будет добавлен)
+- **Состояние:** Zustand v5 + AsyncStorage persist (клиентское состояние)
+- **UI:** react-native-unistyles v3 (темы + StyleSheet.create). НЕ Tamagui.
+- **База данных:** WatermelonDB (offline-first SQLite, без sync в v1)
+- **Анимации:** Reanimated 4
+- **i18n:** i18next + react-i18next + expo-localization
+- **Тестирование:** Jest + @testing-library/react-native
+- **Шрифты:** expo-font (39 .ttf в bundle, 7 семейств для 6 script-вариантов)
+- **Иконки:** react-native-svg (25 кастомных Port из дизайна)
+- **Sheet:** @gorhom/bottom-sheet v5
+- **Бэкенд:** НЕТ. Не планируется и в v1, и в v2. Это отдельное приложение.
 
 ## Правила архитектуры
 
@@ -32,113 +46,174 @@ Fluera — мультиязычное приложение-читалка для
 - Весь код, не относящийся к роутам, — в `src/`
 - Компоненты организованы по доменам: `src/components/reader/`, `src/components/library/` и т.д.
 - Общие UI-компоненты — в `src/components/ui/`
-- Бизнес-логика — в `src/services/`
+- Иконки SVG — в `src/components/icons/`
+- Бизнес-логика и сервисы — в `src/services/`
 - Zustand-сторы — в `src/stores/`
 - Кастомные хуки — в `src/hooks/`
-- Схема и модели базы данных — в `src/db/`
+- Схема и модели базы данных — в `src/db/` (schema, models, migrations, repositories)
+- Темы и токены — в `src/theme/`
+- Типы — в `src/types/`
+- i18n локали — в `src/i18n/locales/`
+- Фикстуры для разработки/тестов — в `src/fixtures/`
+
+### Custom entry
+- `index.js` (корень) импортирует `@/theme` ДО `expo-router/entry`, чтобы
+  `StyleSheet.configure` выполнился до того, как Metro/expo-router начнут
+  загружать роуты с `StyleSheet.create((theme) => ...)` на верхнем уровне.
 
 ### Управление состоянием
-- **Zustand** — для UI-состояния (позиция в читалке, тема, настройки). Без Redux.
-- **React Query** — для серверных данных (каталоги OPDS, API синхронизации, переводы). Никогда не хранить серверные данные в Zustand.
-- **WatermelonDB** — для персистентных офлайн-данных (книги, слова, прогресс). Доступ через классы моделей, никогда не через сырой SQL.
-- НЕ смешивать слои состояния. Компонент должен использовать либо Zustand, либо React Query для конкретного куска данных, но не оба одновременно.
+- **Zustand v5 + persist middleware** — UI-состояние И персистентные настройки.
+  Persist через `@react-native-async-storage/async-storage`. Без Redux.
+- **WatermelonDB** — для офлайн-данных приложения (книги, слова, прогресс,
+  словарь, OPDS-каталоги, статистика). Доступ через model + repository слой,
+  компоненты используют hooks (`useBookList`, `useWordStatus`, ...).
+- **НЕ TanStack Query** в v1 — нет сервера. WatermelonDB observables дают
+  реактивность сами по себе.
+- НЕ смешивать слои состояния. Компонент должен использовать либо Zustand,
+  либо БД-хук для конкретного куска данных, но не оба одновременно.
 
 ### Паттерны компонентов
 - Только функциональные компоненты. Без классов.
-- Использовать компоненты Tamagui (`XStack`, `YStack`, `Text`, `Button` и т.д.) вместо нативных View из React Native.
-- Использовать токены темы Tamagui для цветов — никогда не хардкодить hex-значения в компонентах. Токены темы определены в `src/theme/`.
-- Предпочитать `const`-экспорты для компонентов. Использовать `React.memo()` только когда профилирование показало необходимость.
-- Компоненты — не более 200 строк. Выделять подкомпоненты или хуки при приближении к лимиту.
+- Использовать обычные React Native компоненты (`View`, `Text`, `Pressable`)
+  стилизованные через `react-native-unistyles`. НЕ Tamagui.
+- Использовать `theme.*` через `useUnistyles()` хук inline или
+  `StyleSheet.create((theme) => ({...}))`. НЕ хардкодить hex.
+- Цветовые токены (paper, ink, accent, ...) определены в `src/theme/tokens.ts`.
+  6 script-вариантов типографики в `scriptTypography`.
+- Предпочитать `const`-экспорты для компонентов. Использовать `React.memo()`
+  только когда профилирование показало необходимость.
+- Компоненты — не более 200 строк. Выделять подкомпоненты/хуки при приближении.
 
 ### TypeScript
 - Strict mode включён. Никаких `any`, кроме обёрток над сторонними библиотеками.
-- Использовать `interface` для описания объектов, `type` — для объединений/пересечений.
+- Использовать `interface` для описания объектов, `type` — для объединений.
 - Экспортировать типы из файла, где они определены, а не из barrel-файлов.
-- Предпочитать `unknown` вместо `any` для нетипизированных внешних данных, затем сужать тип через type guards.
+- Предпочитать `unknown` вместо `any` для нетипизированных внешних данных,
+  затем сужать тип через type guards.
+
+### Темы (react-native-unistyles v3)
+- 3 темы: `light` (Day), `sepia` (Sepia), `dark` (Night). Auto = system colorScheme.
+- Семантические токены: `paper`, `paper2`, `ink`, `ink2`, `ink3`, `accent`,
+  `accentSoft`, `accentLine`, `known`, `knownSoft`, `learning`, `learningSoft`,
+  `newSoft`. ВСЕ цвета в sRGB hex/rgba (oklch ломает native ShadowTree на iOS).
+- При смене темы используем `applyTheme()` синхронно в action `setTheme`
+  (см. `src/theme/applyTheme.ts`), бридж как fallback для persist-rehydration.
+- **Известная проблема**: native ShadowTree binding не всегда обновляет
+  закэшированные `StyleSheet.create((theme) => ...)`. Для компонентов с
+  театоо-зависимыми цветами читать theme inline через
+  `const { theme } = useUnistyles()` (см. PhoneShell, TabBar, Headline и др.).
+- Babel-плагин: `['react-native-unistyles/plugin', { root: 'src',
+  autoProcessImports: ['react-native-unistyles', '@/theme'] }]`.
 
 ### Переводы (i18n)
-- Все строки для пользователя ОБЯЗАНЫ использовать функцию `t()` из i18next. Никогда не хардкодить строки.
-- Ключи переводов используют точечную нотацию: `library.bookCard.progress`, `reader.translation.loading`
-- Файлы локалей — в `src/i18n/locales/{lang}.json`
-- Языки для MVP: `en`, `ru`, `pl`, `uk`
-- `bookLanguage` + `nativeLanguage` всегда параметризованы — никогда не предполагать конкретную языковую пару.
+- Все строки для пользователя ОБЯЗАНЫ использовать функцию `t()` из i18next.
+- Ключи переводов используют точечную нотацию: `library.bookCard.progress`.
+- Файлы локалей — в `src/i18n/locales/{lang}.json`.
+- Языки для MVP: `en`, `ru`, `pl`, `uk`.
+- `bookLanguage` + `nativeLanguage` всегда параметризованы — никогда не
+  предполагать конкретную языковую пару.
 
-### Читалка
-- EPUB рендерится в WebView через @epubjs-react-native. Коммуникация через мост `postMessage`/`onMessage`.
-- FB2 рендерится как нативные компоненты React Native. Парсер использует fast-xml-parser.
-- Подсветка слов и обработка нажатий реализованы по-разному для каждого формата — проверяй формат-специфичный компонент.
-- Попап перевода — общий компонент, используемый обеими читалками.
+### Читалка (sub-project #3)
+- EPUB парсер пишем С НУЛЯ: zip-распаковка + XHTML-парсинг → ContentItem[].
+  НЕ используем @epubjs-react-native (WebView-based, тяжёлый).
+- FB2 парсер пишем С НУЛЯ: XML-парсинг → ContentItem[]. НЕ используем
+  fast-xml-parser (хотим контроль над namespace + binary-image handling).
+- Рендеринг через нативные React Native компоненты (НЕ WebView).
+- Канонические типы рендера: `ContentItem`, `InlineNode`, `BookChapter`,
+  `BookFootnotes` в `src/types/content.ts` (определены в Foundation).
+- Подсветка слов и обработка тапов — общий слой над ContentItem-деревом.
+- Попап перевода — общий компонент.
 
 ### База данных (WatermelonDB)
-- Изменения схемы требуют миграций в `src/db/migrations/`
-- Таблица `WordStatus` хранит глобальное знание слов (одна запись на уникальное слово на языковую пару)
-- Таблица `WordOccurrence` хранит контекст по книге (где слово было встречено)
-- Никогда не делать запросы к БД напрямую из компонентов — использовать хуки (`useWordStatus`, `useBookProgress` и т.д.)
+- Изменения схемы требуют миграций в `src/db/migrations/`.
+- Версионирование схемы через `SCHEMA_VERSION` в `src/db/schema.ts`.
+- Таблицы (см. спеку #2 Data layer):
+  - `Book`, `Chapter`, `ReadingPosition`, `Bookmark`
+  - `WordStatus` (FSRS-6 поля), `WordOccurrence`, `ReviewLog`
+  - `TranslationCache`
+  - `OPDSCatalog` (URL без креденшлов; креды в SecureStore)
+  - `ReadingStats`
+- НЕТ `UserSettings` таблицы — настройки в Zustand SettingsStore с persist.
+- Никогда не делать запросы к БД напрямую из компонентов — использовать хуки
+  (`useWordStatus`, `useBookProgress`, `useDeckQueue`, и т.д.).
+- Доступ к моделям через repository-слой (`src/db/repositories/`).
 
-### LLM-перевод
-- Все вызовы LLM проходят через `src/services/translation/TranslationService.ts`
-- Основной: DeepSeek V3.2. Запасной: Gemini Flash-Lite. Премиум (v2): Claude Haiku.
-- Всегда проверять TranslationCache перед вызовами API.
-- Ключ кэша: `SHA-256(lowercase(word) + context_window + lang_pair)`, усечённый до 32 символов.
-- Таймауты: 3с основной, 5с запасной. Одна повторная попытка перед переключением на запасной.
-- Никогда не выставлять API-ключи в клиентском коде. Использовать переменные окружения через Expo constants.
+### LLM-перевод (sub-project #4)
+- Локальная on-device модель: Hy-MT1.5-1.8B-1.25bit-GGUF (tencent).
+- Все вызовы LLM проходят через `src/services/translation/TranslationService.ts`.
+- TranslationCache — обязательная проверка перед инференсом.
+- Ключ кэша: `SHA-256(lowercase(word) + context_window + lang_pair)`,
+  усечённый до 32 символов.
+- НЕТ API-ключей, НЕТ облачных fallback в v1.
 
 ## Качество кода
 
 ### Тестирование
-- Писать тесты для сервисов и бизнес-логики. Файлы тестов рядом с исходниками: `MyService.test.ts`.
-- Использовать React Native Testing Library для тестов компонентов.
-- Тестировать сервис перевода с замоканными ответами LLM.
-- Тестировать модели WatermelonDB с in-memory базой данных.
-- Запускать `npx expo lint` перед коммитом.
+- Писать тесты для сервисов, бизнес-логики, моделей.
+- Файлы тестов в `__tests__/` mirror'ируют структуру `src/` (как в Foundation).
+- Использовать `@testing-library/react-native` для тестов компонентов.
+- Тестировать сервис перевода с замоканной LLM-сессией.
+- Тестировать модели WatermelonDB с in-memory адаптером.
+- Запускать `npx tsc --noEmit && npx jest && npx expo lint` перед коммитом.
+- TDD-дисциплина: RED → GREEN → REFACTOR для бизнес-логики.
 
 ### Соглашения Git
-- Именование веток: `feat/`, `fix/`, `refactor/`, `docs/`, `chore/`
-- Сообщения коммитов: conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
+- Именование веток: `feat/`, `fix/`, `refactor/`, `docs/`, `chore/`.
+- Сообщения коммитов: conventional commits (`feat:`, `fix:`, `docs:`,
+  `refactor:`, `test:`, `chore:`).
 - Коммиты атомарные — одно логическое изменение на коммит.
+- НЕТ co-author трейлеров без явной просьбы.
 
 ### Безопасность
-- Никаких API-ключей, токенов или секретов в коде. Использовать `.env` файлы (в gitignore) + Expo constants.
+- НЕТ API-ключей и секретов в коде (всё локально, ключей нет).
 - Валидировать весь OPDS XML перед парсингом (защита от XXE).
-- Санитизировать URL каталогов, введённые пользователем.
-- Использовать HTTPS для всех вызовов API.
-- Запускать OWASP mobile security checker (`.claude/skills/owasp-mobile-security-checker/`) перед релизами.
+- Санитизировать URL каталогов: parse → strip userinfo → store креды в
+  SecureStore (`expo-secure-store`), а URL без креденшлов в БД.
+- Использовать HTTPS для всех HTTP-вызовов (OPDS-каталоги).
+- Исключить SQLite + книги из iCloud/Android Auto Backup:
+  `NSURLIsExcludedFromBackupKey=true` (iOS), `android:allowBackup="false"`.
+- TranslationCache: time-based purge (90 дней) + "Clear data" action в Settings.
+- НЕ SQLCipher в v1 (sandbox encryption достаточно).
+- Запускать OWASP mobile security checker
+  (`.claude/skills/owasp-mobile-security-checker/`) перед релизами.
 
 ### Производительность
-- Читалка должна работать плавно — никаких подвисаний при скролле или подсветке слов.
-- Попап перевода должен появляться за <500мс (кэш-хит) или <3с (вызов API).
-- Расчёт сложности книги выполняется в фоновом потоке (`InteractionManager.runAfterInteractions()`).
+- Читалка должна работать плавно — никаких подвисаний при скролле или
+  подсветке слов.
+- Попап перевода: <500мс на cache hit, <3с на on-device LLM inference.
+- Расчёт сложности книги в фоновом потоке (`InteractionManager.runAfterInteractions()`).
 - Использовать `React.lazy` для некритичных экранов (Статистика, Настройки).
-- Профилировать через Flipper/React DevTools перед оптимизацией — не оптимизировать преждевременно.
+- Профилировать через React DevTools перед оптимизацией.
+- Chapter content: re-parse on-demand + LRU 3 чаптера в памяти (НЕ JSON в БД).
 
 ## Команды
 
 ```bash
 # Разработка
-npx expo start                    # Запуск dev-сервера
-npx expo start --ios              # iOS-симулятор
-npx expo start --android          # Android-эмулятор
+npm start                         # alias: expo start --dev-client
+npm run ios                       # expo run:ios
+npm run android                   # expo run:android
 
 # Тестирование
-npx jest                          # Запуск всех тестов
-npx jest --watch                  # Режим наблюдения
-npx expo lint                     # Линтинг
+npm test                          # jest
+npm run typecheck                 # tsc --noEmit
+npm run lint                      # expo lint
 
 # Сборка
-npx eas build --platform ios      # Сборка для iOS
-npx eas build --platform android  # Сборка для Android
+npx eas build --platform ios
+npx eas build --platform android
 ```
 
-## Доступные навыки (Skills)
+## Локальные skills проекта
 
-Локальные навыки проекта в `.claude/skills/`:
+`.claude/skills/`:
 - `react-native-expert` — архитектура RN, Expo Router, платформенная обработка
 - `react-expert` — паттерны React, хуки, управление состоянием
-- `typescript-pro` — продвинутые типы и паттерны TypeScript
+- `typescript-pro` — продвинутые типы TypeScript
 - `javascript-pro` — современный JS, асинхронные паттерны
-- `api-designer` — паттерны проектирования REST API
-- `architecture-designer` — архитектурные решения системы
+- `api-designer` — паттерны проектирования REST API (только для OPDS-клиента)
+- `architecture-designer` — архитектурные решения
 - `code-reviewer` — чеклист код-ревью
-- `database-optimizer` — оптимизация запросов и индексов
-- `test-master` — методология и паттерны тестирования
-- `owasp-mobile-security-checker` — скрипты аудита мобильной безопасности
+- `database-optimizer` — оптимизация SQLite-запросов и индексов
+- `test-master` — методология TDD/BDD
+- `owasp-mobile-security-checker` — аудит мобильной безопасности
