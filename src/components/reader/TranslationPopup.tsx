@@ -9,6 +9,7 @@ import type {
   TranslationResult,
   SentenceTranslationResult,
 } from '@/services/translation/ITranslationService';
+import type { InlineNode } from '@/types/content';
 import { ExperimentalBadge } from './ExperimentalBadge';
 import { DislikeButton } from './DislikeButton';
 import { MweChip } from './MweChip';
@@ -39,6 +40,8 @@ export interface PopupViewState {
   mode: PopupMode;
   word: string;
   sourceSentence: string;
+  /** v2: InlineNode[] для SentenceTranslationView с preserved formatting. */
+  sourceInlines?: InlineNode[];
   wordOffsetInSentence: number;
   status: 'loading' | 'ready' | 'error';
   placement: PlacementResult;
@@ -245,10 +248,15 @@ function PopupContents({
       {/* Sentence mode — ready */}
       {state.status === 'ready' && isSentence && sentenceResult?.translatedSentence != null && (
         <SentenceTranslationView
-          sourceSentence={sentenceResult.sourceSentence ?? state.sourceSentence}
+          sourceInlines={
+            state.sourceInlines ?? [
+              { type: 'text', text: sentenceResult.sourceSentence ?? state.sourceSentence },
+            ]
+          }
+          sourcePlainText={sentenceResult.sourceSentence ?? state.sourceSentence}
           translatedSentence={sentenceResult.translatedSentence}
           sourceWordOffset={state.wordOffsetInSentence}
-          sourceWord={state.word}
+          sourceWordLength={state.word.length}
           translatedWordOffset={sentenceResult.translatedWordOffset}
         />
       )}
