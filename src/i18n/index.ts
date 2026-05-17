@@ -21,8 +21,11 @@ export const SUPPORTED = [
 type SupportedLang = (typeof SUPPORTED)[number];
 
 function detectInitialLang(): SupportedLang {
-  const sys = Localization.getLocales()[0]?.languageCode ?? 'en';
-  return (SUPPORTED as readonly string[]).includes(sys) ? (sys as SupportedLang) : 'en';
+  // v2.2.1: дефолт RU — проект русскоязычный, основной рынок изначально русский.
+  // Юзер может сменить UI-язык в Settings → Language. iOS Simulator по дефолту
+  // English → без этого фикса юзер видит EN-строки.
+  const sys = Localization.getLocales()[0]?.languageCode ?? 'ru';
+  return (SUPPORTED as readonly string[]).includes(sys) ? (sys as SupportedLang) : 'ru';
 }
 
 // I4: экспортируем Promise готовности i18n, чтобы корневой layout мог await его

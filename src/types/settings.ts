@@ -60,7 +60,9 @@ export interface SettingsState {
 }
 
 export const DEFAULT_SETTINGS: SettingsState = {
-  uiLanguage: 'en', nativeLanguage: 'ru', bookLanguage: 'en',
+  // v2.2.1: uiLanguage default 'ru' (проект изначально русскоязычный, nativeLanguage='ru').
+  // Юзер может сменить через Settings → Language после добавления picker.
+  uiLanguage: 'ru', nativeLanguage: 'ru', bookLanguage: 'en',
   themeId: 'light', themeAuto: false,
   fontFamilyMode: 'serif', fontSize: 19, scrollMode: 'scroll',
   highlightUnknown: false, showSentenceTranslation: false, pageFlipAnim: true,

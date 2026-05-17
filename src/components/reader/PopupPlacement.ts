@@ -11,21 +11,14 @@ export interface PlacementResult {
   arrowDirection: 'left' | 'right';
 }
 
+// v2.2.1 (2026-05-17): юзер-фидбек — всегда показывать попап снизу через Sheet.
+// Top/bottom anchored Popover оказался неудобным на телефоне: попап оказывается
+// над словом, нужно тянуться пальцем вверх. Modal sheet снизу — natural thumb
+// reach, всегда в одном месте, не зависит от позиции тапа.
+//
+// Параметры PlacementInput оставлены в сигнатуре для совместимости с тестами +
+// будущего toggle "popup style" в Settings (v3).
 export function choosePopupPlacement(input: PlacementInput): PlacementResult {
-  const topSpace = input.tapY;
-  const bottomSpace = input.screenHeight - input.tapY;
-  const fitsAbove = topSpace >= input.popupEstimatedHeight;
-  const fitsBelow = bottomSpace >= input.popupEstimatedHeight;
   const arrow: 'left' | 'right' = input.isRTL ? 'left' : 'right';
-
-  if (!fitsAbove && !fitsBelow) {
-    return { mode: 'modalSheet', arrowDirection: arrow };
-  }
-  if (fitsBelow && bottomSpace >= topSpace) {
-    return { mode: 'bottom', arrowDirection: arrow };
-  }
-  if (fitsAbove) {
-    return { mode: 'top', arrowDirection: arrow };
-  }
-  return { mode: bottomSpace >= topSpace ? 'bottom' : 'top', arrowDirection: arrow };
+  return { mode: 'modalSheet', arrowDirection: arrow };
 }
