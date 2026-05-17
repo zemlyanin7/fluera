@@ -42,11 +42,9 @@ describe('schema', () => {
     expect(schema.version).toBe(SCHEMA_VERSION);
   });
 
-  test('содержит все таблицы v1 (+ новые из #4.5)', () => {
+  test('содержит все 13 таблиц v2 (v1 + #4.5)', () => {
     const names = Object.keys(schema.tables);
-    // Минимум: все v1-таблицы присутствуют
-    TABLES_V1.forEach((t) => expect(names).toContain(t));
-    // Полный список v2 проверяется после добавления всех #4.5 таблиц (Task 6)
+    expect(names.sort()).toEqual([...TABLES_V2].sort());
   });
 
   test('books имеет обязательные поля', () => {
@@ -124,6 +122,39 @@ describe('schema', () => {
   test('word_occurrences.word_status_id и book_id индексированы', () => {
     expect(column('word_occurrences', 'word_status_id').isIndexed).toBe(true);
     expect(column('word_occurrences', 'book_id').isIndexed).toBe(true);
+  });
+});
+
+describe('schema v2 — false_friends', () => {
+  test('false_friends table присутствует со всеми колонками', () => {
+    const t = table('false_friends');
+    expect(t).toBeDefined();
+    const names = columnNames('false_friends').sort();
+    expect(names).toEqual(
+      ['actual_meaning', 'confidence', 'domain', 'looks_like_native', 'source_lang', 'source_word', 'target_lang'].sort(),
+    );
+  });
+
+  test('false_friends.source_lang, target_lang, source_word индексированы', () => {
+    expect(column('false_friends', 'source_lang').isIndexed).toBe(true);
+    expect(column('false_friends', 'target_lang').isIndexed).toBe(true);
+    expect(column('false_friends', 'source_word').isIndexed).toBe(true);
+  });
+});
+
+describe('schema v2 — translation_feedback', () => {
+  test('translation_feedback table присутствует со всеми колонками', () => {
+    const t = table('translation_feedback');
+    expect(t).toBeDefined();
+    const names = columnNames('translation_feedback').sort();
+    expect(names).toEqual(
+      ['book_id', 'book_language', 'created_at', 'kernel_build_id', 'model_version', 'native_language', 'source_sentence', 'translated_sentence'].sort(),
+    );
+  });
+
+  test('translation_feedback.book_id и created_at индексированы', () => {
+    expect(column('translation_feedback', 'book_id').isIndexed).toBe(true);
+    expect(column('translation_feedback', 'created_at').isIndexed).toBe(true);
   });
 });
 
