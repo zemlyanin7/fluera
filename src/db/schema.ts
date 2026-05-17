@@ -5,7 +5,7 @@
 // прошлые миграции.
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -83,6 +83,9 @@ export const schema = appSchema({
         // deck overrides
         { name: 'deck_suspended', type: 'boolean' },
         { name: 'deck_priority', type: 'number' },
+        // #4.5.1 Translation Popup Polish — saved to deck
+        { name: 'saved_to_deck', type: 'boolean' },
+        { name: 'saved_at', type: 'number', isOptional: true },
         // timestamps
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },

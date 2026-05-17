@@ -34,8 +34,8 @@ function columnNames(tableName: string): string[] {
 }
 
 describe('schema', () => {
-  test('SCHEMA_VERSION === 2 после #4.5 migration', () => {
-    expect(SCHEMA_VERSION).toBe(2);
+  test('SCHEMA_VERSION === 3 после #4.5.1 migration', () => {
+    expect(SCHEMA_VERSION).toBe(3);
   });
 
   test('версия в appSchema совпадает с SCHEMA_VERSION', () => {
@@ -193,5 +193,19 @@ describe('schema v2 — mwe_phrases', () => {
     expect(column('mwe_phrases', 'source_lang').isIndexed).toBe(true);
     expect(column('mwe_phrases', 'target_lang').isIndexed).toBe(true);
     expect(column('mwe_phrases', 'phrase').isIndexed).toBe(true);
+  });
+});
+
+describe('schema v3 (#4.5.1 polish)', () => {
+  it('SCHEMA_VERSION = 3', () => {
+    expect(SCHEMA_VERSION).toBe(3);
+  });
+
+  it('word_status имеет saved_to_deck + saved_at', () => {
+    const t = schema.tables.word_statuses;
+    expect(t).toBeDefined();
+    const names = t.columnArray.map((c) => c.name);
+    expect(names).toContain('saved_to_deck');
+    expect(names).toContain('saved_at');
   });
 });
