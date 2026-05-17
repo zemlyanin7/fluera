@@ -131,6 +131,7 @@ export class LlamaTranslationService implements ITranslationService {
         input.bookLanguage,
         input.nativeLanguage,
         cleaned,
+        { inferenceContext: 'warm' },
       );
       return { status: 'ok', translation: cleaned, source: 'inference' };
     } catch (e) {

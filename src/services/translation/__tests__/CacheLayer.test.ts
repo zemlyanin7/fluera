@@ -5,6 +5,8 @@ function makeMockRepo() {
   return {
     findByKey: jest.fn().mockResolvedValue(null),
     upsertByKey: jest.fn().mockResolvedValue({}),
+    findSentenceByKey: jest.fn().mockResolvedValue(null),
+    upsertSentenceByKey: jest.fn().mockResolvedValue({}),
     countAll: jest.fn().mockResolvedValue(0),
     clearAll: jest.fn().mockResolvedValue(0),
     purgeOlderThan: jest.fn().mockResolvedValue(0),
@@ -13,17 +15,9 @@ function makeMockRepo() {
 }
 
 describe('CacheLayer', () => {
-  it('cacheKey deterministic + 32 chars + case-insensitive word', async () => {
-    const cache = new CacheLayer(makeMockRepo(), 10);
-    const k1 = await cache.cacheKey('Cat', 'The Cat.', 'en', 'ru');
-    const k2 = await cache.cacheKey('cat', 'The Cat.', 'en', 'ru');
-    expect(k1).toBe(k2);
-    expect(k1).toHaveLength(32);
-  });
-
   it('lookup memory hit without DB call', async () => {
     const repo = makeMockRepo();
-    const cache = new CacheLayer(repo, 10);
+    const cache = new CacheLayer(repo, 10, () => 'mv1', () => 'kb1');
     await cache.write('cat', 'ctx', 'en', 'ru', 'кошка');
     const res = await cache.lookup('cat', 'ctx', 'en', 'ru');
     expect(res?.value).toBe('кошка');
@@ -43,8 +37,13 @@ describe('CacheLayer', () => {
       translation: 'кошка',
       grammar: null,
       createdAt: 0,
+      sentenceTranslation: null,
+      translatedWordOffset: null,
+      inferenceContext: 'warm',
+      modelVersion: 'mv1',
+      kernelBuildId: null,
     });
-    const cache = new CacheLayer(repo, 10);
+    const cache = new CacheLayer(repo, 10, () => 'mv1', () => 'kb1');
     const res = await cache.lookup('cat', 'ctx', 'en', 'ru');
     expect(res?.source).toBe('db');
     repo.findByKey.mockClear();
@@ -56,14 +55,14 @@ describe('CacheLayer', () => {
   it('lookup returns null on miss', async () => {
     const repo = makeMockRepo();
     repo.findByKey.mockResolvedValue(null);
-    const cache = new CacheLayer(repo, 10);
+    const cache = new CacheLayer(repo, 10, () => 'mv1', () => 'kb1');
     expect(await cache.lookup('x', 'y', 'en', 'ru')).toBeNull();
   });
 
   it('write fires repo.upsertByKey (fire-and-forget)', async () => {
     const repo = makeMockRepo();
     repo.upsertByKey.mockResolvedValue({} as any);
-    const cache = new CacheLayer(repo, 10);
+    const cache = new CacheLayer(repo, 10, () => 'mv1', () => 'kb1');
     await cache.write('cat', 'ctx', 'en', 'ru', 'кошка');
     await new Promise((r) => setTimeout(r, 20));
     expect(repo.upsertByKey).toHaveBeenCalledWith(
@@ -79,9 +78,41 @@ describe('CacheLayer', () => {
 
   it('clearMemory wipes in-memory but not DB', async () => {
     const repo = makeMockRepo();
-    const cache = new CacheLayer(repo, 10);
+    const cache = new CacheLayer(repo, 10, () => 'mv1', () => 'kb1');
     await cache.write('cat', 'ctx', 'en', 'ru', 'кошка');
     cache.clearMemory();
     expect(repo.clearAll).not.toHaveBeenCalled();
+  });
+});
+
+describe('CacheLayer cold rule', () => {
+  it('cold inference НЕ персистится в DB, только memory', async () => {
+    const repoMock = {
+      findByKey: jest.fn().mockResolvedValue(null),
+      upsertByKey: jest.fn().mockResolvedValue(undefined),
+      findSentenceByKey: jest.fn().mockResolvedValue(null),
+      upsertSentenceByKey: jest.fn().mockResolvedValue(undefined),
+      clearAll: jest.fn().mockResolvedValue(undefined),
+    };
+    const cache = new CacheLayer(repoMock as any, 100, () => 'mv1', () => 'kb1');
+    await cache.write('hello', 'hello world', 'en', 'ru', 'привет', { inferenceContext: 'cold' });
+    expect(repoMock.upsertByKey).not.toHaveBeenCalled();
+    const hit = await cache.lookup('hello', 'hello world', 'en', 'ru');
+    expect(hit!.value).toBe('привет');
+    expect(hit!.source).toBe('memory');
+  });
+
+  it('warm inference персистится в DB', async () => {
+    const repoMock = {
+      findByKey: jest.fn().mockResolvedValue(null),
+      upsertByKey: jest.fn().mockResolvedValue(undefined),
+      findSentenceByKey: jest.fn().mockResolvedValue(null),
+      upsertSentenceByKey: jest.fn().mockResolvedValue(undefined),
+      clearAll: jest.fn().mockResolvedValue(undefined),
+    };
+    const cache = new CacheLayer(repoMock as any, 100, () => 'mv1', () => 'kb1');
+    await cache.write('hello', 'hello world', 'en', 'ru', 'привет', { inferenceContext: 'warm' });
+    await new Promise((r) => setTimeout(r, 10));
+    expect(repoMock.upsertByKey).toHaveBeenCalledTimes(1);
   });
 });

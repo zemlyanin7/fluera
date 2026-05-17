@@ -29,7 +29,7 @@ describe('LlamaTranslationService', () => {
     useLlmStatusStore.setState({ status: 'not_installed' } as any);
     const svc = new LlamaTranslationService({
       contextProvider: () => makeCtx('кошка') as any,
-      cache: new CacheLayer(mockRepo, 10),
+      cache: new CacheLayer(mockRepo, 10, () => 'mv1', () => 'kb1'),
       queue: new InferenceQueue(),
     });
     const res = await svc.translate({
@@ -46,7 +46,7 @@ describe('LlamaTranslationService', () => {
     useLlmStatusStore.setState({ status: 'loading' } as any);
     const svc = new LlamaTranslationService({
       contextProvider: () => makeCtx('кошка') as any,
-      cache: new CacheLayer(mockRepo, 10),
+      cache: new CacheLayer(mockRepo, 10, () => 'mv1', () => 'kb1'),
       queue: new InferenceQueue(),
     });
     const res = await svc.translate({
@@ -62,7 +62,7 @@ describe('LlamaTranslationService', () => {
     const ctx = makeCtx('кошка');
     const svc = new LlamaTranslationService({
       contextProvider: () => ctx as any,
-      cache: new CacheLayer(mockRepo, 10),
+      cache: new CacheLayer(mockRepo, 10, () => 'mv1', () => 'kb1'),
       queue: new InferenceQueue(),
     });
     const res = await svc.translate({
@@ -79,7 +79,7 @@ describe('LlamaTranslationService', () => {
 
   it('returns cache hit without inference', async () => {
     const ctx = makeCtx('кошка');
-    const cache = new CacheLayer(mockRepo, 10);
+    const cache = new CacheLayer(mockRepo, 10, () => 'mv1', () => 'kb1');
     await cache.write('cat', 'the cat sat', 'en', 'ru', 'кошка');
     const svc = new LlamaTranslationService({
       contextProvider: () => ctx as any,
@@ -101,7 +101,7 @@ describe('LlamaTranslationService', () => {
     const ctx = makeCtx('   ');
     const svc = new LlamaTranslationService({
       contextProvider: () => ctx as any,
-      cache: new CacheLayer(mockRepo, 10),
+      cache: new CacheLayer(mockRepo, 10, () => 'mv1', () => 'kb1'),
       queue: new InferenceQueue(),
     });
     const res = await svc.translate({
@@ -122,7 +122,7 @@ describe('LlamaTranslationService', () => {
     };
     const svc = new LlamaTranslationService({
       contextProvider: () => ctx as any,
-      cache: new CacheLayer(mockRepo, 10),
+      cache: new CacheLayer(mockRepo, 10, () => 'mv1', () => 'kb1'),
       queue: new InferenceQueue(),
       timeoutMs: 50,
     });
@@ -142,7 +142,7 @@ describe('LlamaTranslationService', () => {
     };
     const svc = new LlamaTranslationService({
       contextProvider: () => ctx as any,
-      cache: new CacheLayer(mockRepo, 10),
+      cache: new CacheLayer(mockRepo, 10, () => 'mv1', () => 'kb1'),
       queue: new InferenceQueue(),
     });
     const res = await svc.translate({
