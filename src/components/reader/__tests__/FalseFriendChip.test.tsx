@@ -25,4 +25,14 @@ describe('FalseFriendChip', () => {
     fireEvent.press(getByRole('button'));
     expect(onToggle).toHaveBeenCalled();
   });
+
+  it('uses learningSoft (amber) background, NOT red', () => {
+    const { getByRole } = render(
+      <FalseFriendChip looksLike="magazine" actualMeaning="shop" expanded={false} onToggle={() => {}} />,
+    );
+    const styles = getByRole('button').props.style;
+    const flat = Array.isArray(styles) ? Object.assign({}, ...styles) : styles;
+    expect(flat.backgroundColor).toBeDefined();
+    expect(String(flat.backgroundColor).toLowerCase()).not.toContain('red');
+  });
 });
