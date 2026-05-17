@@ -125,7 +125,16 @@ export const useSettingsStore = create<SettingsStore>()(
           (acc, k) => ({ ...acc, [k]: s[k] }),
           {},
         ) as PersistedSettings,
-      version: 1,
+      // v2: bumped с 1 для force-применения новых defaults (uiLanguage='ru')
+      // + #4.5 popup-флаги (sentenceTranslationGesture, mweAutoExpand, etc).
+      // Старый persist state сбрасывается к DEFAULT_SETTINGS.
+      version: 2,
+      migrate: (_persisted: any, _from: number) => {
+        // Простая migration: при любой смене версии — сбрасываем к defaults.
+        // Юзеры в v1 ещё в beta-кодстейте, потери persisted preferences
+        // допустимы. В prod после v1 release миграции должны быть soft.
+        return undefined; // undefined → Zustand fresh-инициализирует от DEFAULT_SETTINGS.
+      },
       onRehydrateStorage: () => (state) => {
         // Cold-start theme apply: используем applyThemeImmediate (без rAF),
         // т.к. React tree ещё не отрисован и race из #1179 не возникает.
