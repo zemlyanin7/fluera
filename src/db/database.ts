@@ -12,6 +12,7 @@ import {
   BookModel, ChapterModel, ReadingPositionModel, BookmarkModel,
   WordStatusModel, WordOccurrenceModel, ReviewLogModel,
   TranslationCacheModel, OPDSCatalogModel, ReadingStatsModel,
+  MwePhraseModel, FalseFriendModel, TranslationFeedbackModel,
 } from './models';
 import { pruneBrokenSeedRecords } from './seed/borges';
 
@@ -21,6 +22,7 @@ const modelClasses = [
   BookModel, ChapterModel, ReadingPositionModel, BookmarkModel,
   WordStatusModel, WordOccurrenceModel, ReviewLogModel,
   TranslationCacheModel, OPDSCatalogModel, ReadingStatsModel,
+  MwePhraseModel, FalseFriendModel, TranslationFeedbackModel,
 ];
 
 /**
