@@ -1,5 +1,11 @@
-import React from 'react';
-import { View, Pressable, StyleSheet, Modal } from 'react-native';
+import React, { useEffect } from 'react';
+import { Pressable, StyleSheet, Modal } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  useReducedMotion,
+} from 'react-native-reanimated';
 import { useUnistyles } from 'react-native-unistyles';
 
 export interface AnchorRect {
@@ -19,12 +25,26 @@ export interface PopoverProps {
 
 export function Popover({ visible, placement, anchorRect, onDismiss, children }: PopoverProps) {
   const { theme } = useUnistyles();
+  const reduceMotion = useReducedMotion();
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (visible) {
+      opacity.value = withTiming(1, { duration: reduceMotion ? 0 : 160 });
+    } else {
+      opacity.value = 0;
+    }
+  }, [visible, reduceMotion, opacity]);
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
   if (!visible) return null;
 
   return (
-    <Modal transparent animationType="fade" visible={visible} onRequestClose={onDismiss}>
+    <Modal transparent animationType="none" visible={visible} onRequestClose={onDismiss}>
       <Pressable style={styles.backdrop} onPress={onDismiss} accessibilityRole="none">
-        <View
+        <Animated.View
           style={[
             styles.bubble,
             { backgroundColor: theme.paper, shadowColor: theme.ink },
@@ -32,12 +52,13 @@ export function Popover({ visible, placement, anchorRect, onDismiss, children }:
               ? { top: anchorRect.y + anchorRect.height + 8 }
               : { bottom: undefined, top: Math.max(8, anchorRect.y - 200) },
             { left: 16, right: 16 },
+            animatedStyle,
           ]}
           accessibilityViewIsModal={true}
           importantForAccessibility="yes"
         >
           {children}
-        </View>
+        </Animated.View>
       </Pressable>
     </Modal>
   );

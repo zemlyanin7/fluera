@@ -99,7 +99,15 @@ jest.mock('react-i18next', () => {
 jest.mock('expo-font', () => ({ useFonts: () => [true, null], isLoaded: () => true }));
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }], locale: 'en-US' }));
 jest.mock('expo-splash-screen', () => ({ preventAutoHideAsync: jest.fn(), hideAsync: jest.fn() }));
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+jest.mock('react-native-reanimated', () => {
+  const mock = require('react-native-reanimated/mock');
+  // useReducedMotion не входит в стандартный mock — добавляем вручную.
+  // В тестах всегда возвращаем false (анимации разрешены), чтобы не скрывать
+  // проблемы с логикой анимаций. Тесты на reduced-motion ожидают duration=0,
+  // что обрабатывается в компоненте условно по этому значению.
+  mock.useReducedMotion = jest.fn(() => false);
+  return mock;
+});
 
 // #2 Data layer — мок AsyncStorage (in-memory Map, persist через тесты)
 jest.mock('@react-native-async-storage/async-storage', () => {
