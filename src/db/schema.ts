@@ -124,6 +124,13 @@ export const schema = appSchema({
         { name: 'translation', type: 'string' },
         { name: 'grammar', type: 'string', isOptional: true },
         { name: 'created_at', type: 'number', isIndexed: true },
+        // #4.5 Translation Popup — sentence translation + inference metadata
+        { name: 'sentence_translation', type: 'string', isOptional: true },
+        { name: 'translated_word_offset', type: 'number', isOptional: true },
+        // inference_context: 'cold' | 'warm' | 'thermal_throttled' — всегда записывается
+        { name: 'inference_context', type: 'string' },
+        { name: 'model_version', type: 'string' },
+        { name: 'kernel_build_id', type: 'string', isOptional: true },
       ],
     }),
     tableSchema({

@@ -125,6 +125,27 @@ describe('schema', () => {
   });
 });
 
+describe('schema v2 — translation_cache extended', () => {
+  test('translation_cache extended с sentence + inference_context + versioning columns', () => {
+    const names = columnNames('translation_cache');
+    expect(names).toContain('sentence_translation');
+    expect(names).toContain('translated_word_offset');
+    expect(names).toContain('inference_context');
+    expect(names).toContain('model_version');
+    expect(names).toContain('kernel_build_id');
+  });
+
+  test('translation_cache.inference_context — обязательное поле (required)', () => {
+    const col = column('translation_cache', 'inference_context');
+    expect(col.isOptional).toBeFalsy();
+  });
+
+  test('translation_cache.sentence_translation и kernel_build_id — опциональные', () => {
+    expect(column('translation_cache', 'sentence_translation').isOptional).toBe(true);
+    expect(column('translation_cache', 'kernel_build_id').isOptional).toBe(true);
+  });
+});
+
 describe('schema v2 — false_friends', () => {
   test('false_friends table присутствует со всеми колонками', () => {
     const t = table('false_friends');
