@@ -62,3 +62,11 @@ describe('migrations', () => {
     expect(migrations.maxVersion).toBe(SCHEMA_VERSION);
   });
 });
+
+describe('migration v2→v3', () => {
+  it('содержит migration step toVersion: 3', () => {
+    const v3 = migrations.sortedMigrations.find((m: any) => m.toVersion === 3);
+    expect(v3).toBeDefined();
+    expect(v3!.steps.length).toBeGreaterThan(0);
+  });
+});

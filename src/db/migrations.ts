@@ -65,5 +65,19 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      // #4.5.1 Translation Popup Polish:
+      // - word_statuses: saved_to_deck + saved_at (быстрое сохранение в деку из попапа)
+      toVersion: 3,
+      steps: [
+        addColumns({
+          table: 'word_statuses',
+          columns: [
+            { name: 'saved_to_deck', type: 'boolean' },
+            { name: 'saved_at', type: 'number', isOptional: true },
+          ],
+        }),
+      ],
+    },
   ],
 });
