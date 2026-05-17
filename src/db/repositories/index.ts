@@ -6,3 +6,6 @@ export * from './WordRepository';
 export * from './TranslationCacheRepository';
 export * from './OPDSCatalogRepository';
 export * from './ReadingStatsRepository';
+export * from './MweRepository';
+export * from './FalseFriendRepository';
+export * from './TranslationFeedbackRepository';
