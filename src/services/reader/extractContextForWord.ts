@@ -216,9 +216,16 @@ function buildSlice(
     if (!segText) continue;
 
     let node: InlineNode = { type: 'text', text: segText };
+    // Обворачиваем изнутри наружу, восстанавливая форматирование.
+    // Для link-нод используем сохранённый href из linkHrefs.
     for (let i = entry.wrappers.length - 1; i >= 0; i--) {
-      const wrapper = entry.wrappers[i] as 'bold' | 'italic' | 'sup' | 'sub';
-      node = { type: wrapper, children: [node] };
+      const wrapper = entry.wrappers[i]!;
+      if (wrapper === 'link') {
+        const href = entry.linkHrefs[i] ?? '';
+        node = { type: 'link', href, children: [node] };
+      } else {
+        node = { type: wrapper as 'bold' | 'italic' | 'sup' | 'sub', children: [node] };
+      }
     }
     inlines.push(node);
   }

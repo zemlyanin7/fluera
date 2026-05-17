@@ -7,6 +7,8 @@ export interface InlineMapEntry {
   plainStart: number;
   plainEnd: number;
   wrappers: string[];
+  /** href сохраняется для link-нод, чтобы buildSlice мог восстановить их корректно */
+  linkHrefs: (string | undefined)[];
 }
 
 export interface FlattenResult {
@@ -23,7 +25,11 @@ export function flattenWithIndex(inlines: InlineNode[]): FlattenResult {
   const map: InlineMapEntry[] = [];
   let plain = '';
 
-  function walk(nodes: InlineNode[], wrappers: string[]): void {
+  function walk(
+    nodes: InlineNode[],
+    wrappers: string[],
+    linkHrefs: (string | undefined)[],
+  ): void {
     for (const node of nodes) {
       if (node.type === 'text') {
         const start = plain.length;
@@ -33,16 +39,19 @@ export function flattenWithIndex(inlines: InlineNode[]): FlattenResult {
           plainStart: start,
           plainEnd: plain.length,
           wrappers: [...wrappers],
+          linkHrefs: [...linkHrefs],
         });
       } else if (node.type === 'footnote-ref') {
         // skip — не добавляет текст в plain
+      } else if (node.type === 'link') {
+        walk(node.children, [...wrappers, 'link'], [...linkHrefs, node.href]);
       } else if ('children' in node) {
-        walk(node.children, [...wrappers, node.type]);
+        walk(node.children, [...wrappers, node.type], [...linkHrefs, undefined]);
       }
     }
   }
 
-  walk(inlines, []);
+  walk(inlines, [], []);
   return { plainText: plain, inlineMap: map };
 }
 
