@@ -13,7 +13,7 @@ export function EncounterBadge({ count }: Props) {
   if (count >= 10) return null;
 
   let label: string;
-  let color = theme.ink3;
+  let color: string = theme.ink3;
 
   if (count === 0) {
     label = t('translation.encounter.firstTime', { defaultValue: 'впервые встречаете' });
