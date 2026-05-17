@@ -6,7 +6,8 @@ import { applyTheme, applyThemeImmediate } from '@/theme/applyTheme';
 import {
   DEFAULT_SETTINGS, SettingsState, NativeLanguage, BookLanguage, UILanguage,
   ThemeId, FontFamilyMode, ScrollMode, ProficiencyLevel,
-  TapToTranslateBehavior, AutoAddToDeck,
+  TapToTranslateBehavior, AutoAddToDeck, PopupHintsSeen,
+  SentenceTranslationGesture, ReadingMode,
 } from '@/types/settings';
 
 /**
@@ -26,6 +27,11 @@ const ALLOWLIST = [
   'readingSessionGoalMinutes',
   // Onboarding state
   'onboardingCompleted',
+  // Coach mark hints
+  'popupHintsSeen',
+  // Translation popup flags
+  'showRegisterTags', 'sentenceTranslationGesture', 'mweAutoExpand',
+  'falseFriendsEnabled', 'readingMode',
 ] as const satisfies readonly (keyof SettingsState)[];
 
 type PersistedKeys = (typeof ALLOWLIST)[number];
@@ -55,6 +61,14 @@ interface SettingsActions {
   toggleLookupHistoryEnabled: () => void;
   setReadingSessionGoalMinutes: (v: number) => void;
   completeOnboarding: () => void;
+  markPopupHintSeen: (key: keyof PopupHintsSeen) => void;
+  resetPopupHints: () => void;
+  setSentenceTranslation: (v: boolean) => void;
+  setRegisterTags: (v: boolean) => void;
+  setSentenceGesture: (v: SentenceTranslationGesture) => void;
+  setMweAutoExpand: (v: boolean) => void;
+  setFalseFriendsEnabled: (v: boolean) => void;
+  setReadingMode: (v: ReadingMode) => void;
   reset: () => void;
 }
 
@@ -91,6 +105,16 @@ export const useSettingsStore = create<SettingsStore>()(
       toggleLookupHistoryEnabled: () => set((s) => ({ lookupHistoryEnabled: !s.lookupHistoryEnabled })),
       setReadingSessionGoalMinutes: (v) => set({ readingSessionGoalMinutes: clamp(v, 5, 120) }),
       completeOnboarding: () => set({ onboardingCompleted: true }),
+      markPopupHintSeen: (key) =>
+        set((s) => ({ popupHintsSeen: { ...s.popupHintsSeen, [key]: true } })),
+      resetPopupHints: () =>
+        set({ popupHintsSeen: { longPressForSentence: false } }),
+      setSentenceTranslation: (v) => set({ showSentenceTranslation: v }),
+      setRegisterTags: (v) => set({ showRegisterTags: v }),
+      setSentenceGesture: (v) => set({ sentenceTranslationGesture: v }),
+      setMweAutoExpand: (v) => set({ mweAutoExpand: v }),
+      setFalseFriendsEnabled: (v) => set({ falseFriendsEnabled: v }),
+      setReadingMode: (v) => set({ readingMode: v }),
       reset: () => set(DEFAULT_SETTINGS),
     })),
     {

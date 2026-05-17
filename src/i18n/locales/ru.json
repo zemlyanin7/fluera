@@ -1,5 +1,5 @@
 {
-  "common": { "continue": "Продолжить", "skip": "Пропустить", "next": "Далее", "back": "Назад", "close": "Закрыть" },
+  "common": { "continue": "Продолжить", "skip": "Пропустить", "next": "Далее", "back": "Назад", "close": "Закрыть", "gotIt": "Понятно" },
   "tabs": { "read": "ЧТЕНИЕ", "deck": "КАРТЫ", "stats": "СТАТ.", "you": "ВЫ" },
   "onboarding": {
     "step1": { "title": "Добро пожаловать в Fluera" },
@@ -8,8 +8,79 @@
   },
   "settings": {
     "theme": { "title": "Бумага", "day": "День", "sepia": "Сепия", "night": "Ночь", "auto": "Авто День/Ночь" },
-    "font":  { "title": "Чтение", "size": "Размер", "typeface": "Шрифт", "serif": "Source Serif", "sans": "Geist" }
+    "font":  { "title": "Чтение", "size": "Размер", "typeface": "Шрифт", "serif": "Source Serif", "sans": "Geist" },
+    "translation": {
+      "heading": "Перевод",
+      "advanced": "Продвинутые настройки",
+      "resetCoachMark": "Сбросить подсказки",
+      "sentenceGesture": {
+        "label": "Перевод предложения",
+        "long_press": "По удержанию",
+        "button": "По кнопке",
+        "both": "Оба"
+      },
+      "smartHints": {
+        "label": "Умные подсказки",
+        "hint": "Ложные друзья, идиомы, регистр"
+      },
+      "mweAutoExpand": { "label": "Расширять идиомы при тапе" },
+      "registerTags": { "label": "Показывать метки регистра (B2+)" },
+      "falseFriends": { "label": "Предупреждать о ложных друзьях" },
+      "sentenceTranslation": {
+        "label": "Перевод предложения",
+        "hint": "Длинное нажатие или кнопка"
+      }
+    },
+    "feedback": {
+      "empty": "Жалоб пока нет",
+      "clearAll": "Очистить все жалобы"
+    }
   },
   "library": { "empty": "Книг пока нет" },
-  "notFound": { "title": "Страница не найдена", "back": "Вернуться" }
+  "notFound": { "title": "Страница не найдена", "back": "Вернуться" },
+  "translation": {
+    "experimentalBadge": "⚠️ Экспериментальный перевод",
+    "dislikeLabel": "Плохой перевод",
+    "dislikeRecorded": "Спасибо, учтём",
+    "sourceLabel": "Источник:",
+    "translationLabel": "Перевод:",
+    "translateSentenceLabel": "Перевести предложение целиком",
+    "alternativeSenses": "другие значения ({{count}})",
+    "errorGeneric": "Не удалось перевести",
+    "encounter": {
+      "firstTime": "впервые встречаете",
+      "nthTime": "{{ordinal}}-й раз",
+      "familiar": "знакомое"
+    },
+    "mweType": {
+      "idiom": "идиома",
+      "phrasal_verb": "фразовый глагол",
+      "collocation": "коллокация",
+      "proverb": "поговорка"
+    },
+    "coachMarks": {
+      "longPress": "Удержите палец на слове чтобы перевести предложение целиком"
+    },
+    "a11y": {
+      "loadingTranslation": "Идёт перевод",
+      "altSenses": "Альтернативные значения, {{count}}",
+      "altSensesHint": "Двойной тап чтобы развернуть",
+      "altSensesRevealed": "Показаны {{count}} значений",
+      "falseFriendWarning": "Ложный друг переводчика: похоже на {{word}}",
+      "falseFriendHint": "Тап чтобы узнать настоящее значение",
+      "mweChip": "Тип фразы: {{type}}",
+      "popupSummary": "Перевод {{word}}: {{gloss}}",
+      "pronunciation": {
+        "unavailable": "Произношение, недоступно в v1"
+      }
+    }
+  },
+  "reader": {
+    "a11y": {
+      "tapToTranslate": "Тап чтобы перевести",
+      "translateSentence": "Перевести предложение",
+      "extendSelection": "Выделить ещё слова",
+      "longPressForSentence": "Удерживайте чтобы перевести предложение"
+    }
+  }
 }

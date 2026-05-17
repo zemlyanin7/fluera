@@ -1,9 +1,14 @@
 import { schema, SCHEMA_VERSION } from '@/db/schema';
 
-const TABLES = [
+const TABLES_V1 = [
   'books', 'chapters', 'reading_positions', 'bookmarks',
   'word_statuses', 'word_occurrences', 'review_logs',
   'translation_cache', 'opds_catalogs', 'reading_stats',
+];
+
+const TABLES_V2 = [
+  ...TABLES_V1,
+  'mwe_phrases', 'false_friends', 'translation_feedback',
 ];
 
 function table(name: string) {
@@ -19,18 +24,27 @@ function column(tableName: string, colName: string) {
   return col;
 }
 
+// Хелпер: возвращает имена колонок через columnArray (реальный WatermelonDB
+// хранит columns как object-map, columnArray — как исходный массив).
+function columnNames(tableName: string): string[] {
+  const t = table(tableName);
+  // WatermelonDB tableSchema: { columns: Record<string, col>, columnArray: col[] }
+  const arr: Array<{ name: string }> = (t as unknown as { columnArray: Array<{ name: string }> }).columnArray;
+  return arr.map((c) => c.name);
+}
+
 describe('schema', () => {
-  test('SCHEMA_VERSION === 1', () => {
-    expect(SCHEMA_VERSION).toBe(1);
+  test('SCHEMA_VERSION === 2 после #4.5 migration', () => {
+    expect(SCHEMA_VERSION).toBe(2);
   });
 
   test('версия в appSchema совпадает с SCHEMA_VERSION', () => {
     expect(schema.version).toBe(SCHEMA_VERSION);
   });
 
-  test('содержит все 10 таблиц', () => {
+  test('содержит все 13 таблиц v2 (v1 + #4.5)', () => {
     const names = Object.keys(schema.tables);
-    expect(names.sort()).toEqual([...TABLES].sort());
+    expect(names.sort()).toEqual([...TABLES_V2].sort());
   });
 
   test('books имеет обязательные поля', () => {
@@ -108,5 +122,76 @@ describe('schema', () => {
   test('word_occurrences.word_status_id и book_id индексированы', () => {
     expect(column('word_occurrences', 'word_status_id').isIndexed).toBe(true);
     expect(column('word_occurrences', 'book_id').isIndexed).toBe(true);
+  });
+});
+
+describe('schema v2 — translation_cache extended', () => {
+  test('translation_cache extended с sentence + inference_context + versioning columns', () => {
+    const names = columnNames('translation_cache');
+    expect(names).toContain('sentence_translation');
+    expect(names).toContain('translated_word_offset');
+    expect(names).toContain('inference_context');
+    expect(names).toContain('model_version');
+    expect(names).toContain('kernel_build_id');
+  });
+
+  test('translation_cache.inference_context — обязательное поле (required)', () => {
+    const col = column('translation_cache', 'inference_context');
+    expect(col.isOptional).toBeFalsy();
+  });
+
+  test('translation_cache.sentence_translation и kernel_build_id — опциональные', () => {
+    expect(column('translation_cache', 'sentence_translation').isOptional).toBe(true);
+    expect(column('translation_cache', 'kernel_build_id').isOptional).toBe(true);
+  });
+});
+
+describe('schema v2 — false_friends', () => {
+  test('false_friends table присутствует со всеми колонками', () => {
+    const t = table('false_friends');
+    expect(t).toBeDefined();
+    const names = columnNames('false_friends').sort();
+    expect(names).toEqual(
+      ['actual_meaning', 'confidence', 'domain', 'looks_like_native', 'source_lang', 'source_word', 'target_lang'].sort(),
+    );
+  });
+
+  test('false_friends.source_lang, target_lang, source_word индексированы', () => {
+    expect(column('false_friends', 'source_lang').isIndexed).toBe(true);
+    expect(column('false_friends', 'target_lang').isIndexed).toBe(true);
+    expect(column('false_friends', 'source_word').isIndexed).toBe(true);
+  });
+});
+
+describe('schema v2 — translation_feedback', () => {
+  test('translation_feedback table присутствует со всеми колонками', () => {
+    const t = table('translation_feedback');
+    expect(t).toBeDefined();
+    const names = columnNames('translation_feedback').sort();
+    expect(names).toEqual(
+      ['book_id', 'book_language', 'created_at', 'kernel_build_id', 'model_version', 'native_language', 'source_sentence', 'translated_sentence'].sort(),
+    );
+  });
+
+  test('translation_feedback.book_id и created_at индексированы', () => {
+    expect(column('translation_feedback', 'book_id').isIndexed).toBe(true);
+    expect(column('translation_feedback', 'created_at').isIndexed).toBe(true);
+  });
+});
+
+describe('schema v2 — mwe_phrases', () => {
+  test('mwe_phrases table присутствует со всеми колонками', () => {
+    const t = table('mwe_phrases');
+    expect(t).toBeDefined();
+    const names = columnNames('mwe_phrases').sort();
+    expect(names).toEqual(
+      ['attribution', 'domain', 'gap_pattern', 'literal_gloss', 'mwe_type', 'phrase', 'source_lang', 'target_lang', 'translation_equivalent'].sort(),
+    );
+  });
+
+  test('mwe_phrases.source_lang, target_lang, phrase индексированы', () => {
+    expect(column('mwe_phrases', 'source_lang').isIndexed).toBe(true);
+    expect(column('mwe_phrases', 'target_lang').isIndexed).toBe(true);
+    expect(column('mwe_phrases', 'phrase').isIndexed).toBe(true);
   });
 });

@@ -14,6 +14,8 @@ import { InferenceQueue } from './InferenceQueue';
 import { LlamaContextManager } from './LlamaContextManager';
 import { LlamaTranslationService } from './LlamaTranslationService';
 import { TranslationServiceProvider } from './TranslationServiceContext';
+import { getKernelBuildId } from './kernelBuildId';
+import { MODEL_MANIFEST } from './modelManifest';
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
 
@@ -26,7 +28,12 @@ export function LlmBootstrap({ children }: { children: React.ReactNode }) {
   // Service singleton per db instance.
   const service = useMemo(() => {
     const repo = new TranslationCacheRepository(db);
-    const cache = new CacheLayer(repo, 500);
+    const cache = new CacheLayer(
+      repo,
+      500,
+      () => String(MODEL_MANIFEST.version),
+      getKernelBuildId,
+    );
     const queue = new InferenceQueue();
     return new LlamaTranslationService({
       contextProvider: () => LlamaContextManager.instance().getContext(),

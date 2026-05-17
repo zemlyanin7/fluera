@@ -1,5 +1,5 @@
 {
-  "common": { "continue": "Continua", "skip": "Salta", "next": "Avanti", "back": "Indietro", "close": "Chiudi" },
+  "common": { "continue": "Continua", "skip": "Salta", "next": "Avanti", "back": "Indietro", "close": "Chiudi", "gotIt": "Capito" },
   "tabs": { "read": "LEGGI", "deck": "MAZZO", "stats": "STAT.", "you": "TU" },
   "onboarding": {
     "step1": { "title": "Benvenuto in Fluera" },
@@ -11,5 +11,15 @@
     "font":  { "title": "Lettura", "size": "Dimensione", "typeface": "Carattere", "serif": "Source Serif", "sans": "Geist" }
   },
   "library": { "empty": "Nessun libro ancora" },
-  "notFound": { "title": "Pagina non trovata", "back": "Indietro" }
+  "notFound": { "title": "Pagina non trovata", "back": "Indietro" },
+  "translation": {
+    "experimentalBadge": "⚠️ Traduzione sperimentale",
+    "dislikeLabel": "Traduzione errata",
+    "dislikeRecorded": "Grazie, lo terremo presente"
+  },
+  "reader": {
+    "a11y": {
+      "tapToTranslate": "Tocca per tradurre"
+    }
+  }
 }

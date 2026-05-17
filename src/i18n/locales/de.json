@@ -1,5 +1,5 @@
 {
-  "common": { "continue": "Weiter", "skip": "Überspringen", "next": "Weiter", "back": "Zurück", "close": "Schließen" },
+  "common": { "continue": "Weiter", "skip": "Überspringen", "next": "Weiter", "back": "Zurück", "close": "Schließen", "gotIt": "Verstanden" },
   "tabs": { "read": "LESEN", "deck": "KARTEN", "stats": "STATS", "you": "DU" },
   "onboarding": {
     "step1": { "title": "Willkommen bei Fluera" },
@@ -11,5 +11,15 @@
     "font":  { "title": "Lesen", "size": "Größe", "typeface": "Schriftart", "serif": "Source Serif", "sans": "Geist" }
   },
   "library": { "empty": "Noch keine Bücher" },
-  "notFound": { "title": "Seite nicht gefunden", "back": "Zurück" }
+  "notFound": { "title": "Seite nicht gefunden", "back": "Zurück" },
+  "translation": {
+    "experimentalBadge": "⚠️ Experimentelle Übersetzung",
+    "dislikeLabel": "Schlechte Übersetzung",
+    "dislikeRecorded": "Danke, wir merken es uns"
+  },
+  "reader": {
+    "a11y": {
+      "tapToTranslate": "Tippen zum Übersetzen"
+    }
+  }
 }

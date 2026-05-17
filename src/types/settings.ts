@@ -9,6 +9,8 @@ export type ScrollMode = 'page' | 'scroll';
 export type ProficiencyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'auto';
 export type TapToTranslateBehavior = 'instant' | 'delay' | 'long-press';
 export type AutoAddToDeck = 'always' | 'never' | 'ask';
+export type SentenceTranslationGesture = 'long_press' | 'button' | 'both';
+export type ReadingMode = 'study' | 'flow';
 
 // Полная симметрия 3 наборов языков: UI = Native = Book = 13 значений.
 // Пользователь может выбрать любую языковую пару из 13×13 = 169 комбинаций.
@@ -25,6 +27,10 @@ export const SUPPORTED_UI_LANGUAGES = [
   'en','ru','pl','uk','es','fr','de','it','pt','ja','ko','ar','hi',
 ] as const;
 export type UILanguage = (typeof SUPPORTED_UI_LANGUAGES)[number];
+
+export interface PopupHintsSeen {
+  longPressForSentence: boolean;
+}
 
 export interface SettingsState {
   uiLanguage: UILanguage;
@@ -45,6 +51,12 @@ export interface SettingsState {
   lookupHistoryEnabled: boolean;
   readingSessionGoalMinutes: number;
   onboardingCompleted: boolean;
+  popupHintsSeen: PopupHintsSeen;
+  showRegisterTags: boolean;
+  sentenceTranslationGesture: SentenceTranslationGesture;
+  mweAutoExpand: boolean;
+  falseFriendsEnabled: boolean;
+  readingMode: ReadingMode;
 }
 
 export const DEFAULT_SETTINGS: SettingsState = {
@@ -56,4 +68,10 @@ export const DEFAULT_SETTINGS: SettingsState = {
   autoAddToDeck: 'ask', showPhonetics: false,
   lookupHistoryEnabled: true, readingSessionGoalMinutes: 15,
   onboardingCompleted: false,
+  popupHintsSeen: { longPressForSentence: false },
+  showRegisterTags: false,
+  sentenceTranslationGesture: 'both',
+  mweAutoExpand: true,
+  falseFriendsEnabled: true,
+  readingMode: 'study',
 };

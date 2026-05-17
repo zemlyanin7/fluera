@@ -44,7 +44,7 @@
 
 **Translation correctness** (round-2 translator findings):
 
-- **chrF threshold per-pair table** (not universal 40). Calibrated baseline measurements (FLORES-200 sample) for top 12 pairs. Per-pair shipping decision based on measured threshold (probably 45+ for close pairs, 35+ для CJK↔Indo-European). Promoted к **blocking DoD**.
+- **Замер качества перевода (chrF) убран из v1.** Замер на macOS CPU занимает ~20 часов, без бэкенда / облачной GPU не масштабируется. Вместо этого: плашка "⚠️ Экспериментальный перевод" в попапе предложений + кнопка "👎 Плохой перевод" для локального сбора жалоб. См. §11.3.
 - **Атomic upgrade cache invalidation softer**: keep old cache labeled `model_version_obsolete` with badge "translated by older model" — user-driven re-translate, not silent purge. Saves ~150MB potential user data loss surprise.
 
 **A11y** (round-2 a11y findings):
@@ -70,7 +70,7 @@
 - Register tags + **domain** orthogonal column (general/med/legal/tech).
 - Polysemy: dropped "frequency-ranked" claim → "other senses" без ordering до curated corpus data.
 - Fuzzy word alignment: **fail-safe** — если word отсутствует в target sentence, highlight ничего (не proportional-index).
-- Sentence translation: **chrF FLORES-200 gate** как blocking done-criterion per pair, не follow-up.
+- Перевод предложений: метка "экспериментальный" в попапе для всех языковых пар (см. §11.3). Замер качества chrF/FLORES-200 убран из v1 — переносим в v2 когда появится eval-инфраструктура (облачная GPU или device-side benchmark app).
 - Word `accessibilityRole="button"` + paragraph `accessibilityActions` для VO rotor — иначе 200-element swipe.
 - `sentenceTranslationGesture` default `'both'` + paragraph rotor action — long-press inaccessible.
 - Multi-word selection: drag inaccessible (WCAG 2.5.7) → **"Extend selection" custom action** alternative.
@@ -151,7 +151,7 @@
 8. **Register + domain tags** rendering.
 9. **Encounter count badge** в popup.
 10. **Pronunciation placeholder** field.
-11. **chrF FLORES-200 eval harness** для sentence translation per pair.
+11. **Метка "экспериментальный перевод"** в попапе для предложений + кнопка "плохой перевод" для локального сбора жалоб.
 12. **Cache versioning + cold inference tagging**.
 13. **Accessibility full coverage** (VO/TalkBack/SwitchControl/Reduce Motion).
 14. **Coach mark first-run** gesture discovery.
@@ -221,7 +221,7 @@
 
 - Model versioning at cache layer.
 - Cold inference output drift → poisoning protection via tagging.
-- chrF/BLEU eval harness gating.
+- Метка экспериментального перевода + локальный сбор негативной обратной связи (без бэкенда).
 - Kernel reproducibility verification per llama.rn bump.
 
 ---
@@ -252,14 +252,39 @@
 ┌─────────────────────────────────────────────┐
 │  [WORD]                          ✕          │
 │                                              │
+│  ⚠️ Экспериментальный перевод               │  Плашка для sentence-результата
+│                                              │  (v1: всегда показываем, см. §11.3)
 │  Source:  «...the spring of life...»       │  Highlight WORD в source (underline + bold + tint)
 │  Translation: «...источник жизни...»       │  Highlight TRANSLATED WORD if alignment found
 │                                              │      else: no highlight (fail-safe)
 │                                              │
 │  gloss: источник                            │
 │  ▾ other senses                             │
+│                                              │
+│  [👎 Плохой перевод]                        │  Footer: dislike toggle (sentence mode only)
 └─────────────────────────────────────────────┘
 ```
+
+**Плашка "Экспериментальный перевод"** (sentence mode only):
+- Жёлтый фон + warning icon, выше source/translation pair.
+- Стиль: `paper2` background + `accent` border + `ink` text, размер `caption`.
+- a11y: `accessibilityRole="alert"` при первом появлении в popup session (потом
+  static, не повторяем announce).
+- Локализация: `t('translation.experimentalBadge')` — i18n ключ
+  `translation.experimentalBadge` = "⚠️ Экспериментальный перевод".
+
+**Кнопка "Плохой перевод" (👎)** (sentence mode only):
+- Footer-ряд под полем translation, рядом с другими actions если есть.
+- Toggle: серый по умолчанию, красный при активном dislike. Tap снова → отмена.
+- При активации:
+  - Локальный лог в `TranslationFeedback` таблице (WatermelonDB): `source_sentence`,
+    `translated_sentence`, `book_language`, `native_language`, `model_version`,
+    `created_at`. **Никаких** persistent identifiers, никаких отправок на сервер.
+  - Toast: `t('translation.dislikeRecorded')` — "Спасибо, учтём".
+- В Settings → Translation → "Просмотр жалоб на перевод": список записей,
+  можно очистить.
+- a11y: `accessibilityLabel="Плохой перевод"`, `accessibilityRole="button"`,
+  `accessibilityState={{selected: isDisliked}}`.
 
 После long-press на word **OR** drag (>8px) для multi-word selection:
 
@@ -516,6 +541,46 @@ CREATE TABLE false_friends (
 CREATE INDEX idx_ff_word ON false_friends(source_lang, target_lang, source_word);
 ```
 
+### 5.4 Локальный лог жалоб на перевод (TranslationFeedback)
+
+Когда пользователь нажимает "👎 Плохой перевод" в попапе sentence-результата
+(см. §3.1), запись добавляется в локальную таблицу `translation_feedback`.
+Никаких отправок на сервер (бэкенда в v1 нет).
+
+```sql
+CREATE TABLE translation_feedback (
+  id TEXT PRIMARY KEY,                  -- uuid
+  source_sentence TEXT NOT NULL,        -- оригинал
+  translated_sentence TEXT NOT NULL,    -- что показал перевод
+  book_language TEXT NOT NULL,          -- код языка книги (en, ru, ...)
+  native_language TEXT NOT NULL,        -- код родного языка
+  model_version TEXT NOT NULL,          -- версия модели из MODEL_MANIFEST
+  kernel_build_id TEXT,                 -- ID сборки kernel
+  book_id TEXT,                         -- FK на Book, может быть NULL
+  created_at INTEGER NOT NULL           -- unix timestamp ms
+);
+CREATE INDEX idx_feedback_created ON translation_feedback(created_at DESC);
+```
+
+**Privacy:**
+- Хранится `source_sentence` (фрагмент книги) — это user-content,
+  идентифицирующий контекст. В v1 не отправляется никуда. При "Clear all my
+  data" сбросе таблица очищается вместе с `TranslationCache` и
+  `WordOccurrence.context_sentence`.
+- При экспорте диагностики (если когда-нибудь появится) — `source_sentence`
+  и `translated_sentence` подлежат scrub'у per CLAUDE.md политики.
+- Backup exclusion: `translation_feedback` исключается из iCloud/Android Auto
+  Backup (см. CLAUDE.md "Granular backup exclusion").
+
+**Settings UI** (`Settings → Translation → "Просмотр жалоб на перевод"`):
+- Список записей: source → translated, дата, языковая пара.
+- Кнопка "Очистить все жалобы" — `DELETE FROM translation_feedback`.
+- Pull-to-refresh.
+- Empty state: "Жалоб пока нет".
+
+**Retention**: 365 дней по умолчанию (configurable в Settings). Cron-like
+ежедневный purge старых записей при app launch.
+
 ---
 
 ## 6. Cache key + cold inference handling
@@ -589,13 +654,12 @@ async translateSentence(input: SentenceTranslationInput): Promise<SentenceTransl
   const alignment = tryAlignWord(input.sentence, input.wordOffset, cleaned, raw);
   // fail-safe: alignment может быть undefined → no highlight
 
-  if (chrFScore(cleaned, input.bookLanguage, input.nativeLanguage) < CHRF_PAIR_THRESHOLD) {
-    // Quality gate — see §11
-    return { status: 'error', errorCode: 'SENTENCE_QUALITY_BELOW_THRESHOLD' };
-  }
+  // В v1 нет автоматической проверки качества перевода (см. §11.3).
+  // Попап всегда показывает метку "экспериментальный перевод" для
+  // sentence-результата, пользователь сам решает доверять или нет.
 
   await this.cache.writeSentence(cacheKey, cleaned, { inferenceContext: getCurrentInferenceContext() });
-  return { status: 'ok', sourceSentence: input.sentence, translatedSentence: cleaned, translatedWordOffset: alignment };
+  return { status: 'ok', sourceSentence: input.sentence, translatedSentence: cleaned, translatedWordOffset: alignment, experimental: true };
 }
 ```
 
@@ -678,7 +742,7 @@ LLM возвращает primary translation **в context** (current spec §11.1
 
 Не делаем "frequency-ranked" claim — без curated corpus с per-genre/era weights это misleading.
 
-V2 path: LLM-driven sense enumeration после chrF benchmark improves.
+V2 path: LLM-driven sense enumeration когда появится eval-инфраструктура для замера качества (см. §11.3).
 
 ### 9.3 Disclosure a11y
 
@@ -774,39 +838,46 @@ const SENTENCE_INFERENCE_CONFIG = {
 
 **Timeout**: 45s warm / 60s cold.
 
-### 11.3 chrF FLORES-200 quality gate (blocking, per-pair calibrated)
+### 11.3 Метка "экспериментальный перевод" вместо предварительного замера качества
 
-**Eval harness**: `scripts/eval/translate-flores.ts`.
+**Решение v2.2 (2026-05-17):** убрали обязательный замер качества перевода
+(chrF / FLORES-200) перед релизом. Причины:
 
-- Sample: 200 FLORES-200 dev sentences per language pair.
-- Run via llama.rn вендорный fork на macOS host (CPU-only, accept device-gap).
-- Metrics: **chrF** (primary), BLEU (secondary), word-accuracy (sanity check).
+1. Замер 12 языковых пар × 200 предложений на macOS CPU занимает ~20 часов
+   реального времени (измерено: Hy-MT 1.25-bit даёт ~2.6 токенов/сек на M1
+   CPU, Metal-ядро для STQ1_0 квантизации не реализовано в llama.cpp).
+2. Без бэкенда и без облачной GPU-инфраструктуры цикл "померить → улучшить →
+   померить" слишком долгий для v1.
+3. У пользователя одна языковая пара за раз (родной язык + язык открытой
+   книги), нет смысла мерить все 169 комбинаций заранее.
 
-**Per-pair calibrated threshold** (round-2 finding: universal 40 wrong):
+**Что вместо замера:**
 
-Different pair types have different baseline difficulty. Threshold = `measured_baseline × 0.85` (15% headroom for production drift).
+- Перевод предложений включён для **всех** языковых пар (13 × 13 = 169
+  комбинаций нативной модели).
+- В попапе sentence-результата показываем плашку **"⚠️ Экспериментальный
+  перевод"** — пользователь видит метку и сам решает доверять или нет.
+- Метку показываем **всегда** в v1 (без условных порогов): мы не знаем
+  заранее на каких парах модель работает плохо, поэтому честно
+  предупреждаем для всех пар.
+- Перевод одного слова работает без метки — модель проверена в #4 PR на
+  основных парах, качество приемлемое.
 
-| Pair type | Example pairs | Expected chrF baseline | Production threshold |
-|-----------|---------------|------------------------|----------------------|
-| Close Romance↔Romance | es↔pt, es↔it, fr↔es | 55-65 | ≥ 50 |
-| English↔Romance | en↔es, en↔fr, en↔pt | 45-55 | ≥ 45 |
-| English↔Slavic | en↔ru, en↔pl, en↔uk | 38-48 | ≥ 38 |
-| Slavic↔Slavic | ru↔pl, ru↔uk | 45-55 | ≥ 45 |
-| English↔German | en↔de | 42-50 | ≥ 42 |
-| English↔CJK | en↔ja, en↔ko | 25-35 | ≥ 28 |
-| English↔Arabic/Hindi | en↔ar, en↔hi | 28-38 | ≥ 30 |
+**Сбор обратной связи (post-launch):**
 
-**Calibration phase** (blocking action item ДО #4.5 implementation start):
-1. Run `scripts/eval/translate-flores.ts` для top 12 pairs.
-2. Document measured baseline chrF per pair.
-3. Set production threshold = `floor(measured_baseline × 0.85)`.
-4. Pairs measuring below "Expected baseline" range → investigate (model load issue? prompt format?) before considering ship.
+- Кнопка "👎 Плохой перевод" в попапе sentence-результата. Лог локальный,
+  не отправляется на сервер (бэкенда нет).
+- В Settings → Translation → "Просмотреть жалобы на перевод": список
+  предложений где пользователь нажал dislike. Используется для ручного
+  разбора в v2 когда появится eval-инфраструктура.
 
-**Per-pair runtime gating**: pairs failing threshold → sentence translation **disabled at runtime** (button hidden, long-press shows "Sentence translation not supported для {pair}. Word translation works.").
+**Возврат замера качества в v2:** когда появится одно из:
+- Облачная GPU для batch-замера (CUDA/Metal с поддержкой STQ1_0 квантизации).
+- Cross-device бенчмарк на физическом iPhone (NEON ARM kernel в llama.rn
+  fork работает быстро — ~1-3с/слово, можно построить eval-app).
 
-**CI**: gate PR merge для #4.5 implementation на calibrated thresholds for top 6 pairs минимум.
-
-**Word translation**: separate threshold не требуется — 1.25-bit Hy-MT proven (current #4 PR translates words).
+**Перевод одного слова:** проверен на основных парах в PR #4, отдельный
+gate не нужен.
 
 ---
 
@@ -1003,7 +1074,7 @@ export interface SentenceTranslationResult {
   sourceSentence?: string;
   translatedSentence?: string;
   translatedWordOffset?: number;       // undefined if alignment failed → no highlight
-  chrFScore?: number;                  // v2: quality metric, exposed для diagnostic
+  experimental?: boolean;              // v1: всегда true для sentence-результата → показываем плашку "экспериментальный"
   inferenceContext?: InferenceContext;
   errorCode?: TranslationErrorCode;
   errorMessage?: string;
@@ -1097,8 +1168,6 @@ Translation Model: [status]
 - `src/components/reader/FalseFriendChip.tsx`.
 - `src/components/reader/PopupPlacement.ts` — 3-mode placement logic.
 - `src/components/reader/PopupCoachMark.tsx` — first-run hints.
-- `scripts/eval/translate-flores.ts` — chrF gate harness.
-- `scripts/eval/flores-corpus/{lang}-{lang}.tsv` — bundled FLORES sample.
 - `src/services/translation/__tests__/mweDictionary.test.ts`.
 - `src/services/translation/__tests__/falseFriendsDictionary.test.ts`.
 - `src/services/translation/__tests__/wordAlignment.test.ts`.
@@ -1108,7 +1177,7 @@ Translation Model: [status]
 
 ### 15.2 Изменяем
 
-- `src/services/translation/LlamaTranslationService.ts` — add `translateSentence`, MWE pre-filter, cold-inference tagging, versioned cache key, chrF gate.
+- `src/services/translation/LlamaTranslationService.ts` — add `translateSentence`, MWE pre-filter, cold-inference tagging, versioned cache key, метка experimental в SentenceTranslationResult.
 - `src/services/translation/CacheLayer.ts` — sentence cache + versioned key + cold rule (no DB persist for cold).
 - `src/services/translation/PromptBuilder.ts` — sentence translation prompt builder.
 - `src/services/translation/ITranslationService.ts` — extended types (§14.1).
@@ -1184,7 +1253,8 @@ Translation Model: [status]
 - [ ] MWE table seeded для 10 language pairs + slot template matcher tested.
 - [ ] False-friend table seeded для top 6 pairs (1500-2500 entries each).
 - [ ] TranslationPopup redesigned (tiered, 3-mode placement, MWE chip, false-friend chip, encounter badge, polysemy disclosure, TTS placeholder).
-- [ ] `translateSentence` method + chrF FLORES gate (≥40 для shipped pairs).
+- [ ] `translateSentence` method + плашка "экспериментальный перевод" в попапе (всегда для sentence-результата в v1).
+- [ ] Кнопка "👎 Плохой перевод" в попапе sentence-результата + локальный лог жалоб (без бэкенда).
 - [ ] Word alignment fail-safe (no proportional heuristic).
 - [ ] Long-press → sentence mode trigger working + gesture distance gate.
 - [ ] Multi-word selection (drag) → phrase translate + virtualization disable.
@@ -1202,7 +1272,7 @@ Translation Model: [status]
 - [ ] Theme contrast audit table (Day/Sepia/Night) ≥WCAG AA.
 - [ ] All a11y mandate met (VoiceOver/TalkBack/SwitchControl/Reduce Motion).
 - [ ] Manual smoke matrix passes на iPhone SE 2 + iPhone 13 + Pixel 7.
-- [ ] chrF eval harness in CI gating PR merge.
+- [ ] Автоопределение языка книги по тексту (детектор franc-min или аналог) при открытии книги — пишется в `Book.language`.
 - [ ] No regression в #4 word translation flow.
 - [ ] DB migration 1 → 2 tested + safe.
 
@@ -1234,7 +1304,7 @@ Translation Model: [status]
 
 2. **MWE bundle size**: 10 pairs × ~5000 entries ≈ 3MB compressed. **Decided: bundle.**
 
-3. **Hy-MT 1.25-bit sentence translation chrF per-pair baseline** — **BLOCKING action item** перед implementation start. Run `scripts/eval/translate-flores.ts` для top 12 pairs (см. §11.3 table). Set per-pair production thresholds = baseline × 0.85.
+3. **Замер качества перевода chrF/FLORES-200** — **CLOSED v2.2 (2026-05-17): убрали из v1**. Причины: macOS CPU eval занимает ~20 часов (Metal-ядро для STQ1_0 не реализовано), без облачной GPU не масштабируется, без бэкенда цикл "померить→улучшить" слишком долгий. Решение: метка "экспериментальный перевод" в попапе + локальный сбор жалоб (см. §11.3). Возврат в v2 когда появится eval-инфраструктура.
 
 4. **Alternative senses corpus** — drop "ranked" claim in v2.1. **Closed: defer ranked claim к v2.**
 
@@ -1248,6 +1318,6 @@ Translation Model: [status]
 
 9. **VoiceOver paragraph rotor performance** на large chapters (100+ paragraphs) — может быть slow. Profile.
 
-10. **Per-pair chrF table baseline measurements** — **BLOCKING DoD**, populated from §11.3 calibration run.
+10. **Автоопределение языка книги** — **CLOSED v2.2**: при импорте/первом открытии книги запускаем lightweight детектор языка (franc-min, ~30KB pure-JS, Hermes-compatible) на первых ~500 словах. Результат пишется в `Book.language`. Если детектор не уверен (top-2 близко) — fallback на dialog с выбором языка. Список поддерживаемых для определения = 13 BookLanguage из CLAUDE.md (en/ru/pl/uk/es/fr/de/it/pt/ja/ko/ar/hi). Метаданные EPUB/FB2 `dc:language` / `<lang>` используем как hint, но не доверяем без проверки (часто врут).
 
 11. **splitWords grapheme-awareness** — currently whitespace-only? Needs verification и possibly upgrade к `Intl.Segmenter('word')` для emoji/ZWJ correctness в EN тоже. **Status: open, defer fix к round-3 OR implementation phase.**

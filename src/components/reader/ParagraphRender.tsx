@@ -1,6 +1,7 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { useUnistyles } from 'react-native-unistyles';
+import { useTranslation } from 'react-i18next';
 import type { InlineNode, ParagraphStyle } from '@/types/content';
 import { splitWords } from '@/utils/splitWords';
 import { scriptTypography } from '@/theme/tokens';
@@ -10,6 +11,9 @@ interface Props {
   inlines: InlineNode[];
   style?: ParagraphStyle;
   onWordTap: (word: string, sentence: string) => void;
+  onWordLongPress?: (word: string, sentence: string) => void;
+  onTranslateSentence?: (sentence: string) => void;
+  onEnterSelectionMode?: () => void;
   fontSize: number;
   script: ScriptId;
   buildSentence?: (word: string, fullText: string) => string;
@@ -27,6 +31,7 @@ const SCRIPT_FONT: Record<ScriptId, string> = {
 interface RenderCtx {
   fullText: string;
   onWordTap: (word: string, sentence: string) => void;
+  onWordLongPress?: (word: string, sentence: string) => void;
   buildSentence: NonNullable<Props['buildSentence']>;
   accent: string;
 }
@@ -36,10 +41,16 @@ function renderInline(node: InlineNode, keyPrefix: string, ctx: RenderCtx): Reac
     const tokens = splitWords(node.text);
     return tokens.map((tok, ti) => {
       if (tok.kind !== 'word') return <Text key={`${keyPrefix}-${ti}`}>{tok.text}</Text>;
+      const sentence = ctx.buildSentence(tok.text, ctx.fullText);
       return (
         <Text
           key={`${keyPrefix}-${ti}`}
-          onPress={() => ctx.onWordTap(tok.text, ctx.buildSentence(tok.text, ctx.fullText))}
+          onPress={() => ctx.onWordTap(tok.text, sentence)}
+          onLongPress={
+            ctx.onWordLongPress ? () => ctx.onWordLongPress!(tok.text, sentence) : undefined
+          }
+          accessibilityRole="button"
+          accessibilityLabel={tok.text}
         >
           {tok.text}
         </Text>
@@ -95,34 +106,59 @@ export const ParagraphRender = React.memo(function ParagraphRender({
   inlines,
   style,
   onWordTap,
+  onWordLongPress,
+  onTranslateSentence,
+  onEnterSelectionMode,
   fontSize,
   script,
   buildSentence,
 }: Props) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation();
   const leading = scriptTypography[script].readingLeading;
   const fullText = flattenText(inlines);
-  const sentenceFn = buildSentence ?? ((_w: string, t: string) => t);
+  const sentenceFn = buildSentence ?? ((_w: string, txt: string) => txt);
   return (
-    <Text
-      style={{
-        color: theme.ink,
-        fontSize,
-        lineHeight: fontSize * leading,
-        fontFamily: SCRIPT_FONT[script],
-        textAlign: style?.textAlign,
-        fontStyle: style?.italic ? 'italic' : 'normal',
-        marginBottom: 14,
+    <View
+      accessibilityActions={[
+        {
+          name: 'translateSentence',
+          label: t('reader.a11y.translateSentence', { defaultValue: 'Translate sentence' }),
+        },
+        {
+          name: 'extendSelection',
+          label: t('reader.a11y.extendSelection', { defaultValue: 'Extend selection' }),
+        },
+      ]}
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === 'translateSentence') {
+          onTranslateSentence?.(fullText);
+        } else if (e.nativeEvent.actionName === 'extendSelection') {
+          onEnterSelectionMode?.();
+        }
       }}
     >
-      {inlines.map((n, i) =>
-        renderInline(n, `i-${i}`, {
-          fullText,
-          onWordTap,
-          buildSentence: sentenceFn,
-          accent: theme.accent,
-        }),
-      )}
-    </Text>
+      <Text
+        style={{
+          color: theme.ink,
+          fontSize,
+          lineHeight: fontSize * leading,
+          fontFamily: SCRIPT_FONT[script],
+          textAlign: style?.textAlign,
+          fontStyle: style?.italic ? 'italic' : 'normal',
+          marginBottom: 14,
+        }}
+      >
+        {inlines.map((n, i) =>
+          renderInline(n, `i-${i}`, {
+            fullText,
+            onWordTap,
+            onWordLongPress,
+            buildSentence: sentenceFn,
+            accent: theme.accent,
+          }),
+        )}
+      </Text>
+    </View>
   );
 });

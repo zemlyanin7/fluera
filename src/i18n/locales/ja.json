@@ -1,5 +1,5 @@
 {
-  "common": { "continue": "続ける", "skip": "スキップ", "next": "次へ", "back": "戻る", "close": "閉じる" },
+  "common": { "continue": "続ける", "skip": "スキップ", "next": "次へ", "back": "戻る", "close": "閉じる", "gotIt": "了解" },
   "tabs": { "read": "読書", "deck": "デッキ", "stats": "統計", "you": "あなた" },
   "onboarding": {
     "step1": { "title": "Fluera へようこそ" },
@@ -11,5 +11,15 @@
     "font":  { "title": "読書", "size": "サイズ", "typeface": "書体", "serif": "Source Serif", "sans": "Geist" }
   },
   "library": { "empty": "まだ本がありません" },
-  "notFound": { "title": "ページが見つかりません", "back": "戻る" }
+  "notFound": { "title": "ページが見つかりません", "back": "戻る" },
+  "translation": {
+    "experimentalBadge": "⚠️ 試験的翻訳",
+    "dislikeLabel": "翻訳が不正確",
+    "dislikeRecorded": "ありがとうございます"
+  },
+  "reader": {
+    "a11y": {
+      "tapToTranslate": "タップして翻訳"
+    }
+  }
 }

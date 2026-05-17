@@ -9,7 +9,12 @@ export { ListRender } from './ListRender';
 export { ImageRender } from './ImageRender';
 export { SeparatorRender } from './SeparatorRender';
 export { TableRowRender } from './TableRowRender';
-export { TranslationPopup, type TranslationPopupState } from './TranslationPopup';
+export {
+  TranslationPopup,
+  type TranslationPopupState,
+  type PopupViewState,
+  type PopupMode,
+} from './TranslationPopup';
 export { ReaderTopBar } from './ReaderTopBar';
 export { ReaderControlsSheet } from './ReaderControlsSheet';
 export { ChapterNavBar } from './ChapterNavBar';
