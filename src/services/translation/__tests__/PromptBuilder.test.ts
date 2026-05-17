@@ -1,4 +1,4 @@
-import { buildPrompt, isCJKPair } from '../PromptBuilder';
+import { buildPrompt, isCJKPair, buildSentencePrompt } from '../PromptBuilder';
 
 describe('PromptBuilder', () => {
   it('builds basic en→ru prompt', () => {
@@ -61,5 +61,31 @@ describe('PromptBuilder', () => {
     });
     // header + 200 char truncated sentence + word + footer ≈ <500 chars total
     expect(p.length).toBeLessThan(700);
+  });
+});
+
+describe('buildSentencePrompt', () => {
+  it('returns chat-template messages array', () => {
+    const msgs = buildSentencePrompt({
+      sentence: 'The quick brown fox jumps over the lazy dog.',
+      bookLanguage: 'en',
+      nativeLanguage: 'ru',
+    });
+    expect(Array.isArray(msgs)).toBe(true);
+    const [sys, usr] = msgs;
+    expect(sys!.role).toBe('system');
+    expect(usr!.role).toBe('user');
+    expect(usr!.content).toContain('The quick brown fox');
+    expect(usr!.content).toContain('Russian');
+  });
+
+  it('uses target language full name (not 2-letter code) в prompt', () => {
+    const msgs = buildSentencePrompt({
+      sentence: 'Hello.',
+      bookLanguage: 'en',
+      nativeLanguage: 'es',
+    });
+    const [, usr] = msgs;
+    expect(usr!.content).toContain('Spanish');
   });
 });
