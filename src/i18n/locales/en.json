@@ -1,5 +1,5 @@
 {
-  "common": { "continue": "Continue", "skip": "Skip", "next": "Next", "back": "Back", "close": "Close" },
+  "common": { "continue": "Continue", "skip": "Skip", "next": "Next", "back": "Back", "close": "Close", "gotIt": "Got it" },
   "tabs": { "read": "READ", "deck": "DECK", "stats": "STATS", "you": "YOU" },
   "onboarding": {
     "step1": { "title": "Welcome to Fluera" },
@@ -8,8 +8,79 @@
   },
   "settings": {
     "theme": { "title": "Paper", "day": "Day", "sepia": "Sepia", "night": "Night", "auto": "Auto Day/Night" },
-    "font":  { "title": "Reading", "size": "Size", "typeface": "Typeface", "serif": "Source Serif", "sans": "Geist" }
+    "font":  { "title": "Reading", "size": "Size", "typeface": "Typeface", "serif": "Source Serif", "sans": "Geist" },
+    "translation": {
+      "heading": "Translation",
+      "advanced": "Advanced settings",
+      "resetCoachMark": "Reset hints",
+      "sentenceGesture": {
+        "label": "Sentence translation",
+        "long_press": "Long press",
+        "button": "Button",
+        "both": "Both"
+      },
+      "smartHints": {
+        "label": "Smart hints",
+        "hint": "False friends, idioms, register"
+      },
+      "mweAutoExpand": { "label": "Auto-expand idioms on tap" },
+      "registerTags": { "label": "Show register labels (B2+)" },
+      "falseFriends": { "label": "Warn about false friends" },
+      "sentenceTranslation": {
+        "label": "Sentence translation",
+        "hint": "Long press or button"
+      }
+    },
+    "feedback": {
+      "empty": "No feedback yet",
+      "clearAll": "Clear all feedback"
+    }
   },
   "library": { "empty": "No books yet" },
-  "notFound": { "title": "Page not found", "back": "Go back" }
+  "notFound": { "title": "Page not found", "back": "Go back" },
+  "translation": {
+    "experimentalBadge": "⚠️ Experimental translation",
+    "dislikeLabel": "Bad translation",
+    "dislikeRecorded": "Thanks, we'll note that",
+    "sourceLabel": "Source:",
+    "translationLabel": "Translation:",
+    "translateSentenceLabel": "Translate full sentence",
+    "alternativeSenses": "other meanings ({{count}})",
+    "errorGeneric": "Could not translate",
+    "encounter": {
+      "firstTime": "first encounter",
+      "nthTime": "{{ordinal}} time",
+      "familiar": "familiar"
+    },
+    "mweType": {
+      "idiom": "idiom",
+      "phrasal_verb": "phrasal verb",
+      "collocation": "collocation",
+      "proverb": "proverb"
+    },
+    "coachMarks": {
+      "longPress": "Hold your finger on a word to translate the full sentence"
+    },
+    "a11y": {
+      "loadingTranslation": "Loading translation",
+      "altSenses": "Alternative meanings, {{count}}",
+      "altSensesHint": "Double tap to expand",
+      "altSensesRevealed": "Showing {{count}} meanings",
+      "falseFriendWarning": "False friend: looks like {{word}}",
+      "falseFriendHint": "Tap to see the real meaning",
+      "mweChip": "Phrase type: {{type}}",
+      "popupSummary": "Translation of {{word}}: {{gloss}}",
+      "pronunciation": {
+        "unavailable": "Pronunciation, unavailable in v1"
+      }
+    }
+  },
+  "reader": {
+    "a11y": {
+      "tapToTranslate": "Tap to translate",
+      "translateSentence": "Translate sentence",
+      "extendSelection": "Extend selection",
+      "longPressForSentence": "Hold to translate sentence"
+    }
+  }
 }
