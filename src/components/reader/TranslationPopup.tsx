@@ -119,7 +119,9 @@ export function TranslationPopup({
     );
   }
 
-  // Top / bottom anchored Popover
+  // Top / bottom anchored Popover.
+  // Popover handles reduceMotion internally via useReducedMotion() (Phase 11).
+  // We pass reduceTransparency down to PopupContents to suppress shadow.
   return (
     <Popover
       visible={state.visible}
