@@ -13,6 +13,11 @@ export interface TranslationCacheRecord {
   translation: string;
   grammar: string | null;
   createdAt: number;
+  sentenceTranslation: string | null;
+  translatedWordOffset: number | null;
+  inferenceContext: string;
+  modelVersion: string;
+  kernelBuildId: string | null;
 }
 
 export interface UpsertCacheInput {
@@ -23,6 +28,23 @@ export interface UpsertCacheInput {
   nativeLanguage: string;
   translation: string;
   grammar?: string | null;
+  createdAt?: number;
+  sentenceTranslation?: string | null;
+  translatedWordOffset?: number | null;
+  inferenceContext?: string;
+  modelVersion?: string;
+  kernelBuildId?: string | null;
+}
+
+export interface UpsertSentenceCacheInput {
+  cacheKey: string;
+  bookLanguage: string;
+  nativeLanguage: string;
+  sentenceTranslation: string;
+  translatedWordOffset?: number | null;
+  inferenceContext?: string;
+  modelVersion?: string;
+  kernelBuildId?: string | null;
   createdAt?: number;
 }
 
@@ -37,6 +59,11 @@ function toRecord(m: TranslationCacheModel): TranslationCacheRecord {
     translation: m.translation,
     grammar: m.grammar,
     createdAt: m.createdAt,
+    sentenceTranslation: m.sentenceTranslation ?? null,
+    translatedWordOffset: m.translatedWordOffset ?? null,
+    inferenceContext: m.inferenceContext ?? 'warm',
+    modelVersion: m.modelVersion ?? '',
+    kernelBuildId: m.kernelBuildId ?? null,
   };
 }
 
@@ -66,6 +93,11 @@ export class TranslationCacheRepository {
           m.translation = input.translation;
           m.grammar = input.grammar ?? null;
           m.createdAt = now; // refresh TTL on re-write
+          if (input.sentenceTranslation !== undefined) m.sentenceTranslation = input.sentenceTranslation ?? null;
+          if (input.translatedWordOffset !== undefined) m.translatedWordOffset = input.translatedWordOffset ?? null;
+          if (input.inferenceContext !== undefined) m.inferenceContext = input.inferenceContext;
+          if (input.modelVersion !== undefined) m.modelVersion = input.modelVersion;
+          if (input.kernelBuildId !== undefined) m.kernelBuildId = input.kernelBuildId ?? null;
         });
         return toRecord(existing);
       } catch {
@@ -79,6 +111,60 @@ export class TranslationCacheRepository {
           m.translation = input.translation;
           m.grammar = input.grammar ?? null;
           m.createdAt = now;
+          m.sentenceTranslation = input.sentenceTranslation ?? null;
+          m.translatedWordOffset = input.translatedWordOffset ?? null;
+          m.inferenceContext = input.inferenceContext ?? 'warm';
+          m.modelVersion = input.modelVersion ?? '';
+          m.kernelBuildId = input.kernelBuildId ?? null;
+        });
+        return toRecord(created);
+      }
+    });
+  }
+
+  /** Поиск sentence-level перевода по ключу. */
+  async findSentenceByKey(key: string): Promise<TranslationCacheRecord | null> {
+    try {
+      const m = await this.collection.find(key);
+      if (m.sentenceTranslation == null) return null;
+      return toRecord(m);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Upsert sentence-level перевода. */
+  async upsertSentenceByKey(input: UpsertSentenceCacheInput): Promise<TranslationCacheRecord> {
+    const now = input.createdAt ?? Date.now();
+    return this.db.write(async () => {
+      try {
+        const existing = await this.collection.find(input.cacheKey);
+        await existing.update((m) => {
+          m.sentenceTranslation = input.sentenceTranslation;
+          m.translatedWordOffset = input.translatedWordOffset ?? null;
+          m.createdAt = now;
+          if (input.inferenceContext !== undefined) m.inferenceContext = input.inferenceContext;
+          if (input.modelVersion !== undefined) m.modelVersion = input.modelVersion;
+          if (input.kernelBuildId !== undefined) m.kernelBuildId = input.kernelBuildId ?? null;
+        });
+        return toRecord(existing);
+      } catch {
+        const created = await this.collection.create((m) => {
+          m._raw.id = input.cacheKey;
+          m.cacheKey = input.cacheKey;
+          // sentence cache rows have no word/contextWindow — use sentinel values
+          m.word = '';
+          m.contextWindow = '';
+          m.bookLanguage = input.bookLanguage;
+          m.nativeLanguage = input.nativeLanguage;
+          m.translation = '';
+          m.grammar = null;
+          m.createdAt = now;
+          m.sentenceTranslation = input.sentenceTranslation;
+          m.translatedWordOffset = input.translatedWordOffset ?? null;
+          m.inferenceContext = input.inferenceContext ?? 'warm';
+          m.modelVersion = input.modelVersion ?? '';
+          m.kernelBuildId = input.kernelBuildId ?? null;
         });
         return toRecord(created);
       }

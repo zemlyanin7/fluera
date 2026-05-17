@@ -7,8 +7,11 @@
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "bundler",
     "experimentalDecorators": true,
-    "paths": { "@/*": ["./src/*"] }
+    "paths": {
+      "@/*": ["./src/*"],
+      "llama.rn": ["./vendor/llama.rn/src/index.ts"]
+    }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "vendor"]
 }

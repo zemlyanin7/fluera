@@ -1,5 +1,5 @@
 {
-  "common": { "continue": "Kontynuuj", "skip": "Pomiń", "next": "Dalej", "back": "Wstecz", "close": "Zamknij" },
+  "common": { "continue": "Kontynuuj", "skip": "Pomiń", "next": "Dalej", "back": "Wstecz", "close": "Zamknij", "gotIt": "Rozumiem" },
   "tabs": { "read": "CZYTAJ", "deck": "TALIA", "stats": "STAT.", "you": "TY" },
   "onboarding": {
     "step1": { "title": "Witaj w Fluera" },
@@ -11,5 +11,15 @@
     "font":  { "title": "Czytanie", "size": "Rozmiar", "typeface": "Krój pisma", "serif": "Source Serif", "sans": "Geist" }
   },
   "library": { "empty": "Brak książek" },
-  "notFound": { "title": "Strona nie znaleziona", "back": "Wróć" }
+  "notFound": { "title": "Strona nie znaleziona", "back": "Wróć" },
+  "translation": {
+    "experimentalBadge": "⚠️ Tłumaczenie eksperymentalne",
+    "dislikeLabel": "Złe tłumaczenie",
+    "dislikeRecorded": "Dziękujemy, uwzględnimy"
+  },
+  "reader": {
+    "a11y": {
+      "tapToTranslate": "Stuknij, aby przetłumaczyć"
+    }
+  }
 }

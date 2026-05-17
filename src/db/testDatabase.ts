@@ -8,12 +8,14 @@ import {
   BookModel, ChapterModel, ReadingPositionModel, BookmarkModel,
   WordStatusModel, WordOccurrenceModel, ReviewLogModel,
   TranslationCacheModel, OPDSCatalogModel, ReadingStatsModel,
+  MwePhraseModel, FalseFriendModel, TranslationFeedbackModel,
 } from './models';
 
 const modelClasses = [
   BookModel, ChapterModel, ReadingPositionModel, BookmarkModel,
   WordStatusModel, WordOccurrenceModel, ReviewLogModel,
   TranslationCacheModel, OPDSCatalogModel, ReadingStatsModel,
+  MwePhraseModel, FalseFriendModel, TranslationFeedbackModel,
 ];
 
 export function createTestDatabase(): Database {

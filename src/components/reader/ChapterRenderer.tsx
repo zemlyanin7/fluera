@@ -11,9 +11,14 @@ interface Props {
   fontSize: number;
   script: ScriptId;
   bookId: string;
+  /** Отключить виртуализацию на время multi-word selection (все items рендерятся). */
+  selectionActive?: boolean;
 }
 
-export const ChapterRenderer = React.memo(function ChapterRenderer(props: Props) {
+export const ChapterRenderer = React.memo(function ChapterRenderer({
+  selectionActive = false,
+  ...props
+}: Props) {
   const keyExtractor = useCallback(
     (_item: ContentItem, idx: number) => `${props.chapter.index}-${idx}`,
     [props.chapter.index],
@@ -35,10 +40,10 @@ export const ChapterRenderer = React.memo(function ChapterRenderer(props: Props)
       data={props.chapter.items}
       keyExtractor={keyExtractor}
       renderItem={renderItem}
-      initialNumToRender={20}
-      windowSize={5}
-      maxToRenderPerBatch={10}
-      removeClippedSubviews
+      initialNumToRender={selectionActive ? 1000 : 20}
+      windowSize={selectionActive ? 1000 : 5}
+      maxToRenderPerBatch={selectionActive ? 1000 : 10}
+      removeClippedSubviews={!selectionActive}
       onScroll={(e) => props.onScroll(e.nativeEvent.contentOffset.y)}
       scrollEventThrottle={250}
       contentContainerStyle={{ padding: 28, paddingBottom: 80 }}

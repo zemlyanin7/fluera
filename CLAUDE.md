@@ -16,13 +16,38 @@ Fluera — мультиязычное мобильное приложение-ч
 - **Foundation (готов):** `docs/superpowers/specs/2026-05-15-foundation-design.md`
 - **Sub-projects roadmap:**
   - #1 Foundation (готов) — темы, шрифты, навигация, primitives
-  - #2 Data layer (в работе) — WatermelonDB, модели, persist
-  - #3 Reader engine — EPUB/FB2 парсеры с нуля
-  - #4 Translation — Hy-MT1.5-1.8B on-device LLM
+  - #2 Data layer (готов, PR #2) — WatermelonDB, модели, persist
+  - #3 Reader engine (готов, PR #3) — EPUB/FB2 парсеры с нуля
+  - #4 Translation core (готов, PR #4) — Hy-MT1.5-1.8B 1.25-bit on-device
+    via llama.rn fork с STQ1_0 patch + jinja chat template
+  - **#4.5 Translation Popup Redesign** — tiered popup, MWE pre-filter,
+    sentence-level translation, false-friend, polysemy. v2.1 после 2-х
+    rounds expert review (см. `2026-05-17-translation-popup-design.md`)
+  - **#4.6 Translation Prefetch + Lifecycle** — idle unload, lazy reload,
+    page-ahead prefetch с battery gates. v2.1 (см.
+    `2026-05-17-translation-prefetch-design.md`)
   - #5 Library — OPDS, импорт файлов
-  - #6 Deck — FSRS-6 SRS
+  - #6 Deck — FSRS-6 SRS (encounter-driven ingestion из reading sessions,
+    uses `passive_encounters` schema от #4.5 v2.1)
   - #7 Stats — графики, streak
   - #8 Onboarding/Settings polish
+
+**v2 backlog** (deferred from v1):
+- **Whole-Book Translation** (was #4.7): pre-translate целая книга batch'ем.
+  Cut from v1 per round-2 review: 95% users won't do 50-min batch, alternative
+  is #4.6 prefetch N+10 plugged-in + "fully cached" Library indicator.
+  Revisit when telemetry signals real demand.
+- **Gamification** (was #9): streaks, achievements, level progress.
+- **TTS audio** (placeholder в #4.5): pronunciation playback.
+- **Diagnostic bundle export**: when support volume warrants.
+- **Lemmatization для ru/uk/pl/de/ar/hi/ja/ko**: hunspell/Sudachi heavyweight,
+  defer until v1 surface-form-only prefetch waste measured как unacceptable.
+
+**Product vision (clarification 2026-05-17):** Reading-first приложение.
+Юзер читает книги на иностранном языке с моментальным переводом (слово /
+фраза / предложение) под рукой. Обучение происходит через чтение само
+собой, НЕ как primary KPI. v1 ships #1-#8 only; whole-book translation,
+gamification, TTS, etc deferred к v2.
 
 ## Технологический стек
 

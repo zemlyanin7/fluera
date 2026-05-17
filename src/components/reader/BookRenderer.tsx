@@ -36,10 +36,12 @@ interface Props {
   fontSize: number;
   script: ScriptId;
   bookId: string;
+  /** Отключить виртуализацию на время multi-word selection (все items рендерятся). */
+  selectionActive?: boolean;
 }
 
 export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function BookRenderer(
-  props,
+  { selectionActive = false, ...props },
   ref,
 ) {
   const listRef = useRef<FlatList<FlatItem>>(null);
@@ -154,11 +156,11 @@ export const BookRenderer = React.forwardRef<BookRendererHandle, Props>(function
       data={flatItems}
       keyExtractor={keyExtractor}
       renderItem={renderItem}
-      initialNumToRender={30}
-      windowSize={9}
-      maxToRenderPerBatch={40}
+      initialNumToRender={selectionActive ? 1000 : 30}
+      windowSize={selectionActive ? 1000 : 9}
+      maxToRenderPerBatch={selectionActive ? 1000 : 40}
       updateCellsBatchingPeriod={50}
-      removeClippedSubviews
+      removeClippedSubviews={!selectionActive}
       viewabilityConfig={viewabilityConfig}
       onViewableItemsChanged={onViewableItemsChanged}
       onScrollToIndexFailed={(info) => {

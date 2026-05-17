@@ -16,6 +16,7 @@ import { attachThemeBridge } from '@/theme/bridge';
 import { i18nReady } from '@/i18n';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { DatabaseProvider } from '@/db/DatabaseContext';
+import { LlmBootstrap } from '@/services/translation/LlmBootstrap';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -56,22 +57,24 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="auto" />
         <DatabaseProvider onReady={onDbReady} fallback={null}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(onboarding)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="(playground)" />
-            <Stack.Screen name="reader/[bookId]" />
-            <Stack.Screen
-              name="word/[wordId]"
-              options={{ presentation: 'transparentModal', animation: 'fade' }}
-            />
-            <Stack.Screen
-              name="deck/session"
-              options={{ presentation: 'fullScreenModal' }}
-            />
-            <Stack.Screen name="import" options={{ presentation: 'modal' }} />
-          </Stack>
+          <LlmBootstrap>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(onboarding)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="(playground)" />
+              <Stack.Screen name="reader/[bookId]" />
+              <Stack.Screen
+                name="word/[wordId]"
+                options={{ presentation: 'transparentModal', animation: 'fade' }}
+              />
+              <Stack.Screen
+                name="deck/session"
+                options={{ presentation: 'fullScreenModal' }}
+              />
+              <Stack.Screen name="import" options={{ presentation: 'modal' }} />
+            </Stack>
+          </LlmBootstrap>
         </DatabaseProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

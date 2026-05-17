@@ -1,0 +1,10 @@
+source_word,looks_like_native,actual_meaning,confidence,domain
+magazine,магазин,"magazine (not shop — Russian магазин = shop)",high,general
+sympathetic,симпатичный,sympathetic (not good-looking — Russian симпатичный = good-looking),high,general
+intelligent,интеллигентный,intelligent (not cultured — Russian интеллигентный = cultured/well-educated),high,general
+actual,актуальный,actual (not relevant/current — Russian актуальный = relevant),high,general
+accurate,аккуратный,accurate (not neat — Russian аккуратный = neat/tidy),high,general
+fabric,фабрика,fabric (not factory — Russian фабрика = factory),high,general
+constipated,констипированный,constipated (not affected by cold — Russian констипированный = having a cold),high,medical
+complexion,комплекция,complexion (not body build — Russian комплекция = build/constitution),high,general
+eventual,евентуальный,eventual (not possible — Russian евентуальный = possible/potential),medium,general

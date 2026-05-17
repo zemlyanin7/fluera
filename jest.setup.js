@@ -79,15 +79,22 @@ jest.mock('expo-linear-gradient', () => {
 
 // react-i18next mock — возвращает ключ через простой lookup по en.json,
 // чтобы тесты на TabBar/прочие компоненты не требовали инициализации i18n.
+// Поддерживает базовую интерполяцию {{var}} из opts.
 jest.mock('react-i18next', () => {
   const en = require('./src/i18n/locales/en.json');
   const get = (obj, path) =>
     path.split('.').reduce((acc, k) => (acc == null ? undefined : acc[k]), obj);
+  const interpolate = (str, opts) => {
+    if (!opts || typeof opts !== 'object') return str;
+    return str.replace(/\{\{(\w+)\}\}/g, (_, k) => (k in opts ? String(opts[k]) : `{{${k}}}`));
+  };
   return {
     useTranslation: () => ({
-      t: (key) => {
+      t: (key, opts) => {
         const v = get(en, key);
-        return typeof v === 'string' ? v : key;
+        if (typeof v === 'string') return interpolate(v, opts);
+        if (opts && typeof opts === 'object' && typeof opts.defaultValue === 'string') return interpolate(opts.defaultValue, opts);
+        return key;
       },
       i18n: { changeLanguage: jest.fn() },
     }),
@@ -99,7 +106,15 @@ jest.mock('react-i18next', () => {
 jest.mock('expo-font', () => ({ useFonts: () => [true, null], isLoaded: () => true }));
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }], locale: 'en-US' }));
 jest.mock('expo-splash-screen', () => ({ preventAutoHideAsync: jest.fn(), hideAsync: jest.fn() }));
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+jest.mock('react-native-reanimated', () => {
+  const mock = require('react-native-reanimated/mock');
+  // useReducedMotion не входит в стандартный mock — добавляем вручную.
+  // В тестах всегда возвращаем false (анимации разрешены), чтобы не скрывать
+  // проблемы с логикой анимаций. Тесты на reduced-motion ожидают duration=0,
+  // что обрабатывается в компоненте условно по этому значению.
+  mock.useReducedMotion = jest.fn(() => false);
+  return mock;
+});
 
 // #2 Data layer — мок AsyncStorage (in-memory Map, persist через тесты)
 jest.mock('@react-native-async-storage/async-storage', () => {

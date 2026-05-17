@@ -5,7 +5,7 @@
 // прошлые миграции.
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -124,6 +124,13 @@ export const schema = appSchema({
         { name: 'translation', type: 'string' },
         { name: 'grammar', type: 'string', isOptional: true },
         { name: 'created_at', type: 'number', isIndexed: true },
+        // #4.5 Translation Popup — sentence translation + inference metadata
+        { name: 'sentence_translation', type: 'string', isOptional: true },
+        { name: 'translated_word_offset', type: 'number', isOptional: true },
+        // inference_context: 'cold' | 'warm' | 'thermal_throttled' — всегда записывается
+        { name: 'inference_context', type: 'string' },
+        { name: 'model_version', type: 'string' },
+        { name: 'kernel_build_id', type: 'string', isOptional: true },
       ],
     }),
     tableSchema({
@@ -136,6 +143,48 @@ export const schema = appSchema({
         { name: 'kind', type: 'string' },
         { name: 'last_fetched_at', type: 'number', isOptional: true },
         { name: 'created_at', type: 'number', isIndexed: true },
+      ],
+    }),
+    // #4.5 Translation Popup — ложные друзья переводчика
+    tableSchema({
+      name: 'false_friends',
+      columns: [
+        { name: 'source_lang', type: 'string', isIndexed: true },
+        { name: 'target_lang', type: 'string', isIndexed: true },
+        { name: 'source_word', type: 'string', isIndexed: true },
+        { name: 'looks_like_native', type: 'string' },
+        { name: 'actual_meaning', type: 'string' },
+        { name: 'confidence', type: 'string' },
+        { name: 'domain', type: 'string' },
+      ],
+    }),
+    // #4.5 Translation Popup — фидбек на качество перевода для future fine-tuning
+    tableSchema({
+      name: 'translation_feedback',
+      columns: [
+        { name: 'source_sentence', type: 'string' },
+        { name: 'translated_sentence', type: 'string' },
+        { name: 'book_language', type: 'string' },
+        { name: 'native_language', type: 'string' },
+        { name: 'model_version', type: 'string' },
+        { name: 'kernel_build_id', type: 'string', isOptional: true },
+        { name: 'book_id', type: 'string', isOptional: true, isIndexed: true },
+        { name: 'created_at', type: 'number', isIndexed: true },
+      ],
+    }),
+    // #4.5 Translation Popup — MWE словарь (multi-word expressions)
+    tableSchema({
+      name: 'mwe_phrases',
+      columns: [
+        { name: 'source_lang', type: 'string', isIndexed: true },
+        { name: 'target_lang', type: 'string', isIndexed: true },
+        { name: 'phrase', type: 'string', isIndexed: true },
+        { name: 'translation_equivalent', type: 'string' },
+        { name: 'literal_gloss', type: 'string', isOptional: true },
+        { name: 'mwe_type', type: 'string', isOptional: true },
+        { name: 'gap_pattern', type: 'string', isOptional: true },
+        { name: 'domain', type: 'string' },
+        { name: 'attribution', type: 'string', isOptional: true },
       ],
     }),
     tableSchema({

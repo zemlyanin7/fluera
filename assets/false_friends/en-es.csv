@@ -1,0 +1,9 @@
+source_word,looks_like_native,actual_meaning,confidence,domain
+embarrassed,embarazada,"embarrassed (not pregnant — that's the Spanish meaning)",high,general
+exit,éxito,"exit (not success — Spanish éxito = success)",high,general
+library,librería,"library (Spanish librería = bookstore, biblioteca = library)",high,general
+constipated,constipado,"constipated (Spanish constipado = cold/flu, not constipated)",high,medical
+sensible,sensible,"reasonable EN / sensitive ES — partial false friend",medium,general
+actual,actual,actual (both same but used differently in context),medium,general
+rope,ropa,rope (Spanish ropa = clothes),high,general
+success,suceso,success (Spanish suceso = incident/event)",medium,general

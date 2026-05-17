@@ -1,5 +1,5 @@
 {
-  "common": { "continue": "Continuar", "skip": "Pular", "next": "Próximo", "back": "Voltar", "close": "Fechar" },
+  "common": { "continue": "Continuar", "skip": "Pular", "next": "Próximo", "back": "Voltar", "close": "Fechar", "gotIt": "Entendi" },
   "tabs": { "read": "LER", "deck": "BARALHO", "stats": "ESTAT.", "you": "VOCÊ" },
   "onboarding": {
     "step1": { "title": "Bem-vindo ao Fluera" },
@@ -11,5 +11,15 @@
     "font":  { "title": "Leitura", "size": "Tamanho", "typeface": "Tipografia", "serif": "Source Serif", "sans": "Geist" }
   },
   "library": { "empty": "Ainda não há livros" },
-  "notFound": { "title": "Página não encontrada", "back": "Voltar" }
+  "notFound": { "title": "Página não encontrada", "back": "Voltar" },
+  "translation": {
+    "experimentalBadge": "⚠️ Tradução experimental",
+    "dislikeLabel": "Tradução incorreta",
+    "dislikeRecorded": "Obrigado, vamos considerar"
+  },
+  "reader": {
+    "a11y": {
+      "tapToTranslate": "Toque para traduzir"
+    }
+  }
 }

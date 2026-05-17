@@ -15,12 +15,10 @@ import {
   ReaderControlsSheet,
   TableOfContentsSheet,
   TranslationPopup,
-  type TranslationPopupState,
+  type PopupViewState,
 } from '@/components/reader';
-import { NoOpTranslationService } from '@/services/translation/NoOpTranslationService';
+import { useTranslationService } from '@/services/translation/TranslationServiceContext';
 import type { BookLanguage, NativeLanguage } from '@/types/settings';
-
-const translation = new NoOpTranslationService();
 
 export default function ReaderScreen() {
   const router = useRouter();
@@ -29,13 +27,28 @@ export default function ReaderScreen() {
   const { theme } = useUnistyles();
   const fontSize = useSettingsStore((s) => s.fontSize);
   const nativeLanguage = useSettingsStore((s) => s.nativeLanguage);
+  const translation = useTranslationService();
   const { state, jumpToChapter, setCurrentChapter, savePosition } = useReaderEngine(bookId);
   const bookLang: BookLanguage = (state.book?.language as BookLanguage) ?? 'en';
   const script = scriptForLang(bookLang);
   const controlsRef = useRef<SheetRef>(null);
   const tocRef = useRef<SheetRef>(null);
   const bookRendererRef = useRef<BookRendererHandle>(null);
-  const [popup, setPopup] = useState<TranslationPopupState>({ kind: 'closed' });
+  const [popup, setPopup] = useState<PopupViewState>({
+    visible: false,
+    mode: 'word',
+    word: '',
+    sourceSentence: '',
+    wordOffsetInSentence: 0,
+    status: 'loading',
+    placement: { mode: 'bottom', arrowDirection: 'right' },
+    anchorRect: { x: 0, y: 0, width: 0, height: 0 },
+    result: null,
+    encounterCount: 0,
+    coverageHint: false,
+    bookLanguage: 'en',
+    nativeLanguage: 'ru',
+  });
   const lastFlatIndexRef = useRef(0);
   // Veil прячет content пока scroll-jump (TOC tap или initial restore) идёт.
   // Снимается когда target chapter становится видимым (onViewableItemsChanged).
@@ -44,22 +57,37 @@ export default function ReaderScreen() {
 
   const onWordTap = useCallback(
     async (word: string, sentence: string) => {
-      setPopup({ kind: 'opening', word, sentence });
+      const base: PopupViewState = {
+        visible: true,
+        mode: 'word',
+        word,
+        sourceSentence: sentence,
+        wordOffsetInSentence: 0,
+        status: 'loading',
+        placement: { mode: 'bottom', arrowDirection: 'right' },
+        anchorRect: { x: 0, y: 0, width: 0, height: 0 },
+        result: null,
+        encounterCount: 0,
+        coverageHint: false,
+        bookLanguage: bookLang,
+        nativeLanguage: nativeLanguage as NativeLanguage,
+      };
+      setPopup(base);
       const res = await translation.translate({
         word,
         contextWindow: sentence,
         bookLanguage: bookLang,
         nativeLanguage: nativeLanguage as NativeLanguage,
       });
-      if (res.status === 'pending') {
-        setPopup({ kind: 'pending', word, sentence });
-      } else if (res.status === 'ok' && res.translation) {
-        setPopup({ kind: 'success', word, translation: res.translation });
+      if (res.status === 'ok' && res.translation) {
+        setPopup({ ...base, status: 'ready', result: { translation: res.translation, source: res.source } as any });
+      } else if (res.status === 'pending' || res.errorCode === 'MODEL_LOADING') {
+        setPopup({ ...base, status: 'loading' });
       } else {
-        setPopup({ kind: 'error', word, reason: res.errorMessage ?? 'unknown' });
+        setPopup({ ...base, status: 'error' });
       }
     },
-    [bookLang, nativeLanguage],
+    [translation, bookLang, nativeLanguage],
   );
 
   const onTopFlatItemChange = useCallback(
@@ -208,7 +236,12 @@ export default function ReaderScreen() {
           jumpToChapter(idx);
         }}
       />
-      <TranslationPopup state={popup} onClose={() => setPopup({ kind: 'closed' })} />
+      <TranslationPopup
+        state={popup}
+        onClose={() => setPopup((prev) => ({ ...prev, visible: false }))}
+        onTranslateSentence={() => {}}
+        onDislike={() => {}}
+      />
     </PhoneShell>
   );
 }

@@ -101,7 +101,7 @@ ImportPipeline:
 - `chapterCache: LRU<number, BookChapter>` (max 3, см. §10.2)
 - `sourceBytes: Uint8Array | string | null` (raw file content, держится в памяти на время сессии)
 
-UI-компонент (`ReaderScreen`) подписывается на изменения через React state (или Zustand-store). Engine изолирован от render-кода — тестируется отдельно. На MVP — допустимо реализовать engine через `useReducer` + custom hook вместо отдельного класса (см. §7.3).
+UI-компонент (`ReaderScreen`) подписывается на изменения через React state (или Zustand-store). Engine изолирован от render-кода — тестируется отдельно. На MVP — допустимо реализовать engine через `useReducer` + custom hook вместо отдельного класса.
 
 ### 2.6 Re-parse on open
 
@@ -120,6 +120,7 @@ UI-компонент (`ReaderScreen`) подписывается на изме�
 | `@xmldom/xmldom` | `^0.9` | XML DOM parser для FB2 + EPUB XHTML | Pure JS, namespace-aware, ~50KB, работает в Hermes. Не использовать `fast-xml-parser` (CLAUDE.md). |
 | `fflate` | `^0.8` | ZIP-распаковка EPUB | Pure JS, sync API, ~17KB, самая быстрая среди pure-JS. |
 | `expo-document-picker` | `~15.x` | Выбор файла из системного пикера | Стандарт Expo SDK 54. |
+| `franc-min` | `^6.2` | Автоопределение языка книги по тексту (§7.3) | Pure JS, ~30KB, поддерживает 84 языка trigram-моделями. Whitelist'им 13 BookLanguage codes. Hermes-compatible. |
 
 **НЕ устанавливаем:**
 - `@epubjs-react-native` — WebView-based, запрещён CLAUDE.md.
@@ -589,11 +590,21 @@ export class ImportPipeline {
       const parser = this.parsers.get(format);
       const parsed = await parser.parse(bytes);
 
-      // 6. Создать bookId (UUID v4 через expo-crypto)
+      // 6. Определить язык книги (см. §7.3 Language detection).
+      //    Метаданные парсера используем как hint, но не доверяем без проверки —
+      //    EPUB `<dc:language>` и FB2 `<lang>` часто врут или отсутствуют.
+      const detectedLanguage = await detectBookLanguage({
+        metadataHint: parsed.language,        // парсер прочитал из метаданных
+        chapters: parsed.chapters,            // текст первых глав для детектора
+      });
+      // detectedLanguage: BookLanguage | null. null → Library UI спросит
+      // пользователя позже (book можно открыть, но перевод не работает).
+
+      // 7. Создать bookId (UUID v4 через expo-crypto)
       const bookId = generateBookId();
       const finalPath = `${docsDir}/books/${bookId}/source.${format}`;
 
-      // 7. Создать директорию + переместить файл + извлечь изображения
+      // 8. Создать директорию + переместить файл + извлечь изображения
       await ensureDir(`${docsDir}/books/${bookId}/images/`);
       await moveFile(tmpPath, finalPath);
       await writeImages(`${docsDir}/books/${bookId}/images/`, parsed.images);
@@ -601,13 +612,13 @@ export class ImportPipeline {
         ? `${docsDir}/books/${bookId}/images/${parsed.coverId}`
         : null;
 
-      // 8. Атомарная транзакция БД
+      // 9. Атомарная транзакция БД
       await this.db.write(async () => {
         await BookRepository(this.db).createWithId({
           id: bookId,
           title: parsed.title,
           author: parsed.author,
-          language: parsed.language ?? 'en', // fallback — Library UI попросит
+          language: detectedLanguage,        // null если детектор не уверен — Library UI попросит
           format,
           filePath: finalPath,
           coverPath,
@@ -630,7 +641,7 @@ export class ImportPipeline {
         bookId,
         filePath: finalPath,
         chapterCount: parsed.chapters.length,
-        languageDetected: parsed.language,
+        languageDetected: detectedLanguage,
       };
     } catch (e) {
       // Cleanup: удалить tmpPath + создавать books/{bookId}/ если успели
@@ -662,15 +673,124 @@ async function detectFormat(path: string, originalName: string): Promise<'epub' 
 }
 ```
 
-### 7.3 Path safety
+### 7.3 Language detection (автоопределение языка книги)
+
+**Решение v2.2 (2026-05-17):** язык книги определяем по тексту самой книги, не
+доверяя метаданным. EPUB `<dc:language>` и FB2 `<lang>` часто врут или вовсе
+пустые (особенно у пиратских раздач). Текст книги — source of truth.
+
+**Алгоритм:**
+
+```typescript
+// src/services/import/detectBookLanguage.ts
+
+import { franc } from 'franc-min'; // ~30KB, pure JS, Hermes-compatible
+
+const SUPPORTED_BOOK_LANGUAGES = ['en','ru','pl','uk','es','fr','de','it','pt','ja','ko','ar','hi'];
+
+// franc возвращает коды ISO 639-3 → маппим в наши BookLanguage codes.
+const FRANC_TO_BOOK_LANG: Record<string, BookLanguage> = {
+  eng: 'en', rus: 'ru', pol: 'pl', ukr: 'uk', spa: 'es', fra: 'fr',
+  deu: 'de', ita: 'it', por: 'pt', jpn: 'ja', kor: 'ko', arb: 'ar', hin: 'hi',
+};
+
+export interface DetectInput {
+  metadataHint: string | null;          // что прочитал парсер из метаданных
+  chapters: BookChapter[];              // главы книги
+}
+
+export async function detectBookLanguage(input: DetectInput): Promise<BookLanguage | null> {
+  // 1. Собрать первые ~500 слов текста из первых 1-2 глав (без HTML/markup,
+  //    только plain text из ContentItem.paragraph.inlines).
+  const sample = extractTextSample(input.chapters, /* targetWords */ 500);
+  if (sample.length < 100) {
+    // Слишком мало текста для детекции — fallback на metadata.
+    return normalizeMetadataHint(input.metadataHint);
+  }
+
+  // 2. Запустить franc-min с whitelist наших 13 языков.
+  //    franc.all() возвращает массив [iso639_3, confidence] отсортированный
+  //    по убыванию вероятности.
+  const ranked = franc.all(sample, {
+    only: Object.keys(FRANC_TO_BOOK_LANG),     // только наши 13
+    minLength: 50,
+  });
+
+  if (ranked.length === 0 || ranked[0][1] < 0.7) {
+    // Детектор не уверен — fallback на metadata, потом на null.
+    return normalizeMetadataHint(input.metadataHint);
+  }
+
+  const [topIso, topConf] = ranked[0];
+  const [secondIso, secondConf] = ranked[1] ?? ['und', 0];
+
+  // 3. Если top vs 2nd близко (разница <0.1) — детектор неуверен (en vs de
+  //    например в коротком техническом тексте). Возвращаем metadata если
+  //    она в нашем списке, иначе null.
+  if (topConf - secondConf < 0.1) {
+    return normalizeMetadataHint(input.metadataHint);
+  }
+
+  // 4. Высокая уверенность → возвращаем детектированный язык.
+  return FRANC_TO_BOOK_LANG[topIso] ?? null;
+}
+
+function normalizeMetadataHint(hint: string | null): BookLanguage | null {
+  if (!hint) return null;
+  // BCP-47 → BookLanguage: "en-US" → "en", "ru-RU" → "ru".
+  const primary = hint.toLowerCase().split('-')[0].split('_')[0];
+  return SUPPORTED_BOOK_LANGUAGES.includes(primary as BookLanguage)
+    ? (primary as BookLanguage)
+    : null;
+}
+
+function extractTextSample(chapters: BookChapter[], targetWords: number): string {
+  const buf: string[] = [];
+  let wordCount = 0;
+  for (const ch of chapters.slice(0, 2)) {                  // первые 2 главы
+    for (const item of ch.items) {
+      if (item.type !== 'paragraph') continue;
+      const text = item.inlines.map(inlineToPlainText).join(' ');
+      buf.push(text);
+      wordCount += text.split(/\s+/).filter(Boolean).length;
+      if (wordCount >= targetWords) break;
+    }
+    if (wordCount >= targetWords) break;
+  }
+  return buf.join(' ').trim();
+}
+```
+
+**Поведение при `language: null`:**
+- Книга добавляется в библиотеку, можно открыть и читать.
+- При попытке тапнуть слово/фразу → showDialog `t('reader.languagePromptTitle')`
+  ("Выберите язык книги") с кнопками для 13 BookLanguage. Сохраняется в
+  `Book.language` через `BookRepository.updateLanguage(bookId, lang)`.
+- Library UI на book card показывает significant `?` индикатор + tooltip
+  "Язык не определён, тап чтобы выбрать".
+
+**Зависимости:**
+- `franc-min@^6.2.0` — добавить в `package.json` (на момент v2.2: latest stable).
+- Hermes compatibility: pure JS, нет node-specific APIs. Безопасно.
+- Bundle size: ~30KB после minify (трграммная модель для 84 языков, но мы
+  whitelist'им 13 → can be tree-shaken с custom build, но не критично в v1).
+
+**Edge cases:**
+- Multilingual book (учебник с переводами): franc дает top на dominant language.
+  Если top vs 2nd близко → null → user dialog. Acceptable.
+- Очень короткая книга (<100 chars total): fallback на metadata. Если metadata
+  пустая → null.
+- Constructed languages (Esperanto, Klingon): не в наших 13 → null → user dialog.
+
+### 7.4 Path safety
 
 ImportPipeline пишет **только** в `${documentDirectory}/books/{bookId}/`. Все пути формируются из проверенного `bookId` (UUID) и whitelisted имён (`source.epub`, `images/{imageId}`). `imageId` из manifest sanitize-ится (см. §11.4).
 
-### 7.4 Cover extraction
+### 7.5 Cover extraction
 
 Если `parsed.coverId !== null` и изображение успешно извлечено — `coverPath` устанавливается в Library card. Если cover отсутствует — Library показывает placeholder с буквой названия.
 
-### 7.5 Rollback на failure
+### 7.6 Rollback на failure
 
 При любой ошибке после создания временной директории — `cleanupOnFailure` удаляет:
 - `tmpPath` (если ещё существует)
@@ -1198,9 +1318,11 @@ src/
       types.ts                          ← ImportFile, ImportResult
       stagingCopy.ts
       detectFormat.ts
+      detectBookLanguage.ts             ← franc-min на тексте + metadata fallback (§7.3)
       cleanupOnFailure.ts
       __tests__/
         ImportPipeline.test.ts
+        detectBookLanguage.test.ts
     reader/
       ReaderEngine.ts                   ← class или useReducer + hook
       useReaderEngine.ts                ← React hook wrapper
@@ -1260,6 +1382,7 @@ app/reader/[bookId].tsx                 ← переписать поверх Re
 - [ ] EpubParser проходит все unit-тесты (≥ 10 fixtures покрывают edge cases)
 - [ ] Fb2Parser проходит все unit-тесты (≥ 6 fixtures)
 - [ ] ImportPipeline проходит integration test с in-memory DB
+- [ ] `detectBookLanguage` проходит unit-тесты для всех 13 BookLanguage (§7.3) + edge cases (multilingual, очень короткий текст, метаданные врут).
 - [ ] Ручной smoke: импорт обеих тестовых книг (`The Alchemist.epub`, `Лорд.fb2`) на iPhone 17 + Pixel 7
 - [ ] Открытие книги < 1.5 сек на iPhone 13 simulator
 - [ ] Скролл 60fps на 200-страничной книге

@@ -12,4 +12,10 @@ export class TranslationCacheModel extends Model {
   @field('translation') translation!: string;
   @field('grammar') grammar!: string | null;
   @field('created_at') createdAt!: number;
+  // #4.5 Translation Popup — sentence translation + inference metadata
+  @field('sentence_translation') sentenceTranslation!: string | null;
+  @field('translated_word_offset') translatedWordOffset!: number | null;
+  @field('inference_context') inferenceContext!: string;
+  @field('model_version') modelVersion!: string;
+  @field('kernel_build_id') kernelBuildId!: string | null;
 }
