@@ -16,13 +16,29 @@ Fluera — мультиязычное мобильное приложение-ч
 - **Foundation (готов):** `docs/superpowers/specs/2026-05-15-foundation-design.md`
 - **Sub-projects roadmap:**
   - #1 Foundation (готов) — темы, шрифты, навигация, primitives
-  - #2 Data layer (в работе) — WatermelonDB, модели, persist
-  - #3 Reader engine — EPUB/FB2 парсеры с нуля
-  - #4 Translation — Hy-MT1.5-1.8B on-device LLM
+  - #2 Data layer (готов, PR #2) — WatermelonDB, модели, persist
+  - #3 Reader engine (готов, PR #3) — EPUB/FB2 парсеры с нуля
+  - #4 Translation core (готов, PR #4) — Hy-MT1.5-1.8B 1.25-bit on-device
+    via llama.rn fork с STQ1_0 patch + jinja chat template
+  - **#4.5 Translation Popup Redesign** — tiered popup, MWE pre-filter,
+    sentence-level translation, false-friend, polysemy (см.
+    `2026-05-17-translation-popup-design.md` v2)
+  - **#4.6 Translation Prefetch + Lifecycle** — idle unload, lazy reload,
+    page-ahead prefetch с battery/thermal gates (см.
+    `2026-05-17-translation-prefetch-design.md` v2)
+  - **#4.7 Whole-Book Translation** — pre-translate целая книга batch'ем
+    (см. `2026-05-17-whole-book-translation-design.md`)
   - #5 Library — OPDS, импорт файлов
-  - #6 Deck — FSRS-6 SRS
+  - #6 Deck — FSRS-6 SRS (encounter-driven ingestion из reading sessions)
   - #7 Stats — графики, streak
   - #8 Onboarding/Settings polish
+  - #9 Gamification (v2 candidate) — streaks, achievements, level progress
+
+**Product vision (clarification 2026-05-17):** Reading-first приложение.
+Юзер читает книги на иностранном языке с моментальным переводом (слово /
+фраза / предложение) под рукой. Обучение происходит через чтение само
+собой, НЕ как primary KPI. #4.7 добавляет batch pre-translation для
+offline reading. Геймификация (#9) — опт-ин, не контаминирует reading core.
 
 ## Технологический стек
 

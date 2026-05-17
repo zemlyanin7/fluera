@@ -1,13 +1,44 @@
-# Sub-project #4.6 — Translation Prefetch + Idle Unload
+# Sub-project #4.6 — Translation Prefetch + Idle Unload (v2)
 
-> Расширение #4 Translation engine: prefetch следующих pages в фоне,
-> idle unload модели из RAM, memory-pressure / thermal / battery throttle.
-> Цель — instant translation popup + low resident memory footprint.
+> Расширение #4 Translation engine: prefetch following pages в фоне, idle
+> unload model из RAM, memory-pressure / battery throttle. Цель — instant
+> translation popup + low resident memory footprint. v2 incorporates 6-way
+> review findings.
 
 **Дата:** 2026-05-17
+**Версия:** v2 (после review session)
 **Зависимости:** #4 Translation engine, #4.5 Popup redesign (для sentence translation в prefetch batch).
-**Цель ветка:** `feat/translation-prefetch`
+**Ветка:** `feat/translation-prefetch`
 **Стэк:** поверх `feat/translation-popup` (#4.5).
+
+---
+
+## Changelog v1 → v2
+
+**Принятые findings:**
+
+- **Lemmatization plan** explicit: suffix-stripping heuristic + ~70% precision documented для RU/UK/PL/AR/HI/JA/KO. Hunspell/Sudachi too heavy для v1.
+- **Cache poisoning protection**: prefetch results tagged `source: 'prefetch'`, shorter TTL (30 days vs 90 для on-demand), optional verification on user tap.
+- **MWE prefetch**: prefetch также enqueues MWE matches найденные в upcoming pages, не только single lemmas.
+- **n_ctx 4096 + cache_prompt: true** — biggest perf win, был omitted. Bumped via createLlamaLoader.
+- **Cache row math fixed**: 200k cap, не 10k (realistic at 125k+ across 50 books).
+- **Composite uniqueness** key для collision safety.
+- **MWE trie lazy load per-pair при book open**.
+- **Atomic model upgrade**: .partial → SHA verify → rename + delete old.
+- **Permanent disable** после 3 consecutive load failures (SecureStore flag, survives "clear data").
+- **Disk space runtime purge policy**: < 200MB free → auto-purge sentence cache → trim words → prompt delete model.
+- **Export diagnostic bundle** action (replaces missing telemetry) — redacted JSON: last 50 cache misses (hash-only), inference durations, lifecycle, thermal/battery snapshots, model SHA, kernel build.
+- **Kernel verification script** в CI на каждый llama.rn bump.
+- **Real-device benchmarks** — blocking action item ДО implementation start.
+- **Prefetch progress UI**: production = binary indicator only ("ready" / "paused"). Numeric progress dev-only behind hidden flag.
+- **"Idle unload" copy**: rewrite to "Keep translator ready: Always / 5min after use / Only when needed".
+- **Encounter badge data source**: WordStatus.encounters incremented at popup open (debounced 5s).
+
+**Отклонённые findings** (под reading-first product vision):
+- **Encounter-gated prefetch**: defeats prefetch purpose. Замена — encounter badge в popup (#4.5).
+- **Coverage-gated UX prominence**: hostile pattern.
+- **Halve CEFR cutoffs** (lemma→family): academic, more popup spam.
+- **Flow mode UI**: schema field reserved only.
 
 ---
 
@@ -17,22 +48,23 @@
 
 - Risks **jetsam на 3-4GB devices** (iPhone SE 2/3, base 13/14, low-end Android).
 - Wastes **battery** (Metal/CPU contexts idle but mapped).
-- Hurts other apps (memory pressure → OS kills background apps user expects warm).
+- Hurts other apps (memory pressure → OS kills background apps).
 
 #4.6 решает через **lifecycle state machine** с triggers:
 
 1. **5min foreground idle** → unload context, keep file mapped.
-2. **App background** → unload immediately (Apple WWDC18 Memory Deep Dive recommendation).
-3. **Memory pressure** (`didReceiveMemoryWarning` / `TRIM_MEMORY_RUNNING_LOW`+) → unload unconditionally.
-4. **Lazy reload** на first cache miss → shimmer popup `Готовлю переводчик…` → ready.
+2. **App background** → unload immediately (WWDC18 recommendation).
+3. **Memory pressure** → unload unconditionally (v1: AppState fallback; v2: native module).
+4. **Lazy reload** на first cache miss → shimmer popup → ready.
 
 **Prefetch** populate'ит cache из background:
 
-- Reader idle >= 20s + model loaded/loading → batch-translate pages N+1..N+3 (or N+5 if charging/battery>50%).
+- Reader idle ≥ 20s + model loaded/loading → batch-translate pages N+1..N+3 (N+5 if charging/battery>50%).
 - 30-50 words per batch.
-- User tap **preempts** prefetch — cancel current word, requeue.
+- User tap **preempts** prefetch — cancel current job, requeue.
 - Thermal/battery throttle.
 - **Foreground only** в v1 (BGTaskScheduler iOS gates too restrictive).
+- **Tagged provenance**: `source: 'prefetch'`, shorter TTL.
 
 После prefetch batch + 5min idle → unload → cache populated → user reads с zero latency.
 
@@ -43,23 +75,37 @@
 ### 1.1 Что входит
 
 1. **`ModelLifecycleManager`** — state machine с lifecycle triggers.
-2. **Idle timer** — 5min без inference → unload.
+2. **Idle timer** — 5min без user inference → unload.
 3. **AppState integration** — background → immediate unload.
-4. **Memory pressure handler** — native subscription.
-5. **Lazy reload** flow на cache miss.
-6. **Priority inference queue** — user > prefetch.
-7. **`PrefetchScheduler`** — extracts upcoming pages, batches translations.
-8. **Unknown-word detection v1** — combine bookLanguageLevel frequency cutoff + `WordStatus` history.
-9. **Thermal + battery throttle** через native modules.
+4. **Lazy reload** flow + shimmer UI.
+5. **Priority inference queue** — user > prefetch.
+6. **`PrefetchScheduler`** — extracts upcoming pages, batches words + MWE.
+7. **Unknown-word detection v1** — CEFR cutoff + WordStatus history + lemmatization heuristic.
+8. **Lemmatization heuristic** — suffix-stripping for Slavic, prefix-stripping for Arabic, surface forms для CJK.
+9. **Frequency lists** bundle для 13 languages.
+10. **Thermal + battery throttle** через `expo-battery` (thermal deferred to v2).
+11. **Cache poisoning protection** — tag prefetch source + shorter TTL.
+12. **Atomic model upgrade** (.partial → SHA → rename).
+13. **Permanent disable** after 3 load failures.
+14. **Disk space runtime purge policy**.
+15. **Export diagnostic bundle** action.
+16. **Kernel verification script** + CI integration.
+17. **MWE prefetch** — также enqueue MWE matches.
+18. **n_ctx 4096 + cache_prompt: true** для KV reuse.
+19. **WordStatus.encounters increment** при popup open (debounced).
 
 ### 1.2 Out of scope
 
 - ❌ BGTaskScheduler iOS background prefetch (v2).
-- ❌ Pre-translate sentences для всей книги (storage-prohibitive).
+- ❌ Pre-translate sentences для всей книги — это **#4.7**.
 - ❌ Cloud fallback при cold model (v2).
-- ❌ Multi-context inference (2 contexts → 2x KV cache RAM, не оправдано).
+- ❌ Multi-context inference (single context v1).
 - ❌ Audio TTS prefetch (deferred с TTS feature).
-- ❌ FSRS encounter tracking (это #6 Deck — мы используем `WordStatus.state` only).
+- ❌ FSRS encounter tracking SRS — это #6 Deck.
+- ❌ Custom memory pressure native module (v1: AppState fallback).
+- ❌ Custom thermal native module (v1: skip throttle, accept jetsam risk).
+- ❌ Heavy lemmatizers (Hunspell/Sudachi) — heuristic only.
+- ❌ Per-genre prefetch tuning.
 
 ### 1.3 Что НЕ меняем
 
@@ -74,27 +120,31 @@
 
 ### 2.1 Mobile LLM lifecycle (best practice)
 
-- **Apple WWDC18 Session 416 "iOS Memory Deep Dive"** — release large resources на `didEnterBackground`. ~50% memory budget cut в background, 30s до suspension.
-- **Apple `applicationDidReceiveMemoryWarning`** docs — proactive release before jetsam.
-- **Android `ComponentCallbacks2.onTrimMemory`** — phased: `TRIM_MEMORY_UI_HIDDEN` (app backgrounded) → `TRIM_MEMORY_RUNNING_LOW`+ → `TRIM_MEMORY_COMPLETE`.
+- **Apple WWDC18 Session 416 "iOS Memory Deep Dive"** — release large resources на `didEnterBackground`. ~50% memory budget cut в background.
+- **Apple `applicationDidReceiveMemoryWarning`** — proactive release before jetsam.
+- **Android `ComponentCallbacks2.onTrimMemory`** — phased: `TRIM_MEMORY_UI_HIDDEN` → `TRIM_MEMORY_RUNNING_LOW`+ → `TRIM_MEMORY_COMPLETE`.
 - **iOS jetsam** unpublished device-specific limits, ~1GB resident risky на 3-4GB devices.
 
-### 2.2 Prefetch trade-offs (UX research)
+### 2.2 Prefetch + reading patterns
 
-- **Pre-fetch less common than reactive** в category. Trade-off: pre-translation = instant popup + battery cost + wasted work на untapped words.
-- **Sweet spot pattern**: warm-up + reactive cache > blind batch.
-- **Our extension**: page-ahead batch but throttled by user signals (idle time, battery, thermal).
+- Page-dwell median **15-25s** mobile → 20s prefetch trigger.
+- **Sweet spot pattern**: warm-up + reactive cache > blind batch. Our extension: gated batch с user signals.
 
-### 2.3 Reading patterns
+### 2.3 Production ML systems
 
-- Page-dwell median **15-25s** mobile (per category research).
-- Prefetch trigger: idle **20s** — after typical page consumption, before user impatience.
+- Cold inference output drift → tag + don't persist к DB.
+- Cache versioning required при model upgrades (#4.5 §6.1).
+- KV cache reuse через `cache_prompt: true` = single biggest perf win.
+- No telemetry → in-app diagnostic export replaces.
 
-### 2.4 Performance baseline
+### 2.4 Lemmatization realism
 
-- Public llama.cpp mobile reports: 2B-class @ Q4 → **15-40 tok/s gen** на flagship SoCs.
-- 1.25-bit Sherry — non-standard, no published mobile numbers.
-- **Action item**: benchmark на iPhone 13 (A15, 4GB — Fluera's floor target per CLAUDE.md) и Pixel 7 перед finalizing defaults.
+- **Hunspell** mobile: JNI complexity + ~5MB per language dict — too heavy v1.
+- **Sudachi (JA)** Java-only — JNI bridge needed.
+- **mecab-lite**, surface-form fallback acceptable для unknown-word detection precision ~70%.
+- **Suffix stripping** для Slavic langs (RU/UK/PL): простой algorithmic approach, false-positive rate ~15-25%.
+- **Prefix stripping** для AR/HI: similar tradeoff.
+- **Surface forms only** for JA/KO: accept 2-3x prefetch waste, document.
 
 ---
 
@@ -104,10 +154,10 @@
 
 ```
 UNLOADED  — нет context в RAM, файл mapped on disk
-LOADING   — `initLlama` в полёте
-READY     — context loaded, idle, ready to infer
+LOADING   — initLlama в полёте
+READY     — context loaded, idle
 INFERRING — inference в полёте
-ERROR     — load failed; recover via user action
+ERROR     — load failed; recover via user action OR permanent disable
 ```
 
 ### 3.2 Transitions
@@ -115,65 +165,90 @@ ERROR     — load failed; recover via user action
 ```
 UNLOADED ─(user tap | prefetch trigger)→ LOADING
 LOADING  ─(success)→ READY
-LOADING  ─(error)→ ERROR
-READY    ─(inference enqueued)→ INFERRING
+LOADING  ─(error, attempt < 3)→ ERROR (recoverable)
+LOADING  ─(error, attempt ≥ 3)→ ERROR_PERMANENT (SecureStore flag)
+READY    ─(user inference enqueued)→ INFERRING (resets idle timer)
+READY    ─(prefetch inference enqueued)→ INFERRING (NOT reset idle timer)
 INFERRING ─(complete)→ READY
 READY    ─(5min idle | background | memory pressure)→ UNLOADED
 INFERRING ─(memory pressure | background)→ INFERRING then UNLOADED
-                                            (current job завершается ≤3s, потом unload)
+                                            (current job ≤3s, then unload)
 ERROR    ─(resetError CTA | retry trigger)→ UNLOADED
+ERROR_PERMANENT ─(user manual clear flag)→ UNLOADED
 ```
 
 ### 3.3 Implementation
 
 ```typescript
 // src/services/translation/ModelLifecycleManager.ts
-type LifecycleState = 'unloaded' | 'loading' | 'ready' | 'inferring' | 'error';
+type LifecycleState = 'unloaded' | 'loading' | 'ready' | 'inferring' | 'error' | 'error_permanent';
 
 export class ModelLifecycleManager {
   private static singleton: ModelLifecycleManager | null = null;
   private state: LifecycleState = 'unloaded';
   private context: LlamaContext | null = null;
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly idleMs = 5 * 60 * 1000; // 5min
+  private idleMs = 5 * 60 * 1000;
+  private consecutiveLoadFailures = 0;
+  private serial: Promise<unknown> = Promise.resolve();
+  private prefetchQueue: PrefetchJob[] = [];
 
   // Triggers
-  onUserTap(): void { /* preempt prefetch если есть, ensure model loaded */ }
+  onUserTap(): void { /* preempt prefetch, ensure loaded, reset idle */ }
   onAppBackground(): void { /* force unload */ }
   onMemoryPressure(): void { /* force unload */ }
-  onIdleTimeout(): void { /* unload если state==ready */ }
-  onThermalStateChange(level: ThermalLevel): void { /* throttle prefetch */ }
-  onBatteryStateChange(pct: number, charging: boolean): void { /* gate prefetch */ }
+  onIdleTimeout(): void { /* unload if ready */ }
+  onBatteryStateChange(pct: number, charging: boolean, lowPower: boolean): void { /* gate prefetch */ }
+  onThermalStateChange(level: ThermalLevel): void { /* throttle prefetch (v2) */ }
 
   // Inference API
   async runUserInference(prompt: string, config: InferenceConfig): Promise<InferenceResult> {
     await this.ensureLoaded();
-    return this.executeWithPriority('user', () => this.context!.completion(prompt, config));
+    this.resetIdleTimer();
+    const ctx = this.context!;
+    return this.serializedRun('user', () => ctx.completion(prompt, config));
   }
 
   async runPrefetchInference(prompt: string, config: InferenceConfig): Promise<InferenceResult | null> {
     if (!this.canPrefetch()) return null;
     await this.ensureLoaded();
-    return this.executeWithPriority('prefetch', () => this.context!.completion(prompt, config));
+    // НЕ reset idle timer — prefetch doesn't count as user activity
+    const ctx = this.context!;
+    return this.serializedRun('prefetch', () => ctx.completion(prompt, config));
+  }
+
+  getSnapshot(): LifecycleSnapshot { /* state + battery + thermal + idle elapsed */ }
+
+  // Permanent disable
+  async checkPermanentDisable(): Promise<boolean> {
+    return (await SecureStore.getItemAsync('llm_permanently_disabled')) === '1';
+  }
+
+  async clearPermanentDisable(): Promise<void> {
+    await SecureStore.deleteItemAsync('llm_permanently_disabled');
+    this.consecutiveLoadFailures = 0;
+    this.state = 'unloaded';
   }
 }
 ```
 
-### 3.4 Идемпотентность
+### 3.4 Idempotency
 
-- `ensureLoaded()` deduplicates concurrent `LOADING` requests.
-- `unload()` no-op если уже UNLOADED.
+- `ensureLoaded()` deduplicates concurrent LOADING.
+- `unload()` no-op if UNLOADED.
 - `onMemoryPressure()` aborts pending prefetch jobs.
+- 3 consecutive load failures → set `llm_permanently_disabled` in SecureStore, surface UI "Translation unavailable on this device. See Settings to retry."
 
 ---
 
 ## 4. Idle unload mechanics
 
-### 4.1 Timer reset
+### 4.1 Timer reset rules
 
-- Каждая user inference сbrasывает таймер.
-- Prefetch inference **НЕ сбрасывает** таймер — это background work, не user activity.
-- Reader scroll (отдельный signal) — сбрасывает (user активен с книгой).
+- User inference → reset timer.
+- Prefetch inference → **does NOT** reset timer.
+- Reader scroll (debounced) → reset timer (user активен).
+- Background → force unload (regardless of timer).
 
 ### 4.2 Unload implementation
 
@@ -186,171 +261,442 @@ async unload(): Promise<void> {
     this.context = null;
   }
   this.state = 'unloaded';
-  useLlmStatusStore.getState().setStatus('installed'); // file present, not loaded
+  useLlmStatusStore.getState().setStatus('installed');
 }
 ```
 
-### 4.3 Lazy reload UX
+### 4.3 Lazy reload UX (shimmer)
 
 User tap после unload:
 
 1. Translate service `lookup()` → cache miss.
 2. Status `installed` → call `ensureLoaded()`.
-3. State `unloaded → loading` → Popup status `loading` → render shimmer "Готовлю переводчик…".
-4. Load done → status `ready` → translate proceeds → popup shows result.
+3. State `unloaded → loading` → Popup status `loading` → render shimmer "Готовлю переводчик…" + `accessibilityLiveRegion="polite"` announcement.
+4. Load done → status `ready` → translate proceeds.
 
-Visible latency: **5-8s** на cold reload. Show progress / animated shimmer NOT blocking spinner.
+Visible latency: **5-8s** на cold reload. Shimmer animation + LiveRegion announce, НЕ blocking spinner.
+
+**Reduce Motion**: shimmer → static "Загрузка переводчика…" text.
+
+### 4.4 Atomic model upgrade
+
+```
+Old model: Documents/llm/Hy-MT1.5-1.8B-1.25bit.gguf (current)
+
+Upgrade process:
+1. Download new model → Documents/llm/Hy-MT1.6.gguf.partial
+2. Verify SHA-256 (size + bytes match new manifest)
+3. If verify passes:
+   a. Atomic rename: .partial → Hy-MT1.6.gguf
+   b. Update model manifest pointer
+   c. Test load: instantiate context, run "Hello." inference
+   d. If load succeeds: delete old Hy-MT1.5-1.8B-1.25bit.gguf
+   e. If load fails: revert pointer, keep both, surface error
+4. If verify fails: delete .partial, keep current
+```
+
+Power-off mid-upgrade → either old model intact (если step 3a не дошёл) OR new model OK and pointer updated. Никогда bricked state.
 
 ---
 
 ## 5. Memory pressure integration
 
-### 5.1 iOS
+### 5.1 V1 simplification
 
-Native module bridge (новый Expo module или use `react-native-memory-event` если экзистует):
+**AppState only** в v1. Memory pressure handler deferred к v2 unless real-device testing shows jetsam issues.
 
+```typescript
+AppState.addEventListener('change', (next) => {
+  if (next === 'background' || next === 'inactive') {
+    ModelLifecycleManager.instance().onAppBackground();
+  }
+});
+```
+
+### 5.2 V2 native module
+
+`modules/MemoryPressure/`:
+
+**iOS** (`MemoryPressureObserver.m`):
 ```objc
-// MemoryPressureObserver.m
 [[NSNotificationCenter defaultCenter]
   addObserver:self selector:@selector(handleMemoryWarning)
   name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
 ```
 
-Bridge emits event → JS subscriber → `ModelLifecycleManager.onMemoryPressure()`.
-
-### 5.2 Android
-
+**Android** (`MemoryPressureModule.java`):
 ```java
-class MemoryPressureModule extends ReactContextBaseJavaModule implements ComponentCallbacks2 {
-  public void onTrimMemory(int level) {
-    if (level >= TRIM_MEMORY_RUNNING_LOW) {
-      sendEvent("memory_pressure", { level });
-    }
+public void onTrimMemory(int level) {
+  if (level >= TRIM_MEMORY_RUNNING_LOW) {
+    sendEvent("memory_pressure", { level });
   }
 }
 ```
 
-### 5.3 V1 simplification
-
-Если custom native module слишком много work для v1 — fall back на `AppState` events ONLY (background → unload). Memory pressure handler — TODO к v2.
-
-**MVP decision**: AppState only. Memory pressure deferred unless real-device testing shows jetsam issues.
+Bridge → `ModelLifecycleManager.onMemoryPressure()`.
 
 ---
 
 ## 6. Prefetch scheduler
 
-### 6.1 Trigger conditions (ALL true)
+### 6.1 Trigger conditions (ALL must be true)
 
 1. Reader screen mounted + book loaded.
 2. No scroll event ≥ 20s.
 3. Model state `ready` OR queued для load.
 4. Battery: charging OR > 20%.
 5. `LowPowerMode` (iOS) / `PowerSaveMode` (Android) OFF.
-6. Thermal state < `serious` (iOS) / < `MODERATE` (Android).
+6. Thermal state < `serious` (iOS) / < `MODERATE` (Android) — v2 (v1 skip throttle).
 7. App в foreground.
 8. Prefetch не in progress.
+9. **`llm_permanently_disabled` flag not set**.
 
-### 6.2 Unknown-word detection v1
+### 6.2 Unknown-word detection v1 (heuristic)
 
 ```typescript
 async function findCandidateWords(
   pages: ChapterContent[],
   bookLanguageLevel: CEFRLevel,
   knownWords: Set<string>,
-): Promise<string[]> {
-  const freqList = await loadFrequencyList(book.language); // assets/freq/{lang}.txt
+  language: BookLanguage,
+): Promise<{ words: string[], mwes: MwePhrase[] }> {
+  const freqList = await loadFrequencyList(language);
   const cutoff = freqCutoffByCEFR(bookLanguageLevel);
-  // A1=500, A2=1000, B1=3000, B2=6000, C1=10000, C2=20000
+  // A1=500, A2=1000, B1=3000, B2=6000, C1=10000, C2=20000 (heuristic, documented)
   const knownByLevel = new Set(freqList.slice(0, cutoff));
 
-  const candidates = new Set<string>();
+  const wordCandidates = new Set<string>();
+  const mweCandidates = new Map<string, MwePhrase>();
+
   for (const page of pages) {
-    for (const word of extractWords(page)) {
-      const lemma = normalizeWord(word);
+    const text = extractText(page);
+
+    // Stage 1: MWE matches via current book's pair trie
+    const mweHits = mweTrie.scan(text);
+    for (const hit of mweHits) {
+      mweCandidates.set(hit.phrase, hit);
+    }
+
+    // Stage 2: Single-word lemmas
+    for (const word of extractWords(text)) {
+      // Lemmatization heuristic (per-language)
+      const lemma = lemmatizeHeuristic(word, language);
+      // Proper noun filter (capitalized + not sentence-initial)
+      if (isProperNounHeuristic(word, text)) continue;
       if (knownByLevel.has(lemma)) continue;
       if (knownWords.has(lemma)) continue;
-      candidates.add(lemma);
+      wordCandidates.add(lemma);
     }
   }
-  return Array.from(candidates);
+
+  return { words: Array.from(wordCandidates), mwes: Array.from(mweCandidates.values()) };
 }
 ```
 
-`knownWords` = `WordStatus.state IN ('known', 'mastered')` rows.
+`knownWords` = WordStatus rows с `state IN ('known', 'mastered', 'learning')`.
 
-### 6.3 Frequency lists
+### 6.3 Lemmatization heuristic per-language
 
-`assets/freq/{lang}.txt` — top 20k lemmas per language. Sources:
+```typescript
+function lemmatizeHeuristic(word: string, lang: BookLanguage): string {
+  const lower = word.toLowerCase();
+  switch (lang) {
+    case 'en':
+      // English: strip common suffixes (-ing, -ed, -s, -es, -ies)
+      return stripEnglishSuffix(lower);
+    case 'ru':
+    case 'uk':
+    case 'pl':
+      // Slavic: aggressive suffix-stripping (~15-25% false-positive)
+      return stripSlavicSuffix(lower);
+    case 'es':
+    case 'fr':
+    case 'it':
+    case 'pt':
+      // Romance: strip conjugation/plural
+      return stripRomanceSuffix(lower);
+    case 'de':
+      // German: split compounds (basic) + strip
+      return germanLemma(lower);
+    case 'ar':
+    case 'hi':
+      // Prefix-stripping (definite article, prefixed prepositions)
+      return stripPrefix(lower, lang);
+    case 'ja':
+    case 'ko':
+      // Surface form only (accept 2-3x prefetch waste)
+      return lower;
+    default:
+      return lower;
+  }
+}
+```
+
+**Documented precision**:
+- en: ~85% (well-known suffix patterns)
+- es/fr/it/pt: ~80% (regular conjugation)
+- ru/uk/pl: ~70% (complex morphology, false positives)
+- de: ~65% (compounds tricky)
+- ar/hi: ~60% (multi-prefix forms)
+- ja/ko: ~40% (no real lemmatization — surface forms only)
+
+These %s mean: of words found in candidate set, X% are correctly-lemmatized; rest are duplicates or wrong forms. Result: prefetch waste at low-precision langs (translate variants we wouldn't need).
+
+### 6.4 Proper noun filter
+
+```typescript
+function isProperNounHeuristic(word: string, sentenceText: string): boolean {
+  // Capitalized + not sentence-initial = likely proper noun
+  if (word[0] !== word[0].toUpperCase()) return false;
+  // Check if word is at sentence start (skip filter)
+  const wordIdx = sentenceText.indexOf(word);
+  if (wordIdx <= 1 || sentenceText[wordIdx - 2] === '.') return false;
+  return true;
+}
+```
+
+False positives: проблема для немецкого (все Nouns capitalized) → disable filter для DE. Документировано.
+
+### 6.5 Frequency lists
+
+`assets/freq/{lang}.txt` — top 20k lemmas. Sources:
 - **English**: subtitle corpus (OpenSubtitles, CC).
-- **Russian**: НКРЯ (Russian National Corpus) — public freq lists.
-- Other 11 supported languages: equivalent corpus or Wiktionary frequency lists.
+- **Russian**: НКРЯ public freq lists.
+- Other 11: equivalent open corpora or Wiktionary frequency lists.
 
-Size: 20k lines × ~10 bytes/line × 13 langs ≈ 2.6MB. Bundle.
+Size: 20k × ~10 bytes × 13 langs ≈ 2.6MB. Bundle.
 
-### 6.4 Batch sizing + cadence
+**Curation pass**: pre-bundle filter — strip top-1k personal names ("Pierre", "Анна"), strip article-only entries, manual audit per language. Documented в `scripts/freq-curate.ts`.
 
-- Batch: **30-50 words** per scheduling tick.
-- Tick interval: при batch complete, schedule next ~1s later (yield event loop).
-- Stop conditions: pages N+1..N+5 fully translated OR user scroll detected OR throttle trigger fires.
+### 6.6 Batch sizing + cadence
 
-### 6.5 Cancellation
+- Batch: **30-50 words OR 5-10 MWE** per scheduling tick.
+- Tick interval: на batch complete, schedule next ~1s later (yield event loop).
+- Stop conditions: pages N+1..N+5 fully translated OR user scroll OR throttle trigger.
 
-User tap → `priority='user'` job inserted at queue head → current prefetch job cancelled mid-inference (abort token loop) → user request proceeds. Cancelled word requeued at end of prefetch queue.
+### 6.7 Cancellation
 
-llama.cpp completion is hard to cancel mid-token. V1 simpler: `cancelOnCompleteOf` flag — wait for current word's tokens to finish (≤3s), then user job. Acceptable UX trade-off.
+User tap → user-priority job inserted at queue head. Current prefetch:
+- **V1 simpler**: wait for current word's tokens (≤3s), then user job. Reload UX confirms blocked tap show shimmer.
+- **V2 better**: `llama_decode` interrupt mid-token (investigate llama.rn API).
 
-### 6.6 Sentence prefetch (если #4.5 ready)
+Cancelled prefetch word **requeued** at end of queue (not lost).
 
-В дополнение к word prefetch: collect все **unique sentences** containing candidate words. Translate sentences через `translateSentence` API. Populates sentence cache (#4.5 §7) для instant sentence-translation popup.
+### 6.8 Sentence prefetch (depends on #4.5)
+
+Если #4.5 chrF gate passed для pair: enqueue **unique sentences** containing candidate words. Translate via `translateSentence` API. Populates sentence cache.
+
+**Per-pair gating**: только pairs с chrF ≥ 40 (#4.5 §11.3).
+
+### 6.9 Cache poisoning protection
+
+Per #4.5 §6.2: prefetch inference tagged `source: 'prefetch'`.
+
+```typescript
+interface CacheRow {
+  cache_key: string;
+  word: string;
+  // ... existing fields
+  source: 'on_demand' | 'prefetch';
+  inference_context: InferenceContext;
+  ttl_days: number;  // 90 для on_demand, 30 для prefetch
+}
+```
+
+**Rule**: prefetch entries TTL 30 days vs on-demand 90 days. Purge job aware of source.
+
+**Optional verification** (v2): on user tap → если cache hit `source: 'prefetch'` AND popup mode = sentence → re-verify по second pass. Тут v1 пока accept prefetch as authoritative (latency win > theoretical poison risk).
 
 ---
 
 ## 7. Native modules для thermal + battery
 
-### 7.1 iOS
+### 7.1 Battery (`expo-battery`)
 
-```swift
-let thermalState = ProcessInfo.processInfo.thermalState
-// .nominal | .fair | .serious | .critical
+Available SDK 54.
 
-let battery = UIDevice.current.batteryLevel  // 0.0-1.0
-let charging = UIDevice.current.batteryState == .charging
-let lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+```typescript
+import * as Battery from 'expo-battery';
+
+const subscription = Battery.addBatteryLevelListener((event) => {
+  ModelLifecycleManager.instance().onBatteryStateChange(
+    event.batteryLevel,
+    /* charging */ await Battery.getPowerStateAsync().lowPowerMode,
+  );
+});
 ```
 
-Subscribe via `NSProcessInfoThermalStateDidChangeNotification`,
-`UIDeviceBatteryLevelDidChangeNotification`,
-`NSProcessInfoPowerStateDidChangeNotification`.
+### 7.2 Thermal — v2 deferred
 
-### 7.2 Android
+iOS `ProcessInfo.thermalState`, Android `PowerManager.getCurrentThermalStatus` — custom native module nontrivial.
 
-```kotlin
-val thermal = (context.getSystemService(POWER_SERVICE) as PowerManager).currentThermalStatus
-// THERMAL_STATUS_NONE | LIGHT | MODERATE | SEVERE | CRITICAL | EMERGENCY | SHUTDOWN
+**v1**: skip throttle. Accept that prefetch может потеплить device. If real-device benchmarks показывают thermal jetsam, add module v2.
 
-val battery = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-val charging = batteryManager.isCharging
-val powerSave = (context.getSystemService(POWER_SERVICE) as PowerManager).isPowerSaveMode
-```
-
-### 7.3 Library / V1 simplification
-
-`expo-battery` covers battery + lowPowerMode (iOS + Android). Thermal — нужен custom module.
-
-**MVP decision**: battery-only через `expo-battery`. Thermal throttle deferred — добавить если real-device testing показывает throttling issues.
+**Workaround**: low-priority (NSQualityOfServiceUtility / Android `THREAD_PRIORITY_BACKGROUND`) thread для prefetch — partial thermal mitigation.
 
 ---
 
-## 8. Data types
+## 8. Inference parameter updates (для sentence prefetch)
 
-### 8.1 LifecycleManager API
+### 8.1 createLlamaLoader bump
+
+```typescript
+export async function createLlamaLoader(): Promise<LlamaContext> {
+  const native = await initLlama({
+    model: getModelLocalPath(),
+    n_ctx: 2048,        // bumped from 1024 для sentence support (#4.5 §11.2)
+    n_gpu_layers: 99,
+    n_threads: 4,
+    cache_prompt: true, // v2: KV cache reuse across batched sentence translations
+  });
+  return new LlamaContextAdapter(native);
+}
+```
+
+**KV cache reuse через `cache_prompt: true`** — single biggest perf optimization. Без него каждое sentence translation re-tokenizes system prompt + sentence start. С ним — prompt prefix shared in KV cache → 30-50% faster prompt eval.
+
+### 8.2 Sentence prefetch n_ctx requirement
+
+Prompt + sentence (200 chars max) + 200 output tokens ≈ 800 tokens. `n_ctx 2048` provides комфортный headroom for batched sentence translations within same context lifetime.
+
+---
+
+## 9. Diagnostic bundle (replaces telemetry)
+
+### 9.1 Export action
+
+В Settings → Translation → Advanced:
+
+```
+[Экспорт diagnostic bundle]
+```
+
+Tap → generates redacted JSON в shareable file:
+
+```json
+{
+  "exportedAt": "2026-05-17T22:30:00Z",
+  "model": {
+    "name": "Hy-MT1.5-1.8B-1.25bit",
+    "version": 1,
+    "sha256": "987121bc...",
+    "kernelBuildId": "stq1_0-pr22836-applied-fdcf36f5"
+  },
+  "lifecycle": {
+    "currentState": "ready",
+    "loadedAt": 1747521234567,
+    "consecutiveLoadFailures": 0,
+    "lastUnloadAt": null
+  },
+  "system": {
+    "thermal": "nominal",
+    "batteryPct": 67,
+    "charging": false,
+    "lowPowerMode": false,
+    "diskFreeBytes": 14523000000
+  },
+  "recentEvents": [
+    { "t": 1747521000000, "event": "user_tap", "wordHash": "abc123", "latencyMs": 1842, "inferenceContext": "warm" },
+    { "t": 1747521050000, "event": "prefetch_batch_start", "wordCount": 42 },
+    { "t": 1747521120000, "event": "prefetch_batch_complete", "wordCount": 42, "totalMs": 67432 }
+  ],
+  "cacheStats": {
+    "totalRows": 12340,
+    "prefetchRows": 8901,
+    "onDemandRows": 3439,
+    "lruSize": 487
+  },
+  "errors": [
+    { "t": 1747520000000, "code": "INFERENCE_TIMEOUT", "wordHash": "def456" }
+  ]
+}
+```
+
+**Redacted**: no source text content, no translations, no PII. Hash-only word identifiers.
+
+User can email bundle при support request. Replaces "we'll measure later" of v1.
+
+---
+
+## 10. Kernel verification + CI
+
+### 10.1 Verification script
+
+`scripts/verify-kernel.ts`:
+
+```typescript
+const FIXTURE_PROMPTS = [
+  { prompt: "Translate to Russian: hello", expectedOutput: "привет" },
+  { prompt: "Translate to Russian: world", expectedOutput: "мир" },
+  // 10 fixtures total, hand-curated, temp=0, n_predict=8
+];
+
+async function verifyKernel() {
+  const ctx = await initLlama({ model: MODEL_PATH, n_ctx: 512 });
+  for (const fixture of FIXTURE_PROMPTS) {
+    const result = await ctx.completion({
+      messages: [{ role: 'user', content: fixture.prompt }],
+      jinja: true,
+      temperature: 0.0,
+      top_k: 1,
+      n_predict: 8,
+    });
+    const normalized = result.text.trim().toLowerCase();
+    if (normalized !== fixture.expectedOutput) {
+      console.error(`MISMATCH: prompt="${fixture.prompt}" expected="${fixture.expectedOutput}" got="${normalized}"`);
+      process.exit(1);
+    }
+  }
+  console.log('All kernel verification fixtures passed');
+}
+```
+
+### 10.2 CI integration
+
+`.github/workflows/kernel-verify.yml`:
+
+```yaml
+on:
+  pull_request:
+    paths:
+      - 'vendor/llama.rn/cpp/**'
+      - 'src/services/translation/modelManifest.ts'
+
+jobs:
+  verify-kernel:
+    runs-on: macos-14
+    steps:
+      - checkout
+      - setup-node
+      - install dependencies
+      - build llama.rn cpp/
+      - run scripts/verify-kernel.ts
+```
+
+PR blocked unless verification passes.
+
+---
+
+## 11. FLORES eval harness (cross-reference #4.5 §11.3)
+
+Shared с #4.5 sentence translation gate. Re-stated here для prefetch context:
+
+- `scripts/eval/translate-flores.ts` — 200 FLORES dev sentences per pair.
+- Gate: chrF ≥ 40 для shipping sentence translation.
+- **Sentence prefetch** в #4.6 §6.8 honors per-pair gate — only enqueue sentences для pairs ≥ threshold.
+
+---
+
+## 12. Data types
+
+### 12.1 LifecycleManager API
 
 ```typescript
 // src/services/translation/ModelLifecycleManager.ts
 
 export type ThermalLevel = 'nominal' | 'fair' | 'serious' | 'critical';
 export type InferencePriority = 'user' | 'prefetch';
+export type LifecycleState = 'unloaded' | 'loading' | 'ready' | 'inferring' | 'error' | 'error_permanent';
 
 export interface LifecycleSnapshot {
   state: LifecycleState;
@@ -360,29 +706,29 @@ export interface LifecycleSnapshot {
   batteryPct: number;
   charging: boolean;
   lowPowerMode: boolean;
+  consecutiveLoadFailures: number;
+  prefetchActive: boolean;
 }
 
 export interface LifecycleManagerOptions {
   loader: () => Promise<LlamaContext>;
-  idleTimeoutMs?: number;  // default 5min
-  prefetchBatteryFloor?: number; // default 0.2
+  idleTimeoutMs?: number;
+  prefetchBatteryFloor?: number;
 }
 
 export class ModelLifecycleManager {
   static instance(opts?: LifecycleManagerOptions): ModelLifecycleManager;
-
-  // Inference (priority-aware)
   runInference(prompt: string, config: InferenceConfig, priority: InferencePriority): Promise<InferenceResult>;
-
-  // Lifecycle
   ensureLoaded(): Promise<void>;
   unload(): Promise<void>;
   canPrefetch(): boolean;
   getSnapshot(): LifecycleSnapshot;
+  exportDiagnosticBundle(): Promise<DiagnosticBundle>;
+  clearPermanentDisable(): Promise<void>;
 }
 ```
 
-### 8.2 PrefetchScheduler
+### 12.2 PrefetchScheduler API
 
 ```typescript
 // src/services/translation/PrefetchScheduler.ts
@@ -392,6 +738,7 @@ export interface PrefetchSchedulerDeps {
   translation: ITranslationService;
   bookRepository: BookRepository;
   wordStatusRepository: WordStatusRepository;
+  mweRepository: MweRepository;
   loadFrequencyList: (lang: BookLanguage) => Promise<string[]>;
 }
 
@@ -401,14 +748,16 @@ export class PrefetchScheduler {
   resume(): void;
   stop(): void;
 
-  onScroll(): void;        // reset idle timer
-  onUserTap(): void;       // cancel current batch
-  onBatteryChange(snapshot: BatteryState): void;
+  onScroll(): void;
+  onUserTap(): void;
+  onBatteryChange(snapshot: { pct: number; charging: boolean; lowPower: boolean }): void;
   onThermalChange(level: ThermalLevel): void;
+
+  getProgress(): { done: number; total: number; status: 'idle' | 'active' | 'paused' };
 }
 ```
 
-### 8.3 Status store extensions
+### 12.3 Status store extensions
 
 ```typescript
 // src/stores/llmStatusStore.ts
@@ -417,187 +766,238 @@ interface LlmStatusStore {
   // existing fields...
   lifecycleState: LifecycleState;
   prefetchActive: boolean;
-  prefetchProgress: { done: number; total: number } | null;
+  prefetchPaused: boolean;
+  prefetchPauseReason: 'battery_low' | 'low_power_mode' | 'thermal' | 'user' | null;
+  permanentlyDisabled: boolean;
 }
 ```
 
 ---
 
-## 9. Files plan
+## 13. Files plan
 
-### 9.1 Создаём
+### 13.1 Создаём
 
-- `src/services/translation/ModelLifecycleManager.ts` (replaces `LlamaContextManager` ownership).
+- `src/services/translation/ModelLifecycleManager.ts` (replaces `LlamaContextManager`).
 - `src/services/translation/PrefetchScheduler.ts`.
 - `src/services/translation/frequencyLists.ts` — loader.
+- `src/services/translation/lemmatizeHeuristic.ts` — per-language stripping.
+- `src/services/translation/properNounHeuristic.ts`.
+- `src/services/translation/diagnosticBundle.ts` — export action.
+- `src/services/translation/AppStateBridge.ts`.
+- `src/services/translation/BatteryBridge.ts`.
 - `src/services/translation/__tests__/ModelLifecycleManager.test.ts`.
 - `src/services/translation/__tests__/PrefetchScheduler.test.ts`.
+- `src/services/translation/__tests__/lemmatizeHeuristic.test.ts`.
 - `src/services/translation/__tests__/frequencyLists.test.ts`.
-- `assets/freq/{en,ru,es,fr,de,it,pt,pl,uk,ja,ko,ar,hi}.txt` — top 20k lemmas per lang.
-- `modules/MemoryPressure/` — Expo native module (если v1 решает делать). Иначе TODO.
-- `src/services/translation/AppStateBridge.ts` — RN AppState → lifecycle wire.
-- `src/services/translation/BatteryBridge.ts` — `expo-battery` → lifecycle wire.
+- `assets/freq/{en,ru,es,fr,de,it,pt,pl,uk,ja,ko,ar,hi}.txt`.
+- `scripts/freq-curate.ts` — curation pipeline.
+- `scripts/verify-kernel.ts`.
+- `scripts/eval/translate-flores.ts` (shared с #4.5).
+- `scripts/eval/flores-corpus/` — bundled FLORES sample.
+- `.github/workflows/kernel-verify.yml`.
 
-### 9.2 Изменяем
+### 13.2 Изменяем
 
-- `src/services/translation/LlamaContextManager.ts` → **deprecated**, replaced by `ModelLifecycleManager`. Migration removes old singleton.
-- `src/services/translation/LlamaTranslationService.ts` — route through lifecycle manager с priority.
-- `src/services/translation/LlmBootstrap.tsx` — wire up:
-  - AppState listener → lifecycle.onAppBackground.
-  - Battery listener → lifecycle.onBatteryStateChange.
-  - PrefetchScheduler instantiated.
-  - Reader screen onMount → scheduler.start(bookId, page).
-- `src/services/translation/useModelLifecycle.ts` — extend с idle status, manual reload action.
-- `src/components/settings/TranslationSection.tsx` — display lifecycle state.
-
----
-
-## 10. Tests
-
-### 10.1 Unit
-
-- `ModelLifecycleManager.test.ts`:
-  - State transitions UNLOADED → LOADING → READY → INFERRING → READY → (5min) → UNLOADED.
-  - Memory pressure forces UNLOADED.
-  - Background forces UNLOADED.
-  - Idle timer reset на user inference.
-  - `canPrefetch()` returns false при battery < 20%.
-- `PrefetchScheduler.test.ts`:
-  - 20s idle trigger fires.
-  - Scroll resets timer.
-  - User tap cancels batch.
-  - Battery <20% pauses scheduler.
-  - Candidate word extraction по level.
-- `frequencyLists.test.ts` — load + lookup correctness.
-
-### 10.2 Integration
-
-- App start → no model → user tap → load → translate → 5min idle → unload → tap again → reload → translate.
-- Reader scroll → prefetch starts → tap → prefetch yields → user gets result → prefetch resumes.
-- Background app → unload → foreground → tap → reload.
+- `src/services/translation/LlamaContextManager.ts` → **deprecated**, replaced by `ModelLifecycleManager`. Internal: lifecycle wraps existing context manager + adds state machine + queues.
+- `src/services/translation/LlamaTranslationService.ts` — route через lifecycle с priority.
+- `src/services/translation/createLlamaLoader.ts` — bump n_ctx 2048 + cache_prompt: true.
+- `src/services/translation/LlmBootstrap.tsx` — wire AppState + battery + PrefetchScheduler instantiation.
+- `src/services/translation/useModelLifecycle.ts` — extend with snapshot, manual reload, export diagnostic.
+- `src/components/settings/TranslationSection.tsx` — display lifecycle status + diagnostic export button + advanced disclosure.
+- `src/services/translation/CacheLayer.ts` — TTL по source ('prefetch' vs 'on_demand').
+- `src/db/models/TranslationCache.ts` — add source, inference_context, ttl_days columns.
+- `src/db/schema.ts` — schema v3 (migration adding cache cols + indexes).
 
 ---
 
-## 11. Settings UI
+## 14. Settings UI
 
-В Settings → Translation:
+### 14.1 Production Settings
+
+В Settings → Translation Model section:
 
 ```
 Translation Model: [статус]
-[ ] Pre-translate following pages
-   (will use battery — disabled on low battery)
-Idle unload after: [5 min ▼]   (3 / 5 / 10 / Never)
+─────────────────────────────────
+Pre-translate following pages: [ON ▾]
+   (auto-pauses on low battery / thermal)
+
+Keep translator ready: [5 min after use ▾]
+   options:
+     Always (uses more battery)
+     5 min after use (recommended)
+     Only when needed (saves battery, slower first tap)
+─────────────────────────────────
+▾ Advanced
+  [Export diagnostic bundle]
+  [Reset gesture hints]
+  [Очистить кэш переводов]
+  [Удалить и скачать заново]
 ```
 
-`Never` для power users / dev — disables idle unload entirely.
-
-В runtime debug overlay (dev builds only):
+**Anti-pattern avoided**: no numeric progress meter in production. Status bar shows binary:
 
 ```
-LLM lifecycle: ready (loaded 3m ago)
+Pre-translation: Ready
+```
+
+OR
+
+```
+Pre-translation: Paused — low battery
+```
+
+### 14.2 Dev overlay (hidden behind dev-flag)
+
+```
+LLM lifecycle: ready (loaded 3m 42s ago)
 Prefetch: 18/45 words, page N+2
 Memory: 612MB resident
 Thermal: nominal
 Battery: 67% (not charging)
+Consecutive load failures: 0
+```
+
+Enabled via long-press на app version в About screen (developer toggle).
+
+---
+
+## 15. Performance budget
+
+| Operation | Cold (unloaded) | Warm (ready) |
+|-----------|----------------|--------------|
+| User tap (cache hit) | <50ms | <50ms |
+| User tap (cache miss, gloss) | 5-10s (reload) | 1-3s |
+| Sentence translation | 6-15s (reload) | 5-15s |
+| Prefetch batch (50 words) | N/A | 30-60s |
+| Idle unload | — | <100ms |
+| Memory pressure unload | — | <500ms |
+| Diagnostic bundle export | — | <500ms |
+
+**RAM footprint:**
+- Unloaded: ~50MB.
+- Loaded: 500MB-1GB (context + KV cache).
+- Trimmed (file mapped, context released): ~80MB.
+
+**Battery target:** prefetch < 2% per 15-min reading session (measure on iPhone 13).
+
+---
+
+## 16. Errors
+
+| Code | Trigger | UI / Behavior |
+|------|---------|---------------|
+| LIFECYCLE_LOAD_FAILED | initLlama exception (recoverable) | Settings error state + retry CTA |
+| LIFECYCLE_PERMANENTLY_DISABLED | 3 consecutive load failures | Settings: "Translation unavailable on this device. [Retry]" — clears flag |
+| PREFETCH_THROTTLED_BATTERY | battery <20% not charging | Settings indicator |
+| PREFETCH_THROTTLED_LOWPOWER | LowPowerMode enabled | Settings indicator |
+| MEMORY_PRESSURE_UNLOAD | OS warning | Log; silent unload |
+| MODEL_UPGRADE_FAILED | .partial verify fail | Settings: "Upgrade failed, keeping current model" |
+| DISK_SPACE_LOW | <200MB free | Settings: "Disk space low — auto-purge enabled" |
+
+---
+
+## 17. Migration / Rollout
+
+### 17.1 От #4 к #4.6
+
+1. Add new `ModelLifecycleManager` файл.
+2. ModelLifecycleManager wraps existing context manager internally + adds state machine + queues.
+3. Service code switches от `LlamaContextManager.instance().getContext()` к `ModelLifecycleManager.instance().runInference(...)`.
+4. Delete `LlamaContextManager` после migration tests pass.
+
+### 17.2 DB schema v2 → v3
+
+```typescript
+// src/db/migrations/0004-cache-versioning-and-source.ts
+schemaMigrations({
+  migrations: [
+    {
+      toVersion: 3,
+      steps: [
+        addColumns({
+          table: 'translation_cache',
+          columns: [
+            { name: 'source', type: 'string' },           // 'on_demand' | 'prefetch'
+            { name: 'inference_context', type: 'string' }, // 'cold' | 'warm' | 'thermal_throttled'
+            { name: 'ttl_days', type: 'number', isOptional: false },
+            { name: 'chrf_score', type: 'number', isOptional: true },
+          ],
+        }),
+        // After column add, run one-shot purge for legacy entries (different model version)
+        // Implemented as separate db.write block in migration runner.
+      ],
+    },
+  ],
+});
 ```
 
 ---
 
-## 12. Performance budget
+## 18. Done criteria
 
-| Operation                    | Cold (unloaded) | Warm (ready)  |
-|-----------------------------|----------------|---------------|
-| User tap (cache hit)         | <50ms          | <50ms         |
-| User tap (cache miss, gloss) | 5-10s (reload) | 1-3s          |
-| Sentence translation         | 6-15s (reload) | 5-15s         |
-| Prefetch batch (50 words)    | N/A             | 30-60s        |
-| Idle unload                  | —              | <100ms        |
-| Memory pressure unload       | —              | <500ms        |
-
-**RAM footprint:**
-
-- Unloaded: ~50MB (app + JS only).
-- Loaded: 500MB-1GB (context + KV cache).
-- Trimmed (idle but file mapped): ~80MB.
-
-**Battery target:** prefetch <2% per 15-min reading session.
-
----
-
-## 13. Errors
-
-| Code                            | Trigger                              | UI / Behavior                                              |
-|--------------------------------|--------------------------------------|------------------------------------------------------------|
-| LIFECYCLE_LOAD_FAILED          | initLlama exception                 | Settings TranslationSection error state                    |
-| PREFETCH_THROTTLED_THERMAL     | thermal >= serious                  | (silent — pause scheduler)                                 |
-| PREFETCH_THROTTLED_BATTERY     | battery <20% not charging           | Settings indicator "Prefetch paused — low battery"         |
-| PREFETCH_THROTTLED_LOWPOWER    | iOS LowPowerMode enabled            | Settings indicator                                          |
-| MEMORY_PRESSURE_UNLOAD         | OS memory warning                   | Log; silent unload                                          |
-
-Существующие #4 errors наследуются.
-
----
-
-## 14. Migration / Rollout
-
-### 14.1 От #4 к #4.6
-
-Существующий `LlamaContextManager` — singleton с simple load/unload. Заменяем на `ModelLifecycleManager` с richer state machine. Migration:
-
-1. Add new `ModelLifecycleManager` файл.
-2. Internal: ModelLifecycleManager wraps existing `LlamaContextManager` (или прямо replaces).
-3. Service code switches от `LlamaContextManager.instance().getContext()` к `ModelLifecycleManager.instance().runInference(...)`.
-4. Delete `LlamaContextManager` после migration tests pass.
-
-### 14.2 Backward compat
-
-Никакого user-visible data migration. Только internal refactor. Cache schema без изменений.
-
----
-
-## 15. Done criteria
-
-- [ ] `ModelLifecycleManager` implemented + tested.
+- [ ] `ModelLifecycleManager` implemented + tested (state machine + idempotency).
 - [ ] AppState background → unload working.
 - [ ] 5min idle timer → unload working.
-- [ ] Lazy reload на user tap, shimmer UI.
+- [ ] Lazy reload с shimmer + LiveRegion announcement.
 - [ ] Battery throttle через `expo-battery` integrated.
 - [ ] `PrefetchScheduler` implemented + tested.
-- [ ] Frequency lists bundled (13 languages, 20k lemmas each).
-- [ ] Unknown-word detection v1 (level cutoff + WordStatus) working.
+- [ ] Frequency lists bundled + curated (13 languages).
+- [ ] Lemmatization heuristic per-language tested + precision documented.
+- [ ] Proper noun filter applied (disabled DE).
 - [ ] 20s idle reader trigger fires prefetch.
-- [ ] User tap preempts prefetch (waits for current word, then user).
-- [ ] Settings: idle timeout dropdown + prefetch toggle.
+- [ ] User tap preempts prefetch (≤3s for current word completion, then user).
+- [ ] MWE prefetch также enqueued.
+- [ ] Sentence prefetch gated by chrF threshold per pair.
+- [ ] Prefetch tagged `source: 'prefetch'` + TTL 30 days.
+- [ ] Cold inference tagged + not persisted к DB.
+- [ ] `n_ctx 2048 + cache_prompt: true` integrated.
+- [ ] Atomic model upgrade tested (power-off resilient).
+- [ ] Permanent disable after 3 failures (SecureStore flag).
+- [ ] Disk space runtime purge policy implemented (<200MB → auto-purge).
+- [ ] Export diagnostic bundle action working + redacted JSON verified.
+- [ ] Kernel verification script + CI workflow.
+- [ ] Settings UI: production binary indicator + advanced disclosure.
+- [ ] Dev overlay hidden behind long-press About.
+- [ ] Real-device benchmark iPhone 13: prefetch throughput documented.
+- [ ] Real-device benchmark Pixel 7: same.
 - [ ] No regression в #4 / #4.5 translation flow.
-- [ ] iPhone 13 benchmark: real numbers для batch sizing.
-- [ ] Pixel 7 benchmark: same.
 
 ---
 
-## 16. Out of scope (для #4.6)
+## 19. Out of scope (для #4.6)
 
-- ❌ BGTaskScheduler iOS — true background prefetch (v2).
-- ❌ Custom memory pressure module (use AppState fallback v1).
-- ❌ Thermal throttle (defer до measured need).
+- ❌ BGTaskScheduler iOS background prefetch.
+- ❌ Custom memory pressure native module (v2 — only AppState v1).
+- ❌ Thermal throttle (v2 — defer).
 - ❌ Cloud fallback при slow cold load (v2).
 - ❌ Multi-context inference (single context v1).
-- ❌ Sentence prefetch (если #4.5 не ready — separate ticket).
-- ❌ Pre-decode N+chapters worth of TTS audio (TTS deferred to v3).
+- ❌ Sentence prefetch для chrF-failing pairs.
+- ❌ Pre-decode TTS audio (с TTS sub-project).
+- ❌ Heavy lemmatizers (Hunspell/Sudachi/MeCab — heuristic only).
+- ❌ Whole-book translation — это **#4.7**.
 
 ---
 
-## 17. Open questions
+## 20. Open questions
 
-1. **Custom native module для memory pressure** — worth complexity для v1? Или `AppState` only достаточно? **MVP: AppState only**. Add native module если real-device testing shows jetsam.
+1. **Custom memory pressure module** — worth complexity для v1? **MVP: AppState only**. Add native module если real-device testing shows jetsam.
 
-2. **Прерывание prefetch mid-token** — llama.cpp completion не cancellable mid-token easily. V1 trade-off: wait for current word completion (≤3s). Если UX feedback недостаточный — investigate `llama_decode` interrupt.
+2. **Prefetch mid-token interrupt** — `llama_decode` cancellable? Investigate llama.rn API. **V1**: wait for current word (≤3s).
 
-3. **Frequency list curation** — public OpenSubtitles / Tatoeba corpora имеют биас. Может потребоваться cleanup ('the', 'a' top-1 OK; rare proper nouns в top-1k — bad). Audit before bundle.
+3. **Frequency list curation** — public corpora имеют биас. **Action**: pre-bundle audit per language, document gaps в README.
 
-4. **bookLanguageLevel** не set для user который skip onboarding. **Default**: A2 (conservative — overpredicts unknown, more prefetch). User can adjust в Settings.
+4. **bookLanguageLevel** default if user skipped onboarding — **A2** (conservative, overpredicts unknown).
 
 5. **Prefetch scope: N+3 vs N+5** — depends на real device throughput. Benchmark iPhone 13 first.
 
-6. **WordStatus dependency** — `WordStatus` table из #2 Data layer. Migration: первый запуск нет word_status rows → conservative (prefetch все candidate). После user reading sessions → table populated.
+6. **Sentence prefetch размер** — sentence translation 5-15s. 50 sentences = 4-12 min. **V1**: prefetch только unique words (skip sentences) unless device plugged in. **#4.7** (whole-book) handles batch sentence translation explicitly.
 
-7. **Sentence prefetch размер** — sentence translation 5-15s/sentence. 50 sentences = 4-12 min. Probably too slow для full chapter prefetch. **V1**: prefetch только **unique unknown words**, не sentences. Sentences через on-demand long-press.
+7. **Lemmatization quality for JA/KO** — surface-form only = ~40% precision. Should we ship JA/KO prefetch disabled by default? **MVP: enable, accept waste, document.**
+
+8. **Diagnostic bundle privacy** — hash-based word identifiers prevent reverse-lookup. Verify SHA truncation OK for privacy review.
+
+9. **Kernel verification fixture coverage** — 10 prompts thin. Need broader fixture set per major language. **MVP: 10 fixtures, expand с feedback.**
+
+10. **chrF threshold per-pair calibration** — 40 universal? Some pairs (JA-EN, AR-EN) inherently harder; threshold may need per-pair tuning. **Action**: measure baseline pre-implementation, set per-pair thresholds.
