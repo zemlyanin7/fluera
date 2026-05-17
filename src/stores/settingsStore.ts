@@ -6,7 +6,7 @@ import { applyTheme, applyThemeImmediate } from '@/theme/applyTheme';
 import {
   DEFAULT_SETTINGS, SettingsState, NativeLanguage, BookLanguage, UILanguage,
   ThemeId, FontFamilyMode, ScrollMode, ProficiencyLevel,
-  TapToTranslateBehavior, AutoAddToDeck,
+  TapToTranslateBehavior, AutoAddToDeck, PopupHintsSeen,
 } from '@/types/settings';
 
 /**
@@ -26,6 +26,8 @@ const ALLOWLIST = [
   'readingSessionGoalMinutes',
   // Onboarding state
   'onboardingCompleted',
+  // Coach mark hints
+  'popupHintsSeen',
 ] as const satisfies readonly (keyof SettingsState)[];
 
 type PersistedKeys = (typeof ALLOWLIST)[number];
@@ -55,6 +57,8 @@ interface SettingsActions {
   toggleLookupHistoryEnabled: () => void;
   setReadingSessionGoalMinutes: (v: number) => void;
   completeOnboarding: () => void;
+  markPopupHintSeen: (key: keyof PopupHintsSeen) => void;
+  resetPopupHints: () => void;
   reset: () => void;
 }
 
@@ -91,6 +95,10 @@ export const useSettingsStore = create<SettingsStore>()(
       toggleLookupHistoryEnabled: () => set((s) => ({ lookupHistoryEnabled: !s.lookupHistoryEnabled })),
       setReadingSessionGoalMinutes: (v) => set({ readingSessionGoalMinutes: clamp(v, 5, 120) }),
       completeOnboarding: () => set({ onboardingCompleted: true }),
+      markPopupHintSeen: (key) =>
+        set((s) => ({ popupHintsSeen: { ...s.popupHintsSeen, [key]: true } })),
+      resetPopupHints: () =>
+        set({ popupHintsSeen: { longPressForSentence: false } }),
       reset: () => set(DEFAULT_SETTINGS),
     })),
     {

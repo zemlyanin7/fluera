@@ -26,6 +26,10 @@ export const SUPPORTED_UI_LANGUAGES = [
 ] as const;
 export type UILanguage = (typeof SUPPORTED_UI_LANGUAGES)[number];
 
+export interface PopupHintsSeen {
+  longPressForSentence: boolean;
+}
+
 export interface SettingsState {
   uiLanguage: UILanguage;
   nativeLanguage: NativeLanguage;
@@ -45,6 +49,7 @@ export interface SettingsState {
   lookupHistoryEnabled: boolean;
   readingSessionGoalMinutes: number;
   onboardingCompleted: boolean;
+  popupHintsSeen: PopupHintsSeen;
 }
 
 export const DEFAULT_SETTINGS: SettingsState = {
@@ -56,4 +61,5 @@ export const DEFAULT_SETTINGS: SettingsState = {
   autoAddToDeck: 'ask', showPhonetics: false,
   lookupHistoryEnabled: true, readingSessionGoalMinutes: 15,
   onboardingCompleted: false,
+  popupHintsSeen: { longPressForSentence: false },
 };
