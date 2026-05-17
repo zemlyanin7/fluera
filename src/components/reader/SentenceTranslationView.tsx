@@ -28,45 +28,66 @@ export function SentenceTranslationView({
       : null;
 
   return (
-    <View>
-      <Text style={{ color: theme.ink2, fontSize: 12 }}>Source:</Text>
-      {/* Source sentence with highlighted word */}
-      <Text style={{ color: theme.ink, fontSize: 15, marginBottom: 8 }}>
-        <Text>{sourceSegments.before}</Text>
-        <Text
-          style={{
-            fontWeight: '700',
-            textDecorationLine: 'underline',
-            color: theme.accent,
-          }}
-        >
-          {sourceSegments.match}
+    <View style={{ gap: 14 }}>
+      {/* Source sentence card */}
+      <View
+        style={{
+          backgroundColor: theme.paper2,
+          padding: 14,
+          borderRadius: 12,
+        }}
+      >
+        <Text style={{ color: theme.ink3, fontSize: 11, marginBottom: 6, letterSpacing: 0.5 }}>
+          ОРИГИНАЛ
         </Text>
-        <Text>{sourceSegments.after}</Text>
-      </Text>
-
-      <Text style={{ color: theme.ink2, fontSize: 12 }}>Translation:</Text>
-      {/* Translation with optional aligned-word highlight */}
-      {targetSegments != null ? (
-        <Text
-          style={{ color: theme.ink, fontSize: 15 }}
-          accessibilityLabel={`aligned: ${targetSegments.match}`}
-        >
-          <Text>{targetSegments.before}</Text>
+        <Text style={{ color: theme.ink2, fontSize: 16, lineHeight: 23 }}>
+          <Text>{sourceSegments.before}</Text>
           <Text
             style={{
               fontWeight: '700',
-              textDecorationLine: 'underline',
               color: theme.accent,
+              backgroundColor: theme.accentSoft,
             }}
           >
-            {targetSegments.match}
+            {sourceSegments.match}
           </Text>
-          <Text>{targetSegments.after}</Text>
+          <Text>{sourceSegments.after}</Text>
         </Text>
-      ) : (
-        <Text style={{ color: theme.ink, fontSize: 15 }}>{translatedSentence}</Text>
-      )}
+      </View>
+
+      {/* Translation card — visual emphasis */}
+      <View
+        style={{
+          backgroundColor: theme.accentSoft,
+          padding: 14,
+          borderRadius: 12,
+        }}
+      >
+        <Text style={{ color: theme.ink3, fontSize: 11, marginBottom: 6, letterSpacing: 0.5 }}>
+          ПЕРЕВОД
+        </Text>
+        {targetSegments != null ? (
+          <Text
+            style={{ color: theme.ink, fontSize: 17, lineHeight: 24, fontWeight: '500' }}
+            accessibilityLabel={`aligned: ${targetSegments.match}`}
+          >
+            <Text>{targetSegments.before}</Text>
+            <Text
+              style={{
+                fontWeight: '800',
+                color: theme.accent,
+              }}
+            >
+              {targetSegments.match}
+            </Text>
+            <Text>{targetSegments.after}</Text>
+          </Text>
+        ) : (
+          <Text style={{ color: theme.ink, fontSize: 17, lineHeight: 24, fontWeight: '500' }}>
+            {translatedSentence}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }

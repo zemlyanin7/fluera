@@ -212,8 +212,9 @@ function PopupContents({
         {wordResult?.mwePhrase && <MweChip type={wordResult.mwePhrase.type} />}
       </View>
 
-      {/* Experimental badge — sentence mode only */}
-      {isSentence && <ExperimentalBadge />}
+      {/* v2.2.4: ExperimentalBadge убран по user-feedback. Плашка излишний шум —
+          юзер видит translation, может оценить сам. Возврат к плашке возможен
+          если quality regression обнаружится в production. */}
 
       {/* Loading shimmer */}
       {state.status === 'loading' && (
