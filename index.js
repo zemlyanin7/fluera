@@ -1,7 +1,9 @@
-// Custom entry: configure Unistyles BEFORE expo-router discovers routes.
-// expo-router/entry use require.context() to load all route files; their
-// top-level StyleSheet.create((theme) => ...) need StyleSheet.configure()
-// to have run. Importing '@/theme' as the very first thing fixes that
-// ordering. _layout.tsx still imports it again (no-op due to module cache).
+// Custom entry. Порядок важен:
+// 1. react-native-get-random-values — shim для crypto.randomUUID() — должен
+//    выполниться ДО любого кода WatermelonDB / expo-crypto.
+// 2. @/theme — configure Unistyles ДО того как expo-router/entry начнёт
+//    через require.context() грузить роуты с top-level StyleSheet.create.
+// 3. expo-router/entry — собственно роутинг.
+import 'react-native-get-random-values';
 import '@/theme';
 import 'expo-router/entry';

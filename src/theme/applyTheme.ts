@@ -60,3 +60,33 @@ export function applyTheme(id: ThemeId, auto: boolean): void {
   // только компоненты с inline useUnistyles().theme обновлялись на iOS.
   requestAnimationFrame(() => UnistylesRuntime.setTheme(id));
 }
+
+/**
+ * Синхронный вариант applyTheme БЕЗ requestAnimationFrame. Используется
+ * ТОЛЬКО в onRehydrateStorage cold-start callback (см. §6.3 спеки): на этой
+ * стадии React tree ещё не отрисован, ShadowTreeManager race из issue #1179
+ * не возникает, а rAF мог бы отстрелить ПОСЛЕ splash.hideAsync() и дать
+ * flash светлой темы.
+ */
+export function applyThemeImmediate(id: ThemeId, auto: boolean): void {
+  if (auto && id === 'sepia') {
+    if (lastAuto) {
+      UnistylesRuntime.setAdaptiveThemes(false);
+      lastAuto = false;
+    }
+    UnistylesRuntime.setTheme('sepia');
+    return;
+  }
+  if (auto) {
+    if (!lastAuto) {
+      UnistylesRuntime.setAdaptiveThemes(true);
+      lastAuto = true;
+    }
+    return;
+  }
+  if (lastAuto) {
+    UnistylesRuntime.setAdaptiveThemes(false);
+    lastAuto = false;
+  }
+  UnistylesRuntime.setTheme(id);
+}
