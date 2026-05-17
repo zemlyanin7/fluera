@@ -221,6 +221,13 @@ gamification, TTS, etc deferred к v2.
   `BookFootnotes` в `src/types/content.ts` (определены в Foundation).
 - Подсветка слов и обработка тапов — общий слой над ContentItem-деревом.
 - Попап перевода — общий компонент.
+- **Попап перевода — ВСЕГДА bottom sheet** (Foundation `Sheet` через
+  `@gorhom/bottom-sheet`). Решение принято после первого юзер-теста на
+  iPhone (2026-05-17): top/bottom anchored Popover оказался неудобным —
+  попап оказывается над словом, thumb не достаёт. Sheet снизу = natural
+  thumb reach, всегда в одном месте, не зависит от позиции тапа.
+  `choosePopupPlacement` всегда возвращает `mode: 'modalSheet'`.
+  **НЕ возвращать к anchored Popover без явного юзер-фидбека о смене.**
 
 ### База данных (WatermelonDB)
 - Изменения схемы требуют миграций в `src/db/migrations/`.
