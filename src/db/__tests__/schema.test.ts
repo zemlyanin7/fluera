@@ -204,7 +204,7 @@ describe('schema v3 (#4.5.1 polish)', () => {
   it('word_status имеет saved_to_deck + saved_at', () => {
     const t = schema.tables.word_statuses;
     expect(t).toBeDefined();
-    const names = t.columnArray.map((c) => c.name);
+    const names = (t as unknown as { columnArray: Array<{ name: string }> }).columnArray.map((c) => c.name);
     expect(names).toContain('saved_to_deck');
     expect(names).toContain('saved_at');
   });

@@ -39,7 +39,7 @@ export class WordStatusRepository {
         Q.where('book_language', bookLanguage),
       )
       .fetch();
-    if (rows.length === 0) return null;
+    if (rows.length === 0 || rows[0] === undefined) return null;
     return toRecord(rows[0]);
   }
 
