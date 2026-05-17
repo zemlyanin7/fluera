@@ -39,12 +39,12 @@ describe('settingsStore persist', () => {
     expect(useSettingsStore.persist.hasHydrated()).toBe(true);
   });
 
-  test('persist пишет 18 полей allowlist (не больше)', async () => {
+  test('persist пишет 24 поля allowlist (не больше) — 18 baseline + 6 для #4.5 (sentence translation gesture, MWE/FF/register, popupHintsSeen, readingMode)', async () => {
     const { useSettingsStore } = require('@/stores/settingsStore');
     useSettingsStore.getState().setFontSize(20);
     await new Promise((r) => setTimeout(r, 50));
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     const parsed = JSON.parse(raw!);
-    expect(Object.keys(parsed.state).length).toBe(18);
+    expect(Object.keys(parsed.state).length).toBe(24);
   });
 });
