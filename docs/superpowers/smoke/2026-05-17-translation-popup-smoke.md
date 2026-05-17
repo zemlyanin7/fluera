@@ -1,59 +1,59 @@
-# #4.5 Translation Popup — Manual Smoke Matrix
+# #4.5 Попап перевода — ручная проверка на устройствах
 
-**Version:** v2.2  
-**Date:** 2026-05-17  
-**Devices:** iPhone SE 2 (iOS 17, small screen) · iPhone 13 (iOS 18, standard) · Pixel 7 (Android 14)
+**Версия:** v2.2
+**Дата:** 2026-05-17
+**Устройства:** iPhone SE 2 (iOS 17, маленький экран) · iPhone 13 (iOS 18, стандартный) · Pixel 7 (Android 14)
 
-## Instructions
+## Инструкции
 
-For each scenario:
-- Mark PASS / FAIL / SKIP per device column
-- Record device OS version and build hash in the header row
-- Run in a book with EN→RU language pair minimum; re-run AR→EN for RTL scenario
-
----
-
-## Smoke Matrix
-
-| # | Scenario | Test Steps | Expected | iPhone SE 2 | iPhone 13 | Pixel 7 |
-|---|----------|-----------|----------|-------------|-----------|---------|
-| 1 | **Word tap — bottom placement** | Open a book. Tap a word in the middle of the page. | Popup appears below the tapped word. Arrow points up toward word. Word highlighted. | | | |
-| 2 | **Word tap — top placement** | Tap a word in the bottom 30% of the screen. | Popup appears above the tapped word. Arrow points down. No overlap with tab bar. | | | |
-| 3 | **Word tap — modal sheet placement** | Tap a word when screen height is too small for either top/bottom (e.g. keyboard open, or force narrow viewport). | Bottom sheet slides up with translation content at ≥50% snap point. | | | |
-| 4 | **Long-press → sentence translation** | Long-press any word for ~600ms. | Full-sentence translation popup appears. Mode chip shows "sentence". ExperimentalBadge visible at top. | | | |
-| 5 | **ExperimentalBadge visibility** | Open sentence translation popup (long-press). | ⚠️ badge rendered. `accessibilityRole=alert`. VoiceOver announces badge text. | | | |
-| 6 | **Dislike button — tap + toast** | Open any translation popup. Tap 👎 Dislike button. | Button enters selected state. Toast / Alert: "Thanks, we'll note that". Feedback recorded locally. | | | |
-| 7 | **Dislike button — Settings entry** | After logging a dislike, navigate to Settings → Translation → Feedback. | Feedback entry appears with source sentence, translated text, timestamp, and model version. | | | |
-| 8 | **Drag multi-word selection** | Long-press a word, then drag to adjacent words without lifting. | Selection extends to dragged words. Popup title shows selected phrase (2–3 words). | | | |
-| 9 | **MWE auto-expand** | Open a book with an English idiom (e.g. "kick the bucket"). Tap first word of idiom. | MWE chip appears ("idiom"). Chip tap expands to show idiom translation. Phrase highlighted. | | | |
-| 10 | **False-friend chip** | Open a book with a word that is a false friend (e.g. "actual" in EN→RU). Tap the word. | False-friend chip appears below translation. Chip is collapsed by default. Tap → expands to show warning. | | | |
-| 11 | **RTL Arabic book** | Change book language to Arabic. Open a chapter. Tap a word. | Popup layout is RTL. Arrow direction is reversed. Text is right-aligned. No layout overflow. | | | |
-| 12 | **CJK per-character tap** | Change book language to Japanese. Open a chapter. Tap a single kanji character. | Single character is translated. Popup shows kanji + reading + meaning. No crash. | | | |
-| 13 | **VoiceOver (iOS) / TalkBack (Android)** | Enable VoiceOver/TalkBack. Navigate to a word. Double-tap to activate translation. | Translation result announced by screen reader. "Loading translation" interim announcement. ExperimentalBadge announced as alert. | | | |
-| 14 | **Dynamic Type AX5** | In iOS Accessibility settings set text size to AX5 (largest). Open reader, tap word. | Popup layout adapts. No text truncation or overlap. Buttons remain tappable (≥44pt). | | | |
-| 15 | **Reduce Motion** | Enable Reduce Motion in Accessibility settings. Open reader, tap word. | Popup appears without fade/slide animation. Translation loads without animated shimmer. | | | |
-| 16 | **Reduce Transparency** | Enable Reduce Transparency in Accessibility settings. Open reader, tap word. | Popup background is fully opaque (no blur/frosted glass). Text legibility maintained. | | | |
-| 17 | **Coach mark first-run** | Clear app data (or fresh install). Open a book. Tap first word. | Coach mark overlay appears explaining long-press for sentence translation. "Got it" and "Skip" buttons present. Dismisses on either tap. Does not reappear on second launch. | | | |
-| 18 | **Performance: cache hit <500ms** | Tap the same word twice. Second tap should be faster. | Second popup appears in under 500ms (visually instant). No loading shimmer on cache hit. | | | |
+Для каждого сценария:
+- Отметить ПРОШЛО / ПРОВАЛ / ПРОПУСК в колонке устройства
+- Записать версию ОС и хэш сборки в шапке
+- Запускать на книге с парой EN→RU минимум; для RTL-сценария повторить на AR→EN
 
 ---
 
-## Pre-conditions
+## Матрица проверок
 
-- Build: `npx expo run:ios` / `npx expo run:android` (dev-client)
-- Book: at least 1 EPUB/FB2 loaded with an EN or AR book language
-- Translation model installed (Hy-MT1.5-1.8B-1.25bit)
-- i18next locale matches device system language OR forced to EN for consistency
+| # | Сценарий | Шаги | Ожидаемое поведение | iPhone SE 2 | iPhone 13 | Pixel 7 |
+|---|----------|------|---------------------|-------------|-----------|---------|
+| 1 | **Тап на слово — попап снизу** | Открыть книгу. Тап на слово в середине страницы. | Попап появляется ПОД словом. Стрелка вверх указывает на слово. Слово подсвечено. | | | |
+| 2 | **Тап на слово — попап сверху** | Тап на слово в нижних 30% экрана. | Попап появляется НАД словом. Стрелка вниз. Не перекрывает таб-бар. | | | |
+| 3 | **Тап на слово — режим листа снизу** | Тап на слово, когда экран слишком маленький для top/bottom (например, открыта клавиатура). | Лист выезжает снизу, перевод занимает ≥50% высоты. | | | |
+| 4 | **Удержание → перевод предложения** | Удерживать палец на слове ~600 мс. | Попап показывает перевод всего предложения. Жёлтая плашка "⚠️ Экспериментальный перевод" вверху. | | | |
+| 5 | **Видимость "Экспериментальный перевод"** | Открыть попап перевода предложения (удержание). | ⚠️ плашка отрисована. Роль "alert" для скрин-ридера. VoiceOver зачитывает текст плашки. | | | |
+| 6 | **Кнопка "Плохой перевод" + тост** | Открыть любой попап перевода. Тапнуть кнопку 👎. | Кнопка переходит в активное состояние. Появляется тост / Alert "Спасибо, учтём". Запись жалобы сохранена локально. | | | |
+| 7 | **Кнопка "Плохой перевод" — запись в Настройках** | После нажатия 👎 перейти в Настройки → Перевод → Просмотр жалоб. | В списке появилась запись с исходным предложением, переводом, датой и версией модели. | | | |
+| 8 | **Выбор нескольких слов перетаскиванием** | Удерживать слово, не отпуская палец, потянуть на соседние слова. | Выделение расширяется. В заголовке попапа — выбранная фраза (2-3 слова). | | | |
+| 9 | **Идиома раскрывается автоматически** | Открыть книгу с английской идиомой (например, "kick the bucket"). Тап на первое слово идиомы. | Появляется значок "идиома". Tap на значок разворачивает перевод идиомы. Вся фраза подсвечена. | | | |
+| 10 | **Ложный друг переводчика** | Открыть книгу со словом-ложным другом (например, "actual" в EN→RU). Тап на слово. | Под переводом — значок 🚩. Свёрнут по умолчанию. Tap разворачивает предупреждение о настоящем значении. | | | |
+| 11 | **Книга на арабском (RTL)** | Сменить язык книги на арабский. Открыть главу. Тап на слово. | Попап раскладывается справа налево. Стрелка зеркальна. Текст выровнен по правому краю. Без переполнения. | | | |
+| 12 | **CJK — тап на иероглиф** | Сменить язык книги на японский. Открыть главу. Тап на один кандзи. | Один иероглиф переводится. Попап показывает кандзи + чтение + значение. Без падений. | | | |
+| 13 | **VoiceOver (iOS) / TalkBack (Android)** | Включить скрин-ридер. Перейти на слово. Двойной тап для активации перевода. | Результат перевода зачитан вслух. Промежуточный анонс "Идёт перевод". Плашка "Экспериментальный" зачитана как alert. | | | |
+| 14 | **Динамический размер шрифта (AX5)** | В Настройках iOS Accessibility выставить размер текста AX5 (самый большой). Открыть читалку, тап на слово. | Раскладка попапа адаптируется. Текст не обрезается, не перекрывается. Кнопки остаются нажимаемыми (≥44pt). | | | |
+| 15 | **Уменьшить анимацию** | Включить "Уменьшить движение" в Accessibility. Открыть читалку, тап на слово. | Попап появляется без затухания/скольжения. Перевод грузится без shimmer-анимации. | | | |
+| 16 | **Уменьшить прозрачность** | Включить "Уменьшить прозрачность" в Accessibility. Открыть читалку, тап на слово. | Фон попапа полностью непрозрачный (без блюра/матового стекла). Текст хорошо читается. | | | |
+| 17 | **Подсказка при первом запуске** | Очистить данные приложения (или поставить заново). Открыть книгу. Тап на первое слово. | Появляется подсказка "Удержите палец чтобы перевести предложение". Кнопки "Понятно" и "Пропустить". Скрывается при любом тапе. Не появляется во второй раз. | | | |
+| 18 | **Производительность: повторный тап <500мс** | Тапнуть одно слово дважды. Второй тап должен быть быстрее. | Второй попап появляется быстрее 500мс (визуально мгновенно). Без shimmer-анимации (кеш-хит). | | | |
 
-## Out of Scope
+---
 
-- Automated regression: covered by Jest unit tests (`npx jest`)
-- chrF/FLORES translation quality eval — deferred to v2
-- Whole-book translation — cut from v1
+## Что должно быть готово до начала
 
-## Sign-off
+- Сборка: `npx expo run:ios` или `npx expo run:android` (dev-client)
+- В библиотеке хотя бы одна книга EPUB/FB2 на EN или AR
+- Установлена модель перевода (Hy-MT1.5-1.8B-1.25bit)
+- Язык интерфейса i18next совпадает с языком устройства ИЛИ принудительно EN для единообразия
 
-| Role | Name | Date |
-|------|------|------|
-| Dev | | |
+## Вне рамок этой проверки
+
+- Автотесты регрессии — покрыты Jest (`npx jest`)
+- Замер качества перевода chrF/FLORES — перенесён в v2
+- Перевод целой книги — выкинут из v1
+
+## Подписи
+
+| Роль | Имя | Дата |
+|------|-----|------|
+| Разработчик | | |
 | QA | | |
