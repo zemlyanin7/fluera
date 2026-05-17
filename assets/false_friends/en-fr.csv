@@ -1,0 +1,9 @@
+source_word,looks_like_native,actual_meaning,confidence,domain
+actually,actuellement,"actually (not currently — French actuellement = currently/now)",high,general
+chef,chef,chef (both same meaning),low,general
+eventually,éventuellement,"eventually (not possibly — French éventuellement = possibly)",high,general
+large,large,large (French large = broad/wide more than English usage)",medium,general
+preservatif,preservative,condom (French préservatif = condom not preservative),high,general
+sensible,sensible,sensitive (French sensible = sensitive not reasonable)",medium,general
+librarie,library,bookstore (French librairie = bookstore, bibliothèque = library),high,general
+commander,command,to order (French commander = to order/to command)",medium,general

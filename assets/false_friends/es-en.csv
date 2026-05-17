@@ -1,0 +1,9 @@
+source_word,looks_like_native,actual_meaning,confidence,domain
+embarazada,embarrassed,pregnant (not embarrassed — English embarrassed),high,general
+librería,library,bookstore (not library — English library = biblioteca),high,general
+éxito,exit,success (not exit — English exit),high,general
+constipado,constipated,cold/flu (not constipated — English constipated),high,medical
+sensible,sensible,sensitive (not reasonable — English sensible),medium,general
+ropa,rope,clothes (not rope — English rope),high,general
+suceso,success,incident/event (not success — English success),medium,general
+la computadora,computer,the computer (both same but gender differs),low,general

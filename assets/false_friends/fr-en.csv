@@ -1,0 +1,9 @@
+source_word,looks_like_native,actual_meaning,confidence,domain
+actuellement,actually,currently/now (not actually — English actually),high,general
+éventuellement,eventually,possibly (not eventually — English eventually),high,general
+large,large,broad/wide (French large broader meaning than English),medium,general
+préservatif,preservative,condom (not preservative — French préservatif = condom),high,general
+sensible,sensible,sensitive (not reasonable — French sensible = sensitive),medium,general
+librairie,library,bookstore (not library — French bibliothèque = library),high,general
+commander,command,to order (French meaning includes ordering at restaurant),medium,general
+chef,chef,chef/boss/leader (French chef can mean boss not just chef),low,general

@@ -1,0 +1,11 @@
+source_word,looks_like_native,actual_meaning,confidence,domain
+магазин,magazine,"shop (not magazine — that's журнал)",high,general
+симпатичный,sympathetic,good-looking (not sympathetic),high,general
+интеллигентный,intelligent,"cultured/well-educated (not intelligent — that's умный)",high,general
+актуальный,actual,relevant/current (not actual),high,general
+аккуратный,accurate,"neat/tidy (not accurate — that's точный)",high,general
+характер,character,personality (not character),high,general
+конкретный,concrete,specific (not concrete material),high,general
+фабрика,fabric,"factory (not fabric — that's ткань)",high,general
+персона,person,celebrity/important person (formal only),medium,general
+ангина,angina,strep throat (not heart angina),high,medical
