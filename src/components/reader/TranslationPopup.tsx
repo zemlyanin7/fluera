@@ -276,19 +276,41 @@ function PopupContents({
 
       {/* Sentence mode — ready */}
       {state.status === 'ready' && isSentence && sentenceResult?.translatedSentence != null && (
-        <SentenceTranslationView
-          sourceInlines={
-            state.sourceInlines ?? [
-              { type: 'text', text: sentenceResult.sourceSentence ?? state.sourceSentence },
-            ]
-          }
-          sourcePlainText={state.sourcePlainText ?? sentenceResult.sourceSentence ?? state.sourceSentence}
-          translatedSentence={sentenceResult.translatedSentence}
-          sourceWordOffset={state.wordOffsetInPlain ?? state.wordOffsetInSentence}
-          sourceWordLength={state.wordLength ?? state.word.length}
-          translatedWordOffset={sentenceResult.translatedWordOffset}
-          wasCapped={state.wasCapped}
-        />
+        <View style={{ gap: 14 }}>
+          {/* Primary: contextual word translation. Источник из onWordTap
+              (translate(word, sentence) в параллель с translateSentence). */}
+          {(sentenceResult as any).translation && (
+            <View
+              style={{
+                backgroundColor: theme.accentSoft,
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderRadius: 12,
+              }}
+            >
+              <Text style={{ color: theme.ink3, fontSize: 11, marginBottom: 4, letterSpacing: 0.5 }}>
+                {t('translation.contextualLabel', { defaultValue: 'В ЭТОМ КОНТЕКСТЕ' })}
+              </Text>
+              <Text style={{ color: theme.accent, fontSize: 20, fontWeight: '700' }}>
+                {state.word} → {(sentenceResult as any).translation}
+              </Text>
+            </View>
+          )}
+
+          <SentenceTranslationView
+            sourceInlines={
+              state.sourceInlines ?? [
+                { type: 'text', text: sentenceResult.sourceSentence ?? state.sourceSentence },
+              ]
+            }
+            sourcePlainText={state.sourcePlainText ?? sentenceResult.sourceSentence ?? state.sourceSentence}
+            translatedSentence={sentenceResult.translatedSentence}
+            sourceWordOffset={state.wordOffsetInPlain ?? state.wordOffsetInSentence}
+            sourceWordLength={state.wordLength ?? state.word.length}
+            translatedWordOffset={sentenceResult.translatedWordOffset}
+            wasCapped={state.wasCapped}
+          />
+        </View>
       )}
 
       {/* Error */}

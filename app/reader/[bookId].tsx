@@ -143,15 +143,26 @@ export default function ReaderScreen() {
       };
       setPopup(base);
 
-      const res = await translation.translateSentence({
-        sentence: ctx.plainText,
-        sourceInlines: ctx.inlines,
-        bookLanguage: bookLang,
-        nativeLanguage: nativeLanguage as NativeLanguage,
-        wordOffset: expressionStart,
-        sourceWord: expressionText,
-        generation: gen,
-      });
+      // Параллельно: word translation в контексте + sentence translation.
+      // Word result даёт contextual translation ("spring" в контексте → "источник",
+      // не "весна"). Используем для alignment в sentence (highlight в переводе).
+      const [wordRes, sentRes] = await Promise.all([
+        translation.translate({
+          word: expressionText,
+          contextWindow: ctx.plainText,
+          bookLanguage: bookLang,
+          nativeLanguage: nativeLanguage as NativeLanguage,
+        }),
+        translation.translateSentence({
+          sentence: ctx.plainText,
+          sourceInlines: ctx.inlines,
+          bookLanguage: bookLang,
+          nativeLanguage: nativeLanguage as NativeLanguage,
+          wordOffset: expressionStart,
+          sourceWord: expressionText,
+          generation: gen,
+        }),
+      ]);
 
       // Stale check: другой тап пришёл пока ждали результат
       if (gen !== generationRef.current) {
@@ -161,24 +172,34 @@ export default function ReaderScreen() {
 
       if (__DEV__) {
         console.log(
-          `[onWordTap] gen=${gen} result: status=${res.status} translatedSentence=${res.translatedSentence?.slice(0, 30)} errorCode=${res.errorCode}`,
+          `[onWordTap] gen=${gen} word="${wordRes.translation}" sent="${sentRes.translatedSentence?.slice(0, 30)}" errors=word:${wordRes.errorCode}/sent:${sentRes.errorCode}`,
         );
       }
 
-      if (res.status === 'ok' && res.translatedSentence) {
+      // Recompute word offset в sentence translation используя contextual word translation.
+      let alignedOffset = sentRes.translatedWordOffset;
+      if (sentRes.translatedSentence && wordRes.translation) {
+        const idx = sentRes.translatedSentence.toLowerCase().indexOf(wordRes.translation.toLowerCase());
+        if (idx >= 0) alignedOffset = idx;
+      }
+
+      if (sentRes.status === 'ok' && sentRes.translatedSentence) {
         setPopup({
           ...base,
           status: 'ready',
           result: {
             status: 'ok',
-            sourceSentence: res.sourceSentence ?? ctx.plainText,
-            translatedSentence: res.translatedSentence,
-            translatedWordOffset: res.translatedWordOffset,
+            sourceSentence: sentRes.sourceSentence ?? ctx.plainText,
+            translatedSentence: sentRes.translatedSentence,
+            translatedWordOffset: alignedOffset,
+            // Contextual word translation для primary line. Если word translate упал
+            // (error), используем undefined — в UI primary line будет скрыта.
+            translation: wordRes.status === 'ok' ? wordRes.translation : undefined,
             experimental: true,
-            source: res.source,
+            source: sentRes.source,
           } as any,
         });
-      } else if (res.errorCode === 'MODEL_LOADING') {
+      } else if (sentRes.errorCode === 'MODEL_LOADING') {
         setPopup({ ...base, status: 'loading' });
       } else {
         setPopup({ ...base, status: 'error' });
