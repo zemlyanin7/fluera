@@ -110,7 +110,7 @@ export function splitSentencesSmartly(text: string): SentenceSpan[] {
   let i = 0;
 
   while (i < normalized.length) {
-    const c = normalized[i];
+    const c = normalized[i]!;
     if (PERIOD_CHARS_RE.test(c)) {
       if (
         !isDecimalContext(normalized, i) &&
@@ -119,12 +119,12 @@ export function splitSentencesSmartly(text: string): SentenceSpan[] {
       ) {
         // Поглощаем следующие знаки конца предложения (множественный пунктуатор)
         let endIdx = i + 1;
-        while (endIdx < normalized.length && PERIOD_CHARS_RE.test(normalized[endIdx])) {
+        while (endIdx < normalized.length && PERIOD_CHARS_RE.test(normalized[endIdx]!)) {
           endIdx++;
         }
         // Пропускаем whitespace после пунктуатора
         let afterWs = endIdx;
-        while (afterWs < normalized.length && /\s/.test(normalized[afterWs])) {
+        while (afterWs < normalized.length && /\s/.test(normalized[afterWs]!)) {
           afterWs++;
         }
         const sentText = normalized.slice(currentStart, endIdx).trim();
