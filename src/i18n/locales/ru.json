@@ -1,80 +1,15 @@
 {
-  "tabs": {
-    "library": "Библиотека",
-    "dictionary": "Словарь",
-    "stats": "Статистика",
-    "settings": "Настройки"
-  },
-  "library": {
-    "title": "Библиотека",
-    "empty": "Ваши книги появятся здесь",
-    "myBooks": "Мои книги",
-    "catalogs": "Каталоги",
-    "upload": "Загрузить",
-    "addBook": "Добавить книгу",
-    "emptyState": {
-      "title": "Библиотека пуста",
-      "subtitle": "Добавьте первую книгу, чтобы начать чтение"
-    },
-    "import": {
-      "errorTitle": "Ошибка импорта",
-      "unsupportedFormat": "Формат файла не поддерживается. Выберите файл EPUB или FB2.",
-      "failed": "Не удалось импортировать книгу. Файл может быть повреждён."
-    }
-  },
-  "dictionary": {
-    "title": "Словарь",
-    "empty": "Ваши слова появятся здесь",
-    "review": "Повторить",
-    "exportAnki": "Экспорт в Anki"
-  },
-  "reader": {
-    "translation": {
-      "loading": "Перевожу...",
-      "error": "Не удалось перевести. Проверьте соединение и попробуйте снова.",
-      "rateLimited": "Слишком много запросов. Подождите немного.",
-      "addToDict": "В словарь",
-      "grammar": "Грамматика",
-      "tts": "Слушать"
-    },
-    "wordStatus": {
-      "new": "Новое",
-      "recognized": "Узнаю",
-      "familiar": "Знакомое",
-      "learned": "Выучено",
-      "known": "Знаю"
-    },
-    "error": {
-      "bookNotFound": "Книга не найдена",
-      "fileMissing": "Файл книги отсутствует на устройстве",
-      "backToLibrary": "Назад в библиотеку"
-    },
-    "settings": {
-      "fontSize": "Размер шрифта",
-      "theme": "Тема",
-      "theme_light": "Светлая",
-      "theme_dark": "Тёмная",
-      "theme_sepia": "Сепия",
-      "lineHeight": "Межстрочный интервал",
-      "fontFamily": "Шрифт"
-    }
+  "common": { "continue": "Продолжить", "skip": "Пропустить", "next": "Далее", "back": "Назад", "close": "Закрыть" },
+  "tabs": { "read": "ЧТЕНИЕ", "deck": "КАРТЫ", "stats": "СТАТ.", "you": "ВЫ" },
+  "onboarding": {
+    "step1": { "title": "Добро пожаловать в Fluera" },
+    "step2": { "title": "Я читаю на..." },
+    "step3": { "title": "Переводить на..." }
   },
   "settings": {
-    "title": "Настройки",
-    "language": "Язык интерфейса",
-    "bookLanguage": "Язык книг",
-    "nativeLanguage": "Язык перевода",
-    "theme": "Тема",
-    "themes": {
-      "light": "Светлая",
-      "dark": "Тёмная",
-      "sepia": "Сепия"
-    }
+    "theme": { "title": "Бумага", "day": "День", "sepia": "Сепия", "night": "Ночь", "auto": "Авто День/Ночь" },
+    "font":  { "title": "Чтение", "size": "Размер", "typeface": "Шрифт", "serif": "Source Serif", "sans": "Geist" }
   },
-  "common": {
-    "cancel": "Отмена",
-    "save": "Сохранить",
-    "delete": "Удалить",
-    "retry": "Повторить"
-  }
+  "library": { "empty": "Книг пока нет" },
+  "notFound": { "title": "Страница не найдена", "back": "Вернуться" }
 }

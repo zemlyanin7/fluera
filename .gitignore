@@ -41,3 +41,16 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+ios/Pods/
+ios/build/
+android/build/
+android/.gradle/
+android/app/build/
+
+# misc
+*.tgz
+*.log
+.vscode/
+.idea/
+coverage/
+.superpowers/

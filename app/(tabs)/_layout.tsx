@@ -1,40 +1,23 @@
-import { Tabs } from 'expo-router'
-import { useTheme } from '@tamagui/core'
+// 4-табовый Tabs layout, использует кастомный TabBar (blur, floating).
+// Гард (C4): если онбординг ещё НЕ пройден, отправляем декларативным
+// <Redirect/> на (onboarding) ДО рендера Tabs.
+import React from 'react';
+import { Redirect, Tabs } from 'expo-router';
+import { TabBar } from '@/components/ui/TabBar';
+import { useSettingsStore } from '@/stores/settingsStore';
 
-export default function TabLayout() {
-  const theme = useTheme()
-
+export default function TabsLayout() {
+  const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);
+  if (!onboardingCompleted) return <Redirect href="/(onboarding)" />;
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: theme.primary.val,
-        tabBarInactiveTintColor: theme.textMuted.val,
-        tabBarStyle: {
-          backgroundColor: theme.background.val,
-          borderTopColor: theme.borderColor.val,
-        },
-        headerStyle: {
-          backgroundColor: theme.background.val,
-        },
-        headerTintColor: theme.color.val,
-      }}
+      screenOptions={{ headerShown: false }}
+      tabBar={(p) => <TabBar {...p} />}
     >
-      <Tabs.Screen
-        name="index"
-        options={{ title: 'Library', tabBarLabel: 'Library' }}
-      />
-      <Tabs.Screen
-        name="dictionary"
-        options={{ title: 'Dictionary', tabBarLabel: 'Dictionary' }}
-      />
-      <Tabs.Screen
-        name="stats"
-        options={{ title: 'Stats', tabBarLabel: 'Stats' }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{ title: 'Settings', tabBarLabel: 'Settings' }}
-      />
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="deck" />
+      <Tabs.Screen name="stats" />
+      <Tabs.Screen name="settings" />
     </Tabs>
-  )
+  );
 }

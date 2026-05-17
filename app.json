@@ -4,21 +4,85 @@
     "slug": "fluera",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "fluera",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5EFE4"
+    },
+    "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.fluera.app"
     },
     "android": {
-      "package": "com.fluera.app",
       "adaptiveIcon": {
-        "backgroundColor": "#6c63ff"
-      }
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F5EFE4"
+      },
+      "package": "com.fluera.app",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
     "plugins": [
-      "expo-router"
-    ]
+      "expo-router",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Geist-Regular.ttf",
+            "./assets/fonts/Geist-Medium.ttf",
+            "./assets/fonts/Geist-SemiBold.ttf",
+            "./assets/fonts/Geist-Bold.ttf",
+            "./assets/fonts/GeistMono-Regular.ttf",
+            "./assets/fonts/GeistMono-Medium.ttf",
+            "./assets/fonts/SourceSerif4-Regular.ttf",
+            "./assets/fonts/SourceSerif4-Medium.ttf",
+            "./assets/fonts/SourceSerif4-SemiBold.ttf",
+            "./assets/fonts/SourceSerif4-Italic.ttf",
+            "./assets/fonts/SourceSerif4-MediumItalic.ttf",
+            "./assets/fonts/Inter-Regular.ttf",
+            "./assets/fonts/Inter-Medium.ttf",
+            "./assets/fonts/Inter-SemiBold.ttf",
+            "./assets/fonts/Inter-Bold.ttf",
+            "./assets/fonts/Lora-Regular.ttf",
+            "./assets/fonts/Lora-Medium.ttf",
+            "./assets/fonts/Lora-SemiBold.ttf",
+            "./assets/fonts/Lora-Italic.ttf",
+            "./assets/fonts/Lora-MediumItalic.ttf",
+            "./assets/fonts/ShipporiMinchoB1-Regular.ttf",
+            "./assets/fonts/ShipporiMinchoB1-Medium.ttf",
+            "./assets/fonts/NotoSansJP-Regular.ttf",
+            "./assets/fonts/NotoSansJP-Medium.ttf",
+            "./assets/fonts/NotoSansJP-Bold.ttf",
+            "./assets/fonts/NotoSerifKR-Regular.ttf",
+            "./assets/fonts/NotoSerifKR-Medium.ttf",
+            "./assets/fonts/NotoSansKR-Regular.ttf",
+            "./assets/fonts/NotoSansKR-Medium.ttf",
+            "./assets/fonts/NotoSansKR-Bold.ttf",
+            "./assets/fonts/Amiri-Regular.ttf",
+            "./assets/fonts/Amiri-Italic.ttf",
+            "./assets/fonts/Amiri-Bold.ttf",
+            "./assets/fonts/NotoSansArabic-Regular.ttf",
+            "./assets/fonts/NotoSansArabic-Medium.ttf",
+            "./assets/fonts/TiroDevanagariHindi-Regular.ttf",
+            "./assets/fonts/TiroDevanagariHindi-Italic.ttf",
+            "./assets/fonts/NotoSansDevanagari-Regular.ttf",
+            "./assets/fonts/NotoSansDevanagari-Medium.ttf"
+          ]
+        }
+      ],
+      "expo-localization"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

@@ -1,80 +1,15 @@
 {
-  "tabs": {
-    "library": "Biblioteka",
-    "dictionary": "Słownik",
-    "stats": "Statystyki",
-    "settings": "Ustawienia"
-  },
-  "library": {
-    "title": "Biblioteka",
-    "empty": "Twoje książki pojawią się tutaj",
-    "myBooks": "Moje książki",
-    "catalogs": "Katalogi",
-    "upload": "Wgraj",
-    "addBook": "Dodaj książkę",
-    "emptyState": {
-      "title": "Biblioteka jest pusta",
-      "subtitle": "Dodaj pierwszą książkę, aby rozpocząć czytanie"
-    },
-    "import": {
-      "errorTitle": "Błąd importu",
-      "unsupportedFormat": "Ten format pliku nie jest obsługiwany. Wybierz plik EPUB lub FB2.",
-      "failed": "Nie udało się zaimportować książki. Plik może być uszkodzony."
-    }
-  },
-  "dictionary": {
-    "title": "Słownik",
-    "empty": "Twoje słowa pojawią się tutaj",
-    "review": "Powtórz",
-    "exportAnki": "Eksport do Anki"
-  },
-  "reader": {
-    "translation": {
-      "loading": "Tłumaczę...",
-      "error": "Nie udało się przetłumaczyć. Sprawdź połączenie i spróbuj ponownie.",
-      "rateLimited": "Zbyt wiele zapytań. Poczekaj chwilę.",
-      "addToDict": "Do słownika",
-      "grammar": "Gramatyka",
-      "tts": "Posłuchaj"
-    },
-    "wordStatus": {
-      "new": "Nowe",
-      "recognized": "Rozpoznane",
-      "familiar": "Znajome",
-      "learned": "Wyuczone",
-      "known": "Znane"
-    },
-    "error": {
-      "bookNotFound": "Nie znaleziono książki",
-      "fileMissing": "Brak pliku książki na urządzeniu",
-      "backToLibrary": "Powrót do biblioteki"
-    },
-    "settings": {
-      "fontSize": "Rozmiar czcionki",
-      "theme": "Motyw",
-      "theme_light": "Jasny",
-      "theme_dark": "Ciemny",
-      "theme_sepia": "Sepia",
-      "lineHeight": "Interlinia",
-      "fontFamily": "Czcionka"
-    }
+  "common": { "continue": "Kontynuuj", "skip": "Pomiń", "next": "Dalej", "back": "Wstecz", "close": "Zamknij" },
+  "tabs": { "read": "CZYTAJ", "deck": "TALIA", "stats": "STAT.", "you": "TY" },
+  "onboarding": {
+    "step1": { "title": "Witaj w Fluera" },
+    "step2": { "title": "Czytam w..." },
+    "step3": { "title": "Tłumacz na..." }
   },
   "settings": {
-    "title": "Ustawienia",
-    "language": "Język interfejsu",
-    "bookLanguage": "Język książek",
-    "nativeLanguage": "Język tłumaczenia",
-    "theme": "Motyw",
-    "themes": {
-      "light": "Jasny",
-      "dark": "Ciemny",
-      "sepia": "Sepia"
-    }
+    "theme": { "title": "Papier", "day": "Dzień", "sepia": "Sepia", "night": "Noc", "auto": "Auto Dzień/Noc" },
+    "font":  { "title": "Czytanie", "size": "Rozmiar", "typeface": "Krój pisma", "serif": "Source Serif", "sans": "Geist" }
   },
-  "common": {
-    "cancel": "Anuluj",
-    "save": "Zapisz",
-    "delete": "Usuń",
-    "retry": "Ponów"
-  }
+  "library": { "empty": "Brak książek" },
+  "notFound": { "title": "Strona nie znaleziona", "back": "Wróć" }
 }

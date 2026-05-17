@@ -1,22 +1,9 @@
-const config = {
-  displayName: 'Fluera',
+module.exports = {
   preset: 'jest-expo',
-  testEnvironment: 'node',
-  roots: ['<rootDir>'],
-  testMatch: ['**/__tests__/**/*.test.ts?(x)'],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-  },
   transformIgnorePatterns: [
-    'node_modules/(?!(expo|expo-router|expo-dev-menu|expo-modules-core|@tamagui|@react-native|react-native|@react-native-async-storage|@epubjs-react-native|@nozbe|@shopify|@tanstack|i18next|fast-xml-parser)/)',
+    'node_modules/(?!(jest-)?@?react-native|@react-native-community|@react-navigation|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-native-svg|react-native-unistyles|@gorhom/.*|react-native-reanimated)',
   ],
-  collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/index.ts',
-  ],
+  moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1' },
+  testPathIgnorePatterns: ['/node_modules/', '/ios/', '/android/'],
 };
-
-module.exports = config;

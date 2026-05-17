@@ -1,56 +1,82 @@
-import React, { useState } from 'react'
-import { FlatList } from 'react-native'
-import { YStack, Text } from 'tamagui'
-import { Q } from '@nozbe/watermelondb'
-import { useTranslation } from 'react-i18next'
-import { database } from '../../src/db'
-import { Book } from '../../src/db/models/Book'
-import { BookCard } from '../../src/components/library/BookCard'
-import { AddBookButton } from '../../src/components/library/AddBookButton'
+// Library — фиксированная карточка Borges, тап → Reader.
+// theme.paper2 читается inline через useUnistyles() — иначе закэшированный
+// StyleSheet.create не подхватывает смену темы (см. PhoneShell.tsx).
+import React, { useMemo } from 'react';
+import { View, Pressable, StyleSheet as RN } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useUnistyles } from 'react-native-unistyles';
+import {
+  PhoneShell,
+  Headline,
+  SectionLabel,
+  BookCover,
+  Pill,
+  ProgressBar,
+} from '@/components/ui';
+import { useSettingsStore } from '@/stores/settingsStore';
+
+const staticStyles = RN.create({
+  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 12 },
+  cardWrap: { paddingHorizontal: 18, paddingBottom: 14 },
+  card: {
+    borderRadius: 22,
+    padding: 18,
+    flexDirection: 'row',
+    gap: 16,
+  },
+  meta: { flex: 1, justifyContent: 'space-between' },
+  pills: { flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' },
+  bottom: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
+  progressWrap: { flex: 1 },
+  spacer2: { height: 2 },
+});
 
 export default function LibraryScreen() {
-  const { t } = useTranslation()
-  const [books, setBooks] = useState<Book[]>([])
-
-  // Load books from DB — WatermelonDB's observe() is reactive,
-  // so the list updates automatically when books are added/modified/deleted
-  React.useEffect(() => {
-    const collection = database.get<Book>('books')
-    const subscription = collection
-      .query(Q.sortBy('last_read_at', Q.desc))
-      .observe()
-      .subscribe(setBooks)
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  if (books.length === 0) {
-    return (
-      <YStack flex={1} justifyContent="center" alignItems="center" padding="$6" gap="$4">
-        <Text fontSize="$7" textAlign="center">📚</Text>
-        <Text fontSize="$5" textAlign="center" color="$gray11">
-          {t('library.emptyState.title')}
-        </Text>
-        <Text fontSize="$3" textAlign="center" color="$gray10">
-          {t('library.emptyState.subtitle')}
-        </Text>
-        <AddBookButton />
-      </YStack>
-    )
-  }
-
+  const router = useRouter();
+  const uiLanguage = useSettingsStore((s) => s.uiLanguage);
+  const { theme } = useUnistyles();
+  // M3: дата в UI-локали, без хардкода. Зависимость только от смены языка/дня.
+  const todayLabel = useMemo(
+    () => new Intl.DateTimeFormat(uiLanguage, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()),
+    [uiLanguage],
+  );
   return (
-    <YStack flex={1} padding="$3">
-      <FlatList
-        data={books}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <BookCard book={item} />}
-        ListHeaderComponent={
-          <YStack marginBottom="$3">
-            <AddBookButton />
-          </YStack>
-        }
-      />
-    </YStack>
-  )
+    <PhoneShell>
+      <View style={staticStyles.header}>
+        <SectionLabel>{todayLabel}</SectionLabel>
+        <View style={staticStyles.spacer2} />
+        <Headline level={1}>Library</Headline>
+      </View>
+      <View style={staticStyles.cardWrap}>
+        <Pressable
+          onPress={() => router.push('/reader/borges')}
+          style={[staticStyles.card, { backgroundColor: theme.paper2 }]}
+        >
+          <BookCover
+            book={{
+              title: 'The Garden of Forking Paths',
+              author: 'J. L. Borges',
+              gradient: ['#C0392B', '#8B2A1F', '#5C1810'],
+            }}
+            w={92}
+            h={130}
+          />
+          <View style={staticStyles.meta}>
+            <View>
+              <Headline level={3}>The Garden of Forking Paths</Headline>
+              <View style={staticStyles.pills}>
+                <Pill>EN</Pill>
+                <Pill tone="accent">14-day streak</Pill>
+              </View>
+            </View>
+            <View style={staticStyles.bottom}>
+              <View style={staticStyles.progressWrap}>
+                <ProgressBar value={0.13} tone="accent" />
+              </View>
+            </View>
+          </View>
+        </Pressable>
+      </View>
+    </PhoneShell>
+  );
 }

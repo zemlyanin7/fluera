@@ -1,80 +1,15 @@
 {
-  "tabs": {
-    "library": "Бібліотека",
-    "dictionary": "Словник",
-    "stats": "Статистика",
-    "settings": "Налаштування"
-  },
-  "library": {
-    "title": "Бібліотека",
-    "empty": "Ваші книги з'являться тут",
-    "myBooks": "Мої книги",
-    "catalogs": "Каталоги",
-    "upload": "Завантажити",
-    "addBook": "Додати книгу",
-    "emptyState": {
-      "title": "Бібліотека порожня",
-      "subtitle": "Додайте першу книгу, щоб почати читання"
-    },
-    "import": {
-      "errorTitle": "Помилка імпорту",
-      "unsupportedFormat": "Цей формат файлу не підтримується. Виберіть файл EPUB або FB2.",
-      "failed": "Не вдалося імпортувати книгу. Файл може бути пошкодженим."
-    }
-  },
-  "dictionary": {
-    "title": "Словник",
-    "empty": "Ваші слова з'являться тут",
-    "review": "Повторити",
-    "exportAnki": "Експорт в Anki"
-  },
-  "reader": {
-    "translation": {
-      "loading": "Перекладаю...",
-      "error": "Не вдалося перекласти. Перевірте з'єднання та спробуйте знову.",
-      "rateLimited": "Забагато запитів. Зачекайте трохи.",
-      "addToDict": "До словника",
-      "grammar": "Граматика",
-      "tts": "Слухати"
-    },
-    "wordStatus": {
-      "new": "Нове",
-      "recognized": "Впізнаю",
-      "familiar": "Знайоме",
-      "learned": "Вивчено",
-      "known": "Знаю"
-    },
-    "error": {
-      "bookNotFound": "Книгу не знайдено",
-      "fileMissing": "Файл книги відсутній на пристрої",
-      "backToLibrary": "Назад до бібліотеки"
-    },
-    "settings": {
-      "fontSize": "Розмір шрифту",
-      "theme": "Тема",
-      "theme_light": "Світла",
-      "theme_dark": "Темна",
-      "theme_sepia": "Сепія",
-      "lineHeight": "Міжрядковий інтервал",
-      "fontFamily": "Шрифт"
-    }
+  "common": { "continue": "Продовжити", "skip": "Пропустити", "next": "Далі", "back": "Назад", "close": "Закрити" },
+  "tabs": { "read": "ЧИТАННЯ", "deck": "КАРТКИ", "stats": "СТАТ.", "you": "ВИ" },
+  "onboarding": {
+    "step1": { "title": "Ласкаво просимо до Fluera" },
+    "step2": { "title": "Я читаю мовою..." },
+    "step3": { "title": "Перекладати на..." }
   },
   "settings": {
-    "title": "Налаштування",
-    "language": "Мова інтерфейсу",
-    "bookLanguage": "Мова книг",
-    "nativeLanguage": "Мова перекладу",
-    "theme": "Тема",
-    "themes": {
-      "light": "Світла",
-      "dark": "Темна",
-      "sepia": "Сепія"
-    }
+    "theme": { "title": "Папір", "day": "День", "sepia": "Сепія", "night": "Ніч", "auto": "Авто День/Ніч" },
+    "font":  { "title": "Читання", "size": "Розмір", "typeface": "Шрифт", "serif": "Source Serif", "sans": "Geist" }
   },
-  "common": {
-    "cancel": "Скасувати",
-    "save": "Зберегти",
-    "delete": "Видалити",
-    "retry": "Повторити"
-  }
+  "library": { "empty": "Книг ще немає" },
+  "notFound": { "title": "Сторінку не знайдено", "back": "Повернутися" }
 }

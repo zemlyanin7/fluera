@@ -1,0 +1,15 @@
+{
+  "common": { "continue": "続ける", "skip": "スキップ", "next": "次へ", "back": "戻る", "close": "閉じる" },
+  "tabs": { "read": "読書", "deck": "デッキ", "stats": "統計", "you": "あなた" },
+  "onboarding": {
+    "step1": { "title": "Fluera へようこそ" },
+    "step2": { "title": "読んでいる言語..." },
+    "step3": { "title": "翻訳先..." }
+  },
+  "settings": {
+    "theme": { "title": "紙", "day": "昼", "sepia": "セピア", "night": "夜", "auto": "自動 昼/夜" },
+    "font":  { "title": "読書", "size": "サイズ", "typeface": "書体", "serif": "Source Serif", "sans": "Geist" }
+  },
+  "library": { "empty": "まだ本がありません" },
+  "notFound": { "title": "ページが見つかりません", "back": "戻る" }
+}
