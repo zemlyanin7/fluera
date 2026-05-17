@@ -32,6 +32,8 @@ const ALLOWLIST = [
   // Translation popup flags
   'showRegisterTags', 'sentenceTranslationGesture', 'mweAutoExpand',
   'falseFriendsEnabled', 'readingMode',
+  // Deck onboarding
+  'savedToDeckHintShown',
 ] as const satisfies readonly (keyof SettingsState)[];
 
 type PersistedKeys = (typeof ALLOWLIST)[number];
@@ -69,6 +71,7 @@ interface SettingsActions {
   setMweAutoExpand: (v: boolean) => void;
   setFalseFriendsEnabled: (v: boolean) => void;
   setReadingMode: (v: ReadingMode) => void;
+  markSavedToDeckHintShown: () => void;
   reset: () => void;
 }
 
@@ -115,6 +118,7 @@ export const useSettingsStore = create<SettingsStore>()(
       setMweAutoExpand: (v) => set({ mweAutoExpand: v }),
       setFalseFriendsEnabled: (v) => set({ falseFriendsEnabled: v }),
       setReadingMode: (v) => set({ readingMode: v }),
+      markSavedToDeckHintShown: () => set({ savedToDeckHintShown: true }),
       reset: () => set(DEFAULT_SETTINGS),
     })),
     {

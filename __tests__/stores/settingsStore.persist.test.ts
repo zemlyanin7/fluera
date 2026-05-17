@@ -19,7 +19,7 @@ describe('settingsStore persist', () => {
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw!);
     expect(parsed.state.themeId).toBe('dark');
-    expect(parsed.version).toBe(1);
+    expect(parsed.version).toBe(2);
   });
 
   test('partialize: только allowlist в storage, ни одного credential', async () => {
@@ -39,12 +39,12 @@ describe('settingsStore persist', () => {
     expect(useSettingsStore.persist.hasHydrated()).toBe(true);
   });
 
-  test('persist пишет 24 поля allowlist (не больше) — 18 baseline + 6 для #4.5 (sentence translation gesture, MWE/FF/register, popupHintsSeen, readingMode)', async () => {
+  test('persist пишет 25 поля allowlist (не больше) — 18 baseline + 6 для #4.5 (sentence translation gesture, MWE/FF/register, popupHintsSeen, readingMode) + 1 для #4.5.1 (savedToDeckHintShown)', async () => {
     const { useSettingsStore } = require('@/stores/settingsStore');
     useSettingsStore.getState().setFontSize(20);
     await new Promise((r) => setTimeout(r, 50));
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     const parsed = JSON.parse(raw!);
-    expect(Object.keys(parsed.state).length).toBe(24);
+    expect(Object.keys(parsed.state).length).toBe(25);
   });
 });

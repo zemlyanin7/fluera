@@ -7,7 +7,7 @@ import { ParagraphRender } from './ParagraphRender';
 
 interface Props {
   cells: InlineNode[][];
-  onWordTap: (word: string, sentence: string) => void;
+  onWordTap: (word: string, sentence: string, inlines: InlineNode[], charOffset: number) => void;
   fontSize: number;
   script: ScriptId;
 }

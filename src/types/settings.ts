@@ -57,6 +57,7 @@ export interface SettingsState {
   mweAutoExpand: boolean;
   falseFriendsEnabled: boolean;
   readingMode: ReadingMode;
+  savedToDeckHintShown: boolean;
 }
 
 export const DEFAULT_SETTINGS: SettingsState = {
@@ -76,4 +77,5 @@ export const DEFAULT_SETTINGS: SettingsState = {
   mweAutoExpand: true,
   falseFriendsEnabled: true,
   readingMode: 'study',
+  savedToDeckHintShown: false,
 };

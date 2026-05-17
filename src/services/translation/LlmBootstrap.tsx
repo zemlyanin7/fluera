@@ -16,6 +16,7 @@ import { LlamaTranslationService } from './LlamaTranslationService';
 import { TranslationServiceProvider, DictionaryProvider } from './TranslationServiceContext';
 import { getKernelBuildId } from './kernelBuildId';
 import { MODEL_MANIFEST } from './modelManifest';
+import { purgeStaleKernelEntries } from './purgeStaleKernelEntries';
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
 
@@ -58,11 +59,20 @@ export function LlmBootstrap({ children }: { children: React.ReactNode }) {
     return undefined;
   }, [status, load]);
 
-  // 3. Purge старого cache (90+ дней) при app start.
+  // 3. Purge старого cache (90+ дней) + stale kernel entries при app start.
   useEffect(() => {
     const cutoff = Date.now() - NINETY_DAYS_MS;
     new TranslationCacheRepository(db).purgeOlderThan(cutoff).catch((e) => {
       if (__DEV__) console.warn('[translation] purge failed', e);
+    });
+    Promise.resolve().then(() => {
+      purgeStaleKernelEntries(db, getKernelBuildId())
+        .then((n) => {
+          if (__DEV__ && n > 0) console.log(`[translation] purged ${n} stale kernel entries`);
+        })
+        .catch((e) => {
+          if (__DEV__) console.warn('[translation] purgeStaleKernelEntries failed', e);
+        });
     });
   }, [db]);
 

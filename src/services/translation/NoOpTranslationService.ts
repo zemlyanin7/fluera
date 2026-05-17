@@ -18,6 +18,10 @@ export class NoOpTranslationService implements ITranslationService {
     return { status: 'error', errorCode: 'MODEL_NOT_INSTALLED', errorMessage: 'NoOp: no LLM' };
   }
 
+  abortSentence(_generation: number): void {
+    // no-op
+  }
+
   async clearCache(): Promise<void> {
     // NoOp: нет cache.
   }

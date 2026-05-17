@@ -14,7 +14,7 @@ describe('ContentItemRenderer', () => {
     );
     expect(getByText('hello')).toBeTruthy();
     fireEvent.press(getByText('hello'));
-    expect(onTap).toHaveBeenCalledWith('hello', expect.any(String));
+    expect(onTap).toHaveBeenCalledWith('hello', expect.any(String), expect.any(Array), expect.any(Number));
   });
 
   it('routes heading type', () => {

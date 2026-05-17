@@ -35,6 +35,10 @@ export class MockTranslationService implements ITranslationService {
     };
   }
 
+  abortSentence(_generation: number): void {
+    // no-op
+  }
+
   async clearCache(): Promise<void> {
     // Mock: no-op.
   }

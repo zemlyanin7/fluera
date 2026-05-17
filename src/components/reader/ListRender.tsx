@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { useUnistyles } from 'react-native-unistyles';
-import type { ContentItem } from '@/types/content';
+import type { ContentItem, InlineNode } from '@/types/content';
 import type { ScriptId } from '@/theme/scripts';
 import { ContentItemRenderer } from './ContentItemRenderer';
 
 interface Props {
   ordered: boolean;
   items: ContentItem[][];
-  onWordTap: (word: string, sentence: string) => void;
+  onWordTap: (word: string, sentence: string, inlines: InlineNode[], charOffset: number) => void;
   fontSize: number;
   script: ScriptId;
   bookId?: string;

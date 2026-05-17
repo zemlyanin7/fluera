@@ -1,8 +1,10 @@
 // Interface для on-device LLM-перевода. NoOp stub из #2 заменён на
 // LlamaTranslationService в #4 (поверх llama.rn + Hy-MT1.5-1.8B-1.25bit-GGUF).
 // Расширен в #4.5: sentence-level перевод, MWE, false-friend, encounter tracking.
+// Расширен в #4.5.1 v3: generation token + abortSentence для race-safe rapid-tap.
 import type { BookLanguage, NativeLanguage } from '@/types/settings';
 import type { InferenceContext } from './inferenceContext';
+import type { InlineNode } from '@/types/content';
 
 export type TranslationSource = 'memory' | 'db' | 'inference';
 
@@ -86,10 +88,14 @@ export interface SentenceTranslationInput {
   wordOffset?: number;
   /** Исходное слово для tryAlignWord (опционально). */
   sourceWord?: string;
+  /** v3: generation token для race-safe handling. */
+  generation?: number;
+  /** v3: InlineNode[] для inlineHash + preserved formatting. */
+  sourceInlines?: InlineNode[];
 }
 
 export interface SentenceTranslationResult {
-  status: TranslationStatus;
+  status: 'ok' | 'error';
   /** Исходное предложение (echo). */
   sourceSentence?: string;
   /** Переведённое предложение. */
@@ -108,6 +114,12 @@ export interface SentenceTranslationResult {
   /** Машиночитаемый код ошибки. */
   errorCode?: TranslationErrorCode;
   errorMessage?: string;
+  /** v3: echo input generation для caller stale check. */
+  generation?: number;
+  /** v3: word has multiple senses. */
+  hasMultipleSenses?: boolean;
+  /** v3: false-friend info if detected. */
+  falseFriend?: { looksLike: string; actualMeaning: string };
 }
 
 export interface ITranslationService {
@@ -118,6 +130,8 @@ export interface ITranslationService {
    * Всегда возвращает experimental=true.
    */
   translateSentence(input: SentenceTranslationInput): Promise<SentenceTranslationResult>;
+  /** v3: best-effort abort pending sentence translation. */
+  abortSentence(generation: number): void;
   /**
    * Полная очистка cache: DB rows + in-memory LRU. Используется кнопкой
    * "Очистить кэш переводов" в Settings. Без LRU clear старые entries

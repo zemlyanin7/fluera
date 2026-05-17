@@ -1,4 +1,4 @@
-import { buildCacheKey } from '@/services/translation/cacheKey';
+import { buildCacheKey, buildSentenceCacheKey } from '@/services/translation/cacheKey';
 
 describe('buildCacheKey v2 (versioned)', () => {
   it('меняется при model version bump', async () => {
@@ -36,5 +36,27 @@ describe('buildCacheKey v2 (versioned)', () => {
       modelVersion: 'v1', kernelBuildId: 'kb1',
     });
     expect(k.length).toBe(64);
+  });
+});
+
+describe('buildSentenceCacheKey v3 (с inlineHash)', () => {
+  it('меняется при разном inlineHash', async () => {
+    const k1 = await buildSentenceCacheKey({
+      sentence: 'hello world',
+      bookLanguage: 'en',
+      nativeLanguage: 'ru',
+      modelVersion: 'mv1',
+      kernelBuildId: 'kb1',
+      inlineHash: 'hash1',
+    });
+    const k2 = await buildSentenceCacheKey({
+      sentence: 'hello world',
+      bookLanguage: 'en',
+      nativeLanguage: 'ru',
+      modelVersion: 'mv1',
+      kernelBuildId: 'kb1',
+      inlineHash: 'hash2',
+    });
+    expect(k1).not.toBe(k2);
   });
 });

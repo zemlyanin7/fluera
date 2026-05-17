@@ -48,16 +48,16 @@ describe('TranslationPopup', () => {
     expect(getByText('источник')).toBeTruthy();
   });
 
-  it('sentence mode shows ExperimentalBadge', () => {
+  it('sentence mode shows source + translation cards', () => {
     const s: PopupViewState = {
       ...baseState,
       mode: 'sentence',
       status: 'ready',
-      result: {
-        status: 'ok',
-        translatedSentence: 'Источник жизни.',
-        experimental: true,
-      } as any,
+      sourceInlines: [{ type: 'text', text: 'The spring of life.' }],
+      sourcePlainText: 'The spring of life.',
+      wordOffsetInPlain: 4,
+      wordLength: 6,
+      result: { status: 'ok', translatedSentence: 'Источник жизни.', experimental: true } as any,
     };
     const { getByText } = render(
       <TranslationPopup
@@ -67,7 +67,8 @@ describe('TranslationPopup', () => {
         onDislike={() => {}}
       />,
     );
-    // Jest mock returns EN strings from en.json (translation.experimentalBadge = "⚠️ Experimental translation")
-    expect(getByText(/Experimental/i)).toBeTruthy();
+    expect(getByText(/Источник жизни/)).toBeTruthy();
+    // i18n mock returns en.json key value for translation.sourceLabel = "Source:"
+    expect(getByText(/Source:/)).toBeTruthy();
   });
 });

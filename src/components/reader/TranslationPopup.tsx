@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, Pressable, AccessibilityInfo } from 'react-native';
+import { View, Text, Pressable, AccessibilityInfo } from 'react-native';
 import { useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from 'react-native-reanimated';
@@ -9,6 +9,7 @@ import type {
   TranslationResult,
   SentenceTranslationResult,
 } from '@/services/translation/ITranslationService';
+import type { InlineNode } from '@/types/content';
 import { ExperimentalBadge } from './ExperimentalBadge';
 import { DislikeButton } from './DislikeButton';
 import { MweChip } from './MweChip';
@@ -16,6 +17,9 @@ import { FalseFriendChip } from './FalseFriendChip';
 import { EncounterBadge } from './EncounterBadge';
 import { PolysemyDisclosure, type Sense } from './PolysemyDisclosure';
 import { SentenceTranslationView } from './SentenceTranslationView';
+import { HeartButton } from './HeartButton';
+import { PolysemyChip } from './PolysemyChip';
+import { TargetSkeleton } from './TargetSkeleton';
 import type { PlacementResult } from './PopupPlacement';
 import type { BookLanguage, NativeLanguage } from '@/types/settings';
 
@@ -39,6 +43,8 @@ export interface PopupViewState {
   mode: PopupMode;
   word: string;
   sourceSentence: string;
+  /** v2: InlineNode[] для SentenceTranslationView с preserved formatting. */
+  sourceInlines?: InlineNode[];
   wordOffsetInSentence: number;
   status: 'loading' | 'ready' | 'error';
   placement: PlacementResult;
@@ -49,6 +55,15 @@ export interface PopupViewState {
   isDisliked?: boolean;
   bookLanguage: BookLanguage;
   nativeLanguage: NativeLanguage;
+  /** v3 (#4.5.1) polish: */
+  sourcePlainText?: string;
+  wordOffsetInPlain?: number;
+  wordLength?: number;
+  wasCapped?: boolean;
+  savedToDeck?: boolean;
+  hasMultipleSenses?: boolean;
+  falseFriendInfo?: { looksLike: string; actualMeaning: string } | null;
+  generation?: number;
 }
 
 interface Props {
@@ -58,6 +73,7 @@ interface Props {
   onDislike: () => void;
   onFalseFriendToggle?: () => void;
   isFalseFriendExpanded?: boolean;
+  onHeartToggle?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -90,6 +106,7 @@ export function TranslationPopup({
   onDislike,
   onFalseFriendToggle = () => {},
   isFalseFriendExpanded = false,
+  onHeartToggle,
 }: Props) {
   const { theme } = useUnistyles();
   const { t } = useTranslation();
@@ -126,6 +143,7 @@ export function TranslationPopup({
             onDislike={onDislike}
             onFalseFriendToggle={onFalseFriendToggle}
             isFalseFriendExpanded={isFalseFriendExpanded}
+            onHeartToggle={onHeartToggle}
           />
         </View>
       </Sheet>
@@ -152,6 +170,7 @@ export function TranslationPopup({
         onDislike={onDislike}
         onFalseFriendToggle={onFalseFriendToggle}
         isFalseFriendExpanded={isFalseFriendExpanded}
+        onHeartToggle={onHeartToggle}
       />
     </Popover>
   );
@@ -170,6 +189,7 @@ interface ContentsProps {
   onDislike: () => void;
   onFalseFriendToggle: () => void;
   isFalseFriendExpanded: boolean;
+  onHeartToggle?: () => void;
 }
 
 function PopupContents({
@@ -181,6 +201,7 @@ function PopupContents({
   onDislike,
   onFalseFriendToggle,
   isFalseFriendExpanded,
+  onHeartToggle,
 }: ContentsProps) {
   const isSentence = state.mode === 'sentence';
   const result = state.result;
@@ -206,24 +227,35 @@ function PopupContents({
 
   return (
     <View style={[{ minHeight: 80, gap: 10 }, shadowStyle]} accessibilityViewIsModal>
-      {/* Header — word + optional MWE chip */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ color: theme.ink, fontSize: 22, fontWeight: '700' }}>{state.word}</Text>
+      {/* Header — word + heart + chips */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {isSentence ? (
+          <Text style={{ color: theme.ink2, fontSize: 16, fontWeight: '700', flex: 1 }}>
+            {t('translation.wordLabel', { defaultValue: 'Слово:' })} {state.word}
+          </Text>
+        ) : (
+          <Text style={{ color: theme.ink, fontSize: 22, fontWeight: '700', flex: 1 }}>{state.word}</Text>
+        )}
+        <HeartButton saved={!!state.savedToDeck} onToggle={() => onHeartToggle?.()} />
         {wordResult?.mwePhrase && <MweChip type={wordResult.mwePhrase.type} />}
+        {state.hasMultipleSenses && <PolysemyChip />}
+        {state.falseFriendInfo && (
+          <FalseFriendChip
+            looksLike={state.falseFriendInfo.looksLike}
+            actualMeaning={state.falseFriendInfo.actualMeaning}
+            expanded={isFalseFriendExpanded}
+            onToggle={onFalseFriendToggle}
+          />
+        )}
       </View>
 
       {/* v2.2.4: ExperimentalBadge убран по user-feedback. Плашка излишний шум —
           юзер видит translation, может оценить сам. Возврат к плашке возможен
           если quality regression обнаружится в production. */}
 
-      {/* Loading shimmer */}
+      {/* Progressive loading */}
       {state.status === 'loading' && (
-        <View accessibilityLiveRegion="polite">
-          <ActivityIndicator color={theme.accent} />
-          <Text style={{ color: theme.ink2, marginTop: 6 }}>
-            {t('translation.a11y.loadingTranslation', { defaultValue: 'Переводим…' })}
-          </Text>
-        </View>
+        <ProgressiveLoading sourceLength={(state.sourcePlainText ?? state.sourceSentence ?? '').length} />
       )}
 
       {/* Word mode — ready */}
@@ -245,11 +277,17 @@ function PopupContents({
       {/* Sentence mode — ready */}
       {state.status === 'ready' && isSentence && sentenceResult?.translatedSentence != null && (
         <SentenceTranslationView
-          sourceSentence={sentenceResult.sourceSentence ?? state.sourceSentence}
+          sourceInlines={
+            state.sourceInlines ?? [
+              { type: 'text', text: sentenceResult.sourceSentence ?? state.sourceSentence },
+            ]
+          }
+          sourcePlainText={state.sourcePlainText ?? sentenceResult.sourceSentence ?? state.sourceSentence}
           translatedSentence={sentenceResult.translatedSentence}
-          sourceWordOffset={state.wordOffsetInSentence}
-          sourceWord={state.word}
+          sourceWordOffset={state.wordOffsetInPlain ?? state.wordOffsetInSentence}
+          sourceWordLength={state.wordLength ?? state.word.length}
           translatedWordOffset={sentenceResult.translatedWordOffset}
+          wasCapped={state.wasCapped}
         />
       )}
 
@@ -260,8 +298,8 @@ function PopupContents({
         </Text>
       )}
 
-      {/* Encounter badge — word mode only, when ready */}
-      {!isSentence && state.status === 'ready' && (
+      {/* Encounter badge — both modes, when ready */}
+      {state.status === 'ready' && (
         <EncounterBadge count={state.encounterCount} />
       )}
 
@@ -294,6 +332,39 @@ function PopupContents({
       {isSentence && state.status === 'ready' && (
         <DislikeButton isDisliked={!!state.isDisliked} onToggle={onDislike} />
       )}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ProgressiveLoading — replaces ActivityIndicator with TargetSkeleton + timed subtitle
+// ---------------------------------------------------------------------------
+function ProgressiveLoading({ sourceLength }: { sourceLength: number }) {
+  const { theme } = useUnistyles();
+  const { t } = useTranslation();
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const start = Date.now();
+    const id = setInterval(() => setElapsed(Date.now() - start), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  let subtitle: string;
+  if (elapsed < 5000) {
+    subtitle = t('translation.loading.short', { defaultValue: 'Переводим...' });
+  } else if (elapsed < 10000) {
+    subtitle = t('translation.loading.medium', { defaultValue: 'Подбираем точный перевод...' });
+  } else if (elapsed < 15000) {
+    subtitle = t('translation.loading.long', { defaultValue: 'Длинное предложение, ещё момент...' });
+  } else {
+    subtitle = t('translation.loading.veryLong', { defaultValue: 'Дольше обычного' });
+  }
+
+  return (
+    <View accessibilityLiveRegion="polite" style={{ gap: 10 }}>
+      <TargetSkeleton sourceLength={sourceLength} />
+      <Text style={{ color: theme.ink2, fontSize: 13 }}>{subtitle}</Text>
     </View>
   );
 }

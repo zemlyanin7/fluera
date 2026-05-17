@@ -65,6 +65,7 @@ export interface SentenceCacheKeyInput {
   nativeLanguage: NativeLanguage;
   modelVersion: string;
   kernelBuildId: string;
+  inlineHash?: string; // v3
 }
 
 /** Версионированный ключ для sentence-level переводов. Полный SHA-256 hex (64 chars). */
@@ -75,6 +76,7 @@ export async function buildSentenceCacheKey(input: SentenceCacheKeyInput): Promi
     `${input.bookLanguage}-${input.nativeLanguage}`,
     `mv${input.modelVersion}`,
     `kb${input.kernelBuildId}`,
+    input.inlineHash ? `ih${input.inlineHash}` : '',
   ].join('::');
   return await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, normalized);
 }

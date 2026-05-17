@@ -1,5 +1,5 @@
 {
-  "common": { "continue": "Продолжить", "skip": "Пропустить", "next": "Далее", "back": "Назад", "close": "Закрыть", "gotIt": "Понятно" },
+  "common": { "continue": "Продолжить", "skip": "Пропустить", "next": "Далее", "back": "Назад", "close": "Закрыть", "gotIt": "Понятно", "undo": "Отменить" },
   "tabs": { "read": "ЧТЕНИЕ", "deck": "КАРТЫ", "stats": "СТАТ.", "you": "ВЫ" },
   "onboarding": {
     "step1": { "title": "Добро пожаловать в Fluera" },
@@ -47,10 +47,40 @@
     "translateSentenceLabel": "Перевести предложение целиком",
     "alternativeSenses": "другие значения ({{count}})",
     "errorGeneric": "Не удалось перевести",
+    "wordLabel": "Слово:",
+    "sourceLabel2": "ОРИГИНАЛ",
+    "translationLabel2": "ПЕРЕВОД",
+    "loading": {
+      "short": "Переводим...",
+      "medium": "Подбираем точный перевод...",
+      "long": "Длинное предложение, ещё момент...",
+      "veryLong": "Дольше обычного"
+    },
+    "cancelLabel": "Отменить",
+    "tryAgain": "Повторить",
+    "heart": {
+      "label": "Сохранить в Deck",
+      "firstTimeHint": "Тап ♡ чтобы сохранить слово в Deck"
+    },
+    "polysemy": {
+      "chip": "полисемия",
+      "explainer": "У этого слова несколько значений. Перевод выше — основное в этом контексте."
+    },
+    "falseFriend": {
+      "chip": "ложный друг"
+    },
+    "mweExplainer": {
+      "idiom": { "fallback": "Идиома — значение не складывается из отдельных слов. Запоминайте целиком." },
+      "phrasal_verb": { "fallback": "Предлог меняет смысл глагола. Учите как одну единицу." },
+      "collocation": { "fallback": "Слова часто употребляются вместе." },
+      "proverb": { "fallback": "Пословица — фиксированное выражение народной мудрости." }
+    },
     "encounter": {
       "firstTime": "впервые встречаете",
       "nthTime": "{{ordinal}}-й раз",
-      "familiar": "знакомое"
+      "forming": "{{ordinal}}-й раз, формируется узнавание",
+      "consolidating": "{{ordinal}}-й раз — закрепляется",
+      "wellKnown": "хорошо знакомо"
     },
     "mweType": {
       "idiom": "идиома",

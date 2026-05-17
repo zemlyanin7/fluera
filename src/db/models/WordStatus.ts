@@ -29,6 +29,10 @@ export class WordStatusModel extends Model {
   @field('deck_suspended') deckSuspended!: boolean;
   @field('deck_priority') deckPriority!: number;
 
+  // #4.5.1 Translation Popup Polish — saved to deck
+  @field('saved_to_deck') savedToDeck!: boolean;
+  @field('saved_at') savedAt!: number | null;
+
   // timestamps
   @field('created_at') createdAt!: number;
   @field('updated_at') updatedAt!: number;

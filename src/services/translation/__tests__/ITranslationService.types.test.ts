@@ -26,6 +26,7 @@ describe('ITranslationService types', () => {
     const stub: ITranslationService = {
       translate: jest.fn(),
       translateSentence: jest.fn(),
+      abortSentence: jest.fn(),
       clearCache: jest.fn(),
     };
     expect(typeof stub.translateSentence).toBe('function');
@@ -41,5 +42,25 @@ describe('ITranslationService types', () => {
     };
     expect(input.wordOffset).toBe(6);
     expect(input.sourceWord).toBe('world');
+  });
+
+  it('SentenceTranslationInput accepts generation token', () => {
+    const input: SentenceTranslationInput = {
+      sentence: 'hi',
+      bookLanguage: 'en',
+      nativeLanguage: 'ru',
+      generation: 5,
+    };
+    expect(input.generation).toBe(5);
+  });
+
+  it('ITranslationService has abortSentence method', () => {
+    const stub: ITranslationService = {
+      translate: jest.fn(),
+      translateSentence: jest.fn(),
+      abortSentence: jest.fn(),
+      clearCache: jest.fn(),
+    };
+    expect(typeof stub.abortSentence).toBe('function');
   });
 });
