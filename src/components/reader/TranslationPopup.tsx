@@ -15,6 +15,7 @@ import { MweChip } from './MweChip';
 import { FalseFriendChip } from './FalseFriendChip';
 import { EncounterBadge } from './EncounterBadge';
 import { PolysemyDisclosure, type Sense } from './PolysemyDisclosure';
+import { SentenceTranslationView } from './SentenceTranslationView';
 import type { PlacementResult } from './PopupPlacement';
 import type { BookLanguage, NativeLanguage } from '@/types/settings';
 
@@ -230,18 +231,13 @@ function PopupContents({
 
       {/* Sentence mode — ready */}
       {state.status === 'ready' && isSentence && sentenceResult?.translatedSentence != null && (
-        <View style={{ gap: 4 }}>
-          <Text style={{ color: theme.ink2, fontSize: 12 }}>
-            {t('translation.sourceLabel', { defaultValue: 'Оригинал' })}
-          </Text>
-          <Text style={{ color: theme.ink, fontSize: 14 }}>
-            {sentenceResult.sourceSentence ?? state.sourceSentence}
-          </Text>
-          <Text style={{ color: theme.ink2, fontSize: 12, marginTop: 4 }}>
-            {t('translation.translationLabel', { defaultValue: 'Перевод' })}
-          </Text>
-          <Text style={{ color: theme.ink, fontSize: 14 }}>{sentenceResult.translatedSentence}</Text>
-        </View>
+        <SentenceTranslationView
+          sourceSentence={sentenceResult.sourceSentence ?? state.sourceSentence}
+          translatedSentence={sentenceResult.translatedSentence}
+          sourceWordOffset={state.wordOffsetInSentence}
+          sourceWord={state.word}
+          translatedWordOffset={sentenceResult.translatedWordOffset}
+        />
       )}
 
       {/* Error */}
