@@ -68,6 +68,7 @@ describe('TranslationPopup', () => {
       />,
     );
     expect(getByText(/Источник жизни/)).toBeTruthy();
-    expect(getByText(/ОРИГИНАЛ/)).toBeTruthy();
+    // i18n mock returns en.json key value for translation.sourceLabel = "Source:"
+    expect(getByText(/Source:/)).toBeTruthy();
   });
 });

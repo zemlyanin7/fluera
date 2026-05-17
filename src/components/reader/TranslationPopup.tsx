@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, Pressable, AccessibilityInfo } from 'react-native';
+import { View, Text, Pressable, AccessibilityInfo } from 'react-native';
 import { useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from 'react-native-reanimated';
@@ -19,6 +19,7 @@ import { PolysemyDisclosure, type Sense } from './PolysemyDisclosure';
 import { SentenceTranslationView } from './SentenceTranslationView';
 import { HeartButton } from './HeartButton';
 import { PolysemyChip } from './PolysemyChip';
+import { TargetSkeleton } from './TargetSkeleton';
 import type { PlacementResult } from './PopupPlacement';
 import type { BookLanguage, NativeLanguage } from '@/types/settings';
 
@@ -252,14 +253,9 @@ function PopupContents({
           юзер видит translation, может оценить сам. Возврат к плашке возможен
           если quality regression обнаружится в production. */}
 
-      {/* Loading shimmer */}
+      {/* Progressive loading */}
       {state.status === 'loading' && (
-        <View accessibilityLiveRegion="polite">
-          <ActivityIndicator color={theme.accent} />
-          <Text style={{ color: theme.ink2, marginTop: 6 }}>
-            {t('translation.a11y.loadingTranslation', { defaultValue: 'Переводим…' })}
-          </Text>
-        </View>
+        <ProgressiveLoading sourceLength={(state.sourcePlainText ?? state.sourceSentence ?? '').length} />
       )}
 
       {/* Word mode — ready */}
@@ -336,6 +332,39 @@ function PopupContents({
       {isSentence && state.status === 'ready' && (
         <DislikeButton isDisliked={!!state.isDisliked} onToggle={onDislike} />
       )}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ProgressiveLoading — replaces ActivityIndicator with TargetSkeleton + timed subtitle
+// ---------------------------------------------------------------------------
+function ProgressiveLoading({ sourceLength }: { sourceLength: number }) {
+  const { theme } = useUnistyles();
+  const { t } = useTranslation();
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const start = Date.now();
+    const id = setInterval(() => setElapsed(Date.now() - start), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  let subtitle: string;
+  if (elapsed < 5000) {
+    subtitle = t('translation.loading.short', { defaultValue: 'Переводим...' });
+  } else if (elapsed < 10000) {
+    subtitle = t('translation.loading.medium', { defaultValue: 'Подбираем точный перевод...' });
+  } else if (elapsed < 15000) {
+    subtitle = t('translation.loading.long', { defaultValue: 'Длинное предложение, ещё момент...' });
+  } else {
+    subtitle = t('translation.loading.veryLong', { defaultValue: 'Дольше обычного' });
+  }
+
+  return (
+    <View accessibilityLiveRegion="polite" style={{ gap: 10 }}>
+      <TargetSkeleton sourceLength={sourceLength} />
+      <Text style={{ color: theme.ink2, fontSize: 13 }}>{subtitle}</Text>
     </View>
   );
 }
