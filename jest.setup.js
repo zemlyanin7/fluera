@@ -85,9 +85,11 @@ jest.mock('react-i18next', () => {
     path.split('.').reduce((acc, k) => (acc == null ? undefined : acc[k]), obj);
   return {
     useTranslation: () => ({
-      t: (key) => {
+      t: (key, opts) => {
         const v = get(en, key);
-        return typeof v === 'string' ? v : key;
+        if (typeof v === 'string') return v;
+        if (opts && typeof opts === 'object' && typeof opts.defaultValue === 'string') return opts.defaultValue;
+        return key;
       },
       i18n: { changeLanguage: jest.fn() },
     }),
