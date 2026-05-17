@@ -35,7 +35,7 @@
 **Translation correctness** (translator round-2):
 
 - **Atomic upgrade cache invalidation softer**: keep old cache labeled `model_version_obsolete` (per #4.5 §6.1). User-driven re-translate via Settings, not silent purge.
-- **Per-pair chrF threshold table from #4.5 §11.3** — sentence prefetch honors per-pair thresholds (pair below threshold → skip sentences, words only).
+- **Замер качества перевода (chrF) убран из v1** (см. #4.5 §11.3): sentence prefetch работает для всех языковых пар, никакого gating по парам. Качество оценивается через метку "экспериментальный перевод" в попапе + локальный сбор жалоб.
 
 **A11y**:
 
@@ -521,9 +521,9 @@ Cancelled prefetch word **requeued** at end of queue (not lost).
 
 ### 6.8 Sentence prefetch (depends on #4.5)
 
-Если #4.5 chrF gate passed для pair: enqueue **unique sentences** containing candidate words. Translate via `translateSentence` API. Populates sentence cache.
+Enqueue **unique sentences** containing candidate words. Translate via `translateSentence` API. Populates sentence cache.
 
-**Per-pair gating**: только pairs с chrF ≥ 40 (#4.5 §11.3).
+**Per-pair gating убран в v2.2** (см. #4.5 §11.3): sentence prefetch работает для всех языковых пар. Качество перевода оценивается метаданными попапа (метка "экспериментальный") и локальными жалобами пользователя, не предварительным замером.
 
 ### 6.9 Cache poisoning protection
 
@@ -665,13 +665,16 @@ PR blocked unless verification passes.
 
 ---
 
-## 11. FLORES eval harness (cross-reference #4.5 §11.3)
+## 11. Замер качества перевода (убран из v1)
 
-Shared с #4.5 sentence translation gate. Re-stated here для prefetch context:
+Cross-reference #4.5 §11.3: автоматический замер качества перевода (chrF/FLORES-200) убран из v1.
 
-- `scripts/eval/translate-flores.ts` — 200 FLORES dev sentences per pair.
-- Gate: chrF ≥ 40 для shipping sentence translation.
-- **Sentence prefetch** в #4.6 §6.8 honors per-pair gate — only enqueue sentences для pairs ≥ threshold.
+**Что это значит для prefetch:**
+- Sentence prefetch работает для всех языковых пар, без предварительного gating.
+- Переведённые предложения попадают в кэш и показываются с меткой "экспериментальный перевод" в попапе.
+- Жалобы пользователя ("👎 Плохой перевод") логируются локально для ручного разбора в v2.
+
+Возврат замера качества — в v2 когда появится eval-инфраструктура (облачная GPU с поддержкой STQ1_0 квантизации или device-side benchmark app на физическом iPhone).
 
 ---
 
@@ -781,8 +784,6 @@ interface LlmStatusStore {
 - `assets/freq/{en,ru,es,fr,de,it,pt,pl,uk,ja,ko,ar,hi}.txt`.
 - `scripts/freq-curate.ts` — curation pipeline.
 - `scripts/verify-kernel.ts`.
-- `scripts/eval/translate-flores.ts` (shared с #4.5).
-- `scripts/eval/flores-corpus/` — bundled FLORES sample.
 - `.github/workflows/kernel-verify.yml`.
 
 ### 13.2 Изменяем
@@ -942,7 +943,7 @@ schemaMigrations({
 - [ ] 20s idle reader trigger fires prefetch.
 - [ ] User tap preempts prefetch (≤3s for current word completion, then user).
 - [ ] MWE prefetch также enqueued.
-- [ ] Sentence prefetch gated by chrF threshold per pair.
+- [ ] Sentence prefetch работает для всех языковых пар (gating по парам убран в v2.2, см. #4.5 §11.3).
 - [ ] Prefetch tagged `source: 'prefetch'` + TTL 30 days.
 - [ ] Cold inference tagged + not persisted к DB.
 - [ ] `n_ctx 2048 + cache_prompt: true` integrated.
@@ -966,7 +967,7 @@ schemaMigrations({
 - ❌ Thermal throttle (v2 — defer).
 - ❌ Cloud fallback при slow cold load (v2).
 - ❌ Multi-context inference (single context v1).
-- ❌ Sentence prefetch для chrF-failing pairs.
+- ❌ Per-pair chrF gating убран целиком (см. #4.5 §11.3).
 - ❌ Pre-decode TTS audio (с TTS sub-project).
 - ❌ Heavy lemmatizers (Hunspell/Sudachi/MeCab — heuristic only).
 - ❌ Whole-book translation — **CUT from v1 to v2 backlog** (см. canonical roadmap).
@@ -993,4 +994,4 @@ schemaMigrations({
 
 9. **Kernel verification fixture coverage** — 10 prompts thin. Need broader fixture set per major language. **MVP: 10 fixtures, expand с feedback.**
 
-10. **chrF threshold per-pair calibration** — 40 universal? Some pairs (JA-EN, AR-EN) inherently harder; threshold may need per-pair tuning. **Action**: measure baseline pre-implementation, set per-pair thresholds.
+10. **Замер качества перевода chrF** — **CLOSED v2.2**: убрано из v1. Sentence prefetch работает для всех пар без gating. См. #4.5 §11.3.
