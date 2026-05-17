@@ -10,6 +10,8 @@
 // translateSentence (experimental, #4.5) — sentence-level перевод через
 // jinja chat-template mode. Использует messages array вместо строки промпта.
 // Всегда помечает результат experimental=true.
+//
+// v3 (#4.5.1): generation token + abortSentence для race-safe rapid-tap.
 import { useLlmStatusStore } from '@/stores/llmStatusStore';
 import type {
   ITranslationService,
@@ -27,6 +29,7 @@ import { cleanTranslation } from './cleanTranslation';
 import { cleanSentenceTranslation } from './sentence/cleanSentenceTranslation';
 import { tryAlignWord } from './sentence/tryAlignWord';
 import type { InferenceContextTracker } from './inferenceContext';
+import { GenerationTokenManager } from './generationToken';
 
 // 30s допуск: cold first inference (cache miss + STQ kernel прогрев Metal
 // pipeline) может занять 10-20s даже на M-series. Cached lookups instant.
@@ -95,11 +98,16 @@ export class LlamaTranslationService implements ITranslationService {
   private deps: LlamaTranslationServiceDeps;
   private timeoutMs: number;
   private sentenceTimeoutMs: number;
+  private tokens = new GenerationTokenManager();
 
   constructor(deps: LlamaTranslationServiceDeps) {
     this.deps = deps;
     this.timeoutMs = deps.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.sentenceTimeoutMs = deps.sentenceTimeoutMs ?? DEFAULT_SENTENCE_TIMEOUT_MS;
+  }
+
+  abortSentence(generation: number): void {
+    this.tokens.abort(generation);
   }
 
   async clearCache(): Promise<void> {
@@ -183,6 +191,8 @@ export class LlamaTranslationService implements ITranslationService {
       return { status: 'error', errorCode: code, errorMessage: `LLM not ready (${status})`, experimental: true };
     }
 
+    const gen = input.generation ?? this.tokens.next();
+
     // Cache lookup
     const cached = await this.deps.cache.sentenceLookup(
       input.sentence,
@@ -197,12 +207,13 @@ export class LlamaTranslationService implements ITranslationService {
         translatedWordOffset: cached.translatedWordOffset ?? undefined,
         experimental: true,
         source: cached.source,
+        generation: gen,
       };
     }
 
     const ctx = this.deps.contextProvider();
     if (!ctx) {
-      return { status: 'error', errorCode: 'MODEL_LOADING', errorMessage: 'context null', experimental: true };
+      return { status: 'error', errorCode: 'MODEL_LOADING', errorMessage: 'context null', experimental: true, generation: gen };
     }
 
     const messages = buildSentencePrompt({
@@ -213,18 +224,22 @@ export class LlamaTranslationService implements ITranslationService {
 
     try {
       const t0 = Date.now();
-      if (__DEV__) console.log(`[translateSentence] start len=${input.sentence.length}`);
+      if (__DEV__) console.log(`[translateSentence] start len=${input.sentence.length} gen=${gen}`);
       // Adapter принимает либо string либо ChatMsg[]. Передаём messages array
       // (system + user) — adapter wraps в jinja messages → chat template модели.
       const raw = await this.deps.queue.run(() =>
         withTimeout(ctx.completion(messages, SENTENCE_INFERENCE_CONFIG), this.sentenceTimeoutMs),
       );
       const dt = Date.now() - t0;
-      if (__DEV__) console.log(`[translateSentence] done ${dt}ms → "${raw.text.slice(0, 60)}"`);
+      if (__DEV__) console.log(`[translateSentence] done ${dt}ms gen=${gen} → "${raw.text.slice(0, 60)}"`);
+
+      if (this.tokens.isStale(gen)) {
+        return { status: 'error', errorCode: 'INFERENCE_FAILED', errorMessage: 'stale', generation: gen, experimental: true };
+      }
 
       const translatedSentence = cleanSentenceTranslation(raw.text);
       if (!translatedSentence) {
-        return { status: 'error', errorCode: 'EMPTY_RESPONSE', errorMessage: 'whitespace output', experimental: true };
+        return { status: 'error', errorCode: 'EMPTY_RESPONSE', errorMessage: 'whitespace output', experimental: true, generation: gen };
       }
 
       // Optional word alignment via tryAlignWord
@@ -270,13 +285,14 @@ export class LlamaTranslationService implements ITranslationService {
         experimental: true,
         inferenceContext,
         source: 'inference',
+        generation: gen,
       };
     } catch (e) {
       const msg = (e as Error).message;
       if (msg === '__timeout__') {
-        return { status: 'error', errorCode: 'INFERENCE_TIMEOUT', errorMessage: 'timed out', experimental: true };
+        return { status: 'error', errorCode: 'INFERENCE_TIMEOUT', errorMessage: 'timed out', experimental: true, generation: gen };
       }
-      return { status: 'error', errorCode: 'INFERENCE_FAILED', errorMessage: msg, experimental: true };
+      return { status: 'error', errorCode: 'INFERENCE_FAILED', errorMessage: msg, experimental: true, generation: gen };
     }
   }
 }
