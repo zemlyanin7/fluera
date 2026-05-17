@@ -52,6 +52,15 @@ export interface PopupViewState {
   isDisliked?: boolean;
   bookLanguage: BookLanguage;
   nativeLanguage: NativeLanguage;
+  /** v3 (#4.5.1) polish: */
+  sourcePlainText?: string;
+  wordOffsetInPlain?: number;
+  wordLength?: number;
+  wasCapped?: boolean;
+  savedToDeck?: boolean;
+  hasMultipleSenses?: boolean;
+  falseFriendInfo?: { looksLike: string; actualMeaning: string } | null;
+  generation?: number;
 }
 
 interface Props {
@@ -61,6 +70,7 @@ interface Props {
   onDislike: () => void;
   onFalseFriendToggle?: () => void;
   isFalseFriendExpanded?: boolean;
+  onHeartToggle?: () => void;
 }
 
 // ---------------------------------------------------------------------------
