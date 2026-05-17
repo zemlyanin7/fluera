@@ -154,7 +154,7 @@ export const schema = appSchema({
         { name: 'source_word', type: 'string', isIndexed: true },
         { name: 'looks_like_native', type: 'string' },
         { name: 'actual_meaning', type: 'string' },
-        { name: 'confidence', type: 'number' },
+        { name: 'confidence', type: 'string' },
         { name: 'domain', type: 'string' },
       ],
     }),
