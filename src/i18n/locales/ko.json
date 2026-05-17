@@ -1,5 +1,5 @@
 {
-  "common": { "continue": "계속", "skip": "건너뛰기", "next": "다음", "back": "뒤로", "close": "닫기" },
+  "common": { "continue": "계속", "skip": "건너뛰기", "next": "다음", "back": "뒤로", "close": "닫기", "gotIt": "알겠어요" },
   "tabs": { "read": "읽기", "deck": "덱", "stats": "통계", "you": "나" },
   "onboarding": {
     "step1": { "title": "Fluera에 오신 것을 환영합니다" },
@@ -11,5 +11,15 @@
     "font":  { "title": "읽기", "size": "크기", "typeface": "글꼴", "serif": "Source Serif", "sans": "Geist" }
   },
   "library": { "empty": "아직 책이 없습니다" },
-  "notFound": { "title": "페이지를 찾을 수 없습니다", "back": "돌아가기" }
+  "notFound": { "title": "페이지를 찾을 수 없습니다", "back": "돌아가기" },
+  "translation": {
+    "experimentalBadge": "⚠️ 실험적 번역",
+    "dislikeLabel": "잘못된 번역",
+    "dislikeRecorded": "감사합니다, 참고하겠습니다"
+  },
+  "reader": {
+    "a11y": {
+      "tapToTranslate": "번역하려면 탭하세요"
+    }
+  }
 }

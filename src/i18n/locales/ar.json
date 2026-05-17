@@ -1,5 +1,5 @@
 {
-  "common": { "continue": "متابعة", "skip": "تخطي", "next": "التالي", "back": "رجوع", "close": "إغلاق" },
+  "common": { "continue": "متابعة", "skip": "تخطي", "next": "التالي", "back": "رجوع", "close": "إغلاق", "gotIt": "فهمت" },
   "tabs": { "read": "قراءة", "deck": "البطاقات", "stats": "إحصائيات", "you": "أنت" },
   "onboarding": {
     "step1": { "title": "مرحبًا بك في Fluera" },
@@ -11,5 +11,15 @@
     "font":  { "title": "قراءة", "size": "الحجم", "typeface": "الخط", "serif": "Source Serif", "sans": "Geist" }
   },
   "library": { "empty": "لا توجد كتب بعد" },
-  "notFound": { "title": "الصفحة غير موجودة", "back": "رجوع" }
+  "notFound": { "title": "الصفحة غير موجودة", "back": "رجوع" },
+  "translation": {
+    "experimentalBadge": "⚠️ ترجمة تجريبية",
+    "dislikeLabel": "ترجمة خاطئة",
+    "dislikeRecorded": "شكرًا، سنأخذ ذلك بعين الاعتبار"
+  },
+  "reader": {
+    "a11y": {
+      "tapToTranslate": "اضغط للترجمة"
+    }
+  }
 }

@@ -1,5 +1,5 @@
 {
-  "common": { "continue": "Продовжити", "skip": "Пропустити", "next": "Далі", "back": "Назад", "close": "Закрити" },
+  "common": { "continue": "Продовжити", "skip": "Пропустити", "next": "Далі", "back": "Назад", "close": "Закрити", "gotIt": "Зрозуміло" },
   "tabs": { "read": "ЧИТАННЯ", "deck": "КАРТКИ", "stats": "СТАТ.", "you": "ВИ" },
   "onboarding": {
     "step1": { "title": "Ласкаво просимо до Fluera" },
@@ -11,5 +11,15 @@
     "font":  { "title": "Читання", "size": "Розмір", "typeface": "Шрифт", "serif": "Source Serif", "sans": "Geist" }
   },
   "library": { "empty": "Книг ще немає" },
-  "notFound": { "title": "Сторінку не знайдено", "back": "Повернутися" }
+  "notFound": { "title": "Сторінку не знайдено", "back": "Повернутися" },
+  "translation": {
+    "experimentalBadge": "⚠️ Експериментальний переклад",
+    "dislikeLabel": "Поганий переклад",
+    "dislikeRecorded": "Дякуємо, врахуємо"
+  },
+  "reader": {
+    "a11y": {
+      "tapToTranslate": "Торкніться, щоб перекласти"
+    }
+  }
 }
