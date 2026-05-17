@@ -1227,7 +1227,10 @@ Translation Model: [status]
 
 ## 19. Open questions (v2.1 status)
 
-1. **Intl.Segmenter availability в Hermes (SDK 54)?** — Verify до commit. Fallback: per-character tap для CJK + abbreviation lists для sentence boundaries. **Status: still open.**
+1. **Intl.Segmenter availability в Hermes (SDK 54)?** — **RESOLVED v2.1**: Hermes does NOT support Intl.Segmenter (ECMA-402 7th edition only, Segmenter в 8th). Decisions:
+   - Sentence boundary: regex + per-language abbreviation lists (см. `assets/abbreviations/{lang}.txt`).
+   - CJK word boundary: **per-character tap fallback** (degraded UX documented). User taps на CJK character → translates that single glyph.
+   - V2: bundle `intl-segmenter-polyfill` (~50KB) для full Unicode segmentation.
 
 2. **MWE bundle size**: 10 pairs × ~5000 entries ≈ 3MB compressed. **Decided: bundle.**
 
@@ -1241,7 +1244,7 @@ Translation Model: [status]
 
 7. **Coach mark frequency** — **Closed (v2.1): single long-press hint only, dismissable, no auto-timeout (WCAG 2.2.1).**
 
-8. **Foundation Sheet primitive arbitrary-position anchor** — **BLOCKING**: verify в Foundation Sheet impl. Если no — implement bottom-anchored variant как fallback для 3-mode placement.
+8. **Foundation Sheet primitive arbitrary-position anchor** — **RESOLVED v2.1**: existing `Sheet` is `@gorhom/bottom-sheet` wrapper, bottom-anchored only. Decision: use Sheet для modalSheet fallback (when popup occludes >40%). Top/bottom near-tap positions need **new `Popover` primitive** (built in #4.5 implementation). Custom positioning, NOT shared с Sheet.
 
 9. **VoiceOver paragraph rotor performance** на large chapters (100+ paragraphs) — может быть slow. Profile.
 
