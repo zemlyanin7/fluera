@@ -117,7 +117,18 @@ export const ParagraphRender = React.memo(function ParagraphRender({
   const { t } = useTranslation();
   const leading = scriptTypography[script].readingLeading;
   const fullText = flattenText(inlines);
-  const sentenceFn = buildSentence ?? ((_w: string, txt: string) => txt);
+  // v2.2.3: default extract one sentence containing tapped word (regex split
+  // по `.!?`). Без этого default = full paragraph text → translateSentence
+  // получает огромный текст (1000+ chars), inference 30+ сек, UI lag.
+  const sentenceFn =
+    buildSentence ??
+    ((word: string, txt: string): string => {
+      const sentences = txt.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [txt];
+      for (const s of sentences) {
+        if (s.includes(word)) return s.trim();
+      }
+      return txt.trim();
+    });
   return (
     <View
       accessibilityActions={[
