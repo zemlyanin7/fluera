@@ -8,3 +8,6 @@ export * from './ReviewLog';
 export * from './TranslationCache';
 export * from './OPDSCatalog';
 export * from './ReadingStats';
+export * from './MwePhrase';
+export * from './FalseFriend';
+export * from './TranslationFeedback';
