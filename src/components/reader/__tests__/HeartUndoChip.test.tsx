@@ -5,15 +5,15 @@ import { HeartUndoChip } from '@/components/reader/HeartUndoChip';
 jest.useFakeTimers();
 
 describe('HeartUndoChip', () => {
-  it('renders Отменить button when visible=true', () => {
+  it('renders Undo button when visible=true', () => {
     const { getByText } = render(<HeartUndoChip onUndo={() => {}} visible={true} />);
-    expect(getByText(/Отменить/i)).toBeTruthy();
+    expect(getByText(/Undo/i)).toBeTruthy();
   });
 
-  it('auto-dismisses через 3000ms', () => {
+  it('auto-dismisses after 3000ms', () => {
     const { queryByText } = render(<HeartUndoChip onUndo={() => {}} visible={true} />);
-    expect(queryByText(/Отменить/i)).toBeTruthy();
+    expect(queryByText(/Undo/i)).toBeTruthy();
     act(() => { jest.advanceTimersByTime(3100); });
-    expect(queryByText(/Отменить/i)).toBeNull();
+    expect(queryByText(/Undo/i)).toBeNull();
   });
 });

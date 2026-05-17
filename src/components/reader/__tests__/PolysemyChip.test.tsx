@@ -3,15 +3,15 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { PolysemyChip } from '@/components/reader/PolysemyChip';
 
 describe('PolysemyChip', () => {
-  it('renders +полисемия chip', () => {
+  it('renders +polysemy chip', () => {
     const { getByText } = render(<PolysemyChip />);
-    expect(getByText(/полисемия/i)).toBeTruthy();
+    expect(getByText(/polysemy/i)).toBeTruthy();
   });
 
   it('tap expands explanation', () => {
     const { getByRole, queryByText } = render(<PolysemyChip />);
-    expect(queryByText(/несколько значений/i)).toBeNull();
+    expect(queryByText(/multiple meanings/i)).toBeNull();
     fireEvent.press(getByRole('button'));
-    expect(queryByText(/несколько значений/i)).toBeTruthy();
+    expect(queryByText(/multiple meanings/i)).toBeTruthy();
   });
 });

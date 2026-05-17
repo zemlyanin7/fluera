@@ -16,8 +16,8 @@ describe('MweChip', () => {
 
   it('tap expands explainer fallback text', () => {
     const { getByRole, queryByText } = render(<MweChip type="idiom" />);
-    expect(queryByText(/не складывается/i)).toBeNull();
+    expect(queryByText(/decompose/i)).toBeNull();
     fireEvent.press(getByRole('button'));
-    expect(queryByText(/не складывается/i)).toBeTruthy();
+    expect(queryByText(/decompose/i)).toBeTruthy();
   });
 });
