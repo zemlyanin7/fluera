@@ -8,4 +8,8 @@ describe('kernelBuildId', () => {
     expect(id1).toMatch(/^[a-z0-9-]+$/);
     expect(id1.length).toBeGreaterThan(4);
   });
+
+  it('includes extract-v2-clause suffix', () => {
+    expect(getKernelBuildId()).toContain('extract-v2-clause');
+  });
 });
