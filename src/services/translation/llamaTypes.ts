@@ -15,7 +15,16 @@ export interface InferenceResult {
   text: string;
 }
 
+export interface ChatMsg {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 export interface LlamaContext {
-  completion(prompt: string, config: InferenceConfig): Promise<InferenceResult>;
+  /**
+   * Принимает либо string (word translate) либо ChatMsg[] (sentence translate
+   * с system+user). Adapter wraps в jinja messages → chat template модели.
+   */
+  completion(promptOrMessages: string | ChatMsg[], config: InferenceConfig): Promise<InferenceResult>;
   release(): Promise<void>;
 }

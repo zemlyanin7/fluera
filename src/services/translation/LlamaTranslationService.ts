@@ -214,15 +214,11 @@ export class LlamaTranslationService implements ITranslationService {
     try {
       const t0 = Date.now();
       if (__DEV__) console.log(`[translateSentence] start len=${input.sentence.length}`);
-      // jinja chat-template mode: llama.cpp accepts messages object as first arg.
-      // We cast to any since LlamaContext.completion typing is string-only.
-      const ctxAny = ctx as any;
+      // Adapter принимает либо string либо ChatMsg[]. Передаём messages array
+      // (system + user) — adapter wraps в jinja messages → chat template модели.
       const raw = await this.deps.queue.run(() =>
-        withTimeout(
-          ctxAny.completion({ messages, ...SENTENCE_INFERENCE_CONFIG }) as Promise<{ text: string }>,
-          this.sentenceTimeoutMs,
-        ),
-      ) as { text: string };
+        withTimeout(ctx.completion(messages, SENTENCE_INFERENCE_CONFIG), this.sentenceTimeoutMs),
+      );
       const dt = Date.now() - t0;
       if (__DEV__) console.log(`[translateSentence] done ${dt}ms → "${raw.text.slice(0, 60)}"`);
 

@@ -15,16 +15,25 @@ export interface MinimalNativeCtx {
   release(): Promise<void>;
 }
 
+export interface ChatMsg { role: 'system' | 'user' | 'assistant'; content: string }
+
 export class LlamaContextAdapter implements LlamaContext {
   constructor(private native: MinimalNativeCtx | NativeLlamaContext) {}
 
-  async completion(prompt: string, config: InferenceConfig): Promise<InferenceResult> {
-    // Hy-MT обучена под chat template из GGUF metadata. Передаём prompt
-    // как `messages: [{role:'user', content}]` + `jinja: true` чтобы
-    // llama.rn применила model's chat template (с system/user/assistant
-    // markers). Без template raw prompt → пустой output.
+  /**
+   * Принимает либо одиночный prompt-string (word translate) либо messages
+   * array (sentence translate с system+user). Adapter wraps в `messages: [...]`
+   * + `jinja: true` так что llama.rn применит chat template модели.
+   */
+  async completion(
+    promptOrMessages: string | ChatMsg[],
+    config: InferenceConfig,
+  ): Promise<InferenceResult> {
+    const messages: ChatMsg[] = Array.isArray(promptOrMessages)
+      ? promptOrMessages
+      : [{ role: 'user', content: promptOrMessages }];
     const params: Record<string, unknown> = {
-      messages: [{ role: 'user', content: prompt }],
+      messages,
       jinja: true,
       temperature: config.temperature ?? 0.2,
       top_p: config.top_p ?? 0.9,
