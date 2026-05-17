@@ -17,6 +17,8 @@ import { FalseFriendChip } from './FalseFriendChip';
 import { EncounterBadge } from './EncounterBadge';
 import { PolysemyDisclosure, type Sense } from './PolysemyDisclosure';
 import { SentenceTranslationView } from './SentenceTranslationView';
+import { HeartButton } from './HeartButton';
+import { PolysemyChip } from './PolysemyChip';
 import type { PlacementResult } from './PopupPlacement';
 import type { BookLanguage, NativeLanguage } from '@/types/settings';
 
@@ -103,6 +105,7 @@ export function TranslationPopup({
   onDislike,
   onFalseFriendToggle = () => {},
   isFalseFriendExpanded = false,
+  onHeartToggle,
 }: Props) {
   const { theme } = useUnistyles();
   const { t } = useTranslation();
@@ -139,6 +142,7 @@ export function TranslationPopup({
             onDislike={onDislike}
             onFalseFriendToggle={onFalseFriendToggle}
             isFalseFriendExpanded={isFalseFriendExpanded}
+            onHeartToggle={onHeartToggle}
           />
         </View>
       </Sheet>
@@ -165,6 +169,7 @@ export function TranslationPopup({
         onDislike={onDislike}
         onFalseFriendToggle={onFalseFriendToggle}
         isFalseFriendExpanded={isFalseFriendExpanded}
+        onHeartToggle={onHeartToggle}
       />
     </Popover>
   );
@@ -183,6 +188,7 @@ interface ContentsProps {
   onDislike: () => void;
   onFalseFriendToggle: () => void;
   isFalseFriendExpanded: boolean;
+  onHeartToggle?: () => void;
 }
 
 function PopupContents({
@@ -194,6 +200,7 @@ function PopupContents({
   onDislike,
   onFalseFriendToggle,
   isFalseFriendExpanded,
+  onHeartToggle,
 }: ContentsProps) {
   const isSentence = state.mode === 'sentence';
   const result = state.result;
@@ -219,10 +226,26 @@ function PopupContents({
 
   return (
     <View style={[{ minHeight: 80, gap: 10 }, shadowStyle]} accessibilityViewIsModal>
-      {/* Header — word + optional MWE chip */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ color: theme.ink, fontSize: 22, fontWeight: '700' }}>{state.word}</Text>
+      {/* Header — word + heart + chips */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {isSentence ? (
+          <Text style={{ color: theme.ink2, fontSize: 16, fontWeight: '700', flex: 1 }}>
+            {t('translation.wordLabel', { defaultValue: 'Слово:' })} {state.word}
+          </Text>
+        ) : (
+          <Text style={{ color: theme.ink, fontSize: 22, fontWeight: '700', flex: 1 }}>{state.word}</Text>
+        )}
+        <HeartButton saved={!!state.savedToDeck} onToggle={() => onHeartToggle?.()} />
         {wordResult?.mwePhrase && <MweChip type={wordResult.mwePhrase.type} />}
+        {state.hasMultipleSenses && <PolysemyChip />}
+        {state.falseFriendInfo && (
+          <FalseFriendChip
+            looksLike={state.falseFriendInfo.looksLike}
+            actualMeaning={state.falseFriendInfo.actualMeaning}
+            expanded={isFalseFriendExpanded}
+            onToggle={onFalseFriendToggle}
+          />
+        )}
       </View>
 
       {/* v2.2.4: ExperimentalBadge убран по user-feedback. Плашка излишний шум —
@@ -263,11 +286,12 @@ function PopupContents({
               { type: 'text', text: sentenceResult.sourceSentence ?? state.sourceSentence },
             ]
           }
-          sourcePlainText={sentenceResult.sourceSentence ?? state.sourceSentence}
+          sourcePlainText={state.sourcePlainText ?? sentenceResult.sourceSentence ?? state.sourceSentence}
           translatedSentence={sentenceResult.translatedSentence}
-          sourceWordOffset={state.wordOffsetInSentence}
-          sourceWordLength={state.word.length}
+          sourceWordOffset={state.wordOffsetInPlain ?? state.wordOffsetInSentence}
+          sourceWordLength={state.wordLength ?? state.word.length}
           translatedWordOffset={sentenceResult.translatedWordOffset}
+          wasCapped={state.wasCapped}
         />
       )}
 
@@ -278,8 +302,8 @@ function PopupContents({
         </Text>
       )}
 
-      {/* Encounter badge — word mode only, when ready */}
-      {!isSentence && state.status === 'ready' && (
+      {/* Encounter badge — both modes, when ready */}
+      {state.status === 'ready' && (
         <EncounterBadge count={state.encounterCount} />
       )}
 
