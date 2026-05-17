@@ -5,7 +5,7 @@
 // прошлые миграции.
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -136,6 +136,21 @@ export const schema = appSchema({
         { name: 'kind', type: 'string' },
         { name: 'last_fetched_at', type: 'number', isOptional: true },
         { name: 'created_at', type: 'number', isIndexed: true },
+      ],
+    }),
+    // #4.5 Translation Popup — MWE словарь (multi-word expressions)
+    tableSchema({
+      name: 'mwe_phrases',
+      columns: [
+        { name: 'source_lang', type: 'string', isIndexed: true },
+        { name: 'target_lang', type: 'string', isIndexed: true },
+        { name: 'phrase', type: 'string', isIndexed: true },
+        { name: 'translation_equivalent', type: 'string' },
+        { name: 'literal_gloss', type: 'string', isOptional: true },
+        { name: 'mwe_type', type: 'string', isOptional: true },
+        { name: 'gap_pattern', type: 'string', isOptional: true },
+        { name: 'domain', type: 'string' },
+        { name: 'attribution', type: 'string', isOptional: true },
       ],
     }),
     tableSchema({
