@@ -154,7 +154,16 @@ export default function ReaderScreen() {
       });
 
       // Stale check: другой тап пришёл пока ждали результат
-      if (gen !== generationRef.current) return;
+      if (gen !== generationRef.current) {
+        if (__DEV__) console.log(`[onWordTap] gen=${gen} stale (current=${generationRef.current}), discard`);
+        return;
+      }
+
+      if (__DEV__) {
+        console.log(
+          `[onWordTap] gen=${gen} result: status=${res.status} translatedSentence=${res.translatedSentence?.slice(0, 30)} errorCode=${res.errorCode}`,
+        );
+      }
 
       if (res.status === 'ok' && res.translatedSentence) {
         setPopup({

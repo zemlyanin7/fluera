@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fluera — Принципы типографики</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&family=Geist+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Shippori+Mincho+B1:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Amiri:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Arabic:wght@400;500;600&family=Tiro+Devanagari+Hindi:ital@0;1&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap">
+
+<link rel="stylesheet" href="tokens.css" />
+<link rel="stylesheet" href="typography-principles.css" />
+</head>
+<body>
+
+<main class="doc">
+
+  <!-- ── COVER ─────────────────────────────────────────────── -->
+  <section class="cover">
+    <div class="cover__meta">
+      <div class="kicker">Fluera · Design Principles · ƒ.01</div>
+      <div class="cover__date">May 2026 · v1.0</div>
+    </div>
+    <h1 class="cover__title">One book.<br/>Six scripts.<br/><em>Six typefaces.</em></h1>
+    <p class="cover__lede">
+      A font designed for English does not read well in Japanese.
+      A font that flatters Cyrillic loses Arabic's calligraphic rhythm.
+      Fluera treats typography as a property of the <em>language</em>,
+      not the app — every script gets the typeface it was drawn for.
+    </p>
+    <div class="cover__pairs" aria-hidden="true">
+      <div data-lang="en"><span class="serif">Aa</span><span class="sans">Aa</span></div>
+      <div data-lang="ru"><span class="serif">Аа</span><span class="sans">Аа</span></div>
+      <div data-lang="ja"><span class="serif">語</span><span class="sans">あ</span></div>
+      <div data-lang="ko"><span class="serif">한</span><span class="sans">글</span></div>
+      <div data-lang="ar"><span class="serif">ب</span><span class="sans">ت</span></div>
+      <div data-lang="hi"><span class="serif">अ</span><span class="sans">आ</span></div>
+    </div>
+  </section>
+
+  <!-- ── PRINCIPLE 1 ───────────────────────────────────────── -->
+  <section class="principle">
+    <div class="principle__num">01</div>
+    <div class="principle__body">
+      <div class="kicker">Principle one</div>
+      <h2>The script chooses the font, not the brand.</h2>
+      <p class="lede">
+        Brand consistency is achieved through <em>tone</em> — proportion, contrast,
+        warmth — not through forcing one font family across scripts it was never
+        drawn for. A "universal" font does not exist; what exists is a
+        <em>universal feeling</em>, executed locally in each writing system.
+      </p>
+
+      <div class="callout">
+        <div class="callout__bad">
+          <div class="kicker bad">✗ A single font for all</div>
+          <div class="callout__sample" data-lang="ja" style="font-family: 'Source Serif 4', serif;">
+            蒼白い十月の朝、潮は誰の記憶よりも遠くへ引いた。
+          </div>
+          <div class="note">
+            Latin-first fonts fall back to system Japanese — letters
+            from different families, mismatched weights, broken rhythm.
+          </div>
+        </div>
+        <div class="callout__good">
+          <div class="kicker good">✓ Native pairing</div>
+          <div class="callout__sample" data-lang="ja">
+            蒼白い十月の朝、潮は誰の記憶よりも遠くへ引いた。
+          </div>
+          <div class="note">
+            <strong>Shippori Mincho B1</strong> — kanji and kana from
+            one designer's hand. Even color, even rhythm, even soul.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PRINCIPLE 2 ───────────────────────────────────────── -->
+  <section class="principle">
+    <div class="principle__num">02</div>
+    <div class="principle__body">
+      <div class="kicker">Principle two</div>
+      <h2>Two roles, two faces, per language.</h2>
+      <p class="lede">
+        Every language gets exactly two fonts: a <em>reading face</em> for body
+        text inside books and translations, and a <em>UI face</em> for chrome —
+        buttons, labels, captions. The reading face has personality; the UI face
+        gets out of the way.
+      </p>
+
+      <table class="pairs">
+        <thead>
+          <tr>
+            <th>Script</th>
+            <th>Languages</th>
+            <th>Reading face</th>
+            <th>UI face</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-lang="en">
+            <td class="pairs__native">Latin</td>
+            <td>EN · ES · FR · DE · IT · PT</td>
+            <td><span style="font-family: 'Source Serif 4', serif; font-size: 18px;">Source Serif 4</span></td>
+            <td><span style="font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500;">Inter</span></td>
+          </tr>
+          <tr data-lang="ru">
+            <td class="pairs__native">Кириллица</td>
+            <td>RU · UK · BE · SR</td>
+            <td><span style="font-family: 'Lora', serif; font-size: 18px;">Lora</span></td>
+            <td><span style="font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500;">Inter</span></td>
+          </tr>
+          <tr data-lang="ja">
+            <td class="pairs__native">日本語</td>
+            <td>JA</td>
+            <td><span style="font-family: 'Shippori Mincho B1', serif; font-size: 18px;">しっぽり明朝</span></td>
+            <td><span style="font-family: 'Noto Sans JP', sans-serif; font-size: 15px; font-weight: 500;">Noto Sans JP</span></td>
+          </tr>
+          <tr data-lang="ko">
+            <td class="pairs__native">한국어</td>
+            <td>KO</td>
+            <td><span style="font-family: 'Noto Serif KR', serif; font-size: 18px;">노토 명조</span></td>
+            <td><span style="font-family: 'Noto Sans KR', sans-serif; font-size: 15px; font-weight: 500;">Noto Sans KR</span></td>
+          </tr>
+          <tr data-lang="ar">
+            <td class="pairs__native">العربية</td>
+            <td>AR · FA · UR</td>
+            <td><span style="font-family: 'Amiri', serif; font-size: 20px; direction: rtl;">أميري</span></td>
+            <td><span style="font-family: 'Noto Sans Arabic', sans-serif; font-size: 15px; font-weight: 500; direction: rtl;">نوتو</span></td>
+          </tr>
+          <tr data-lang="hi">
+            <td class="pairs__native">हिन्दी</td>
+            <td>HI · MR · SA</td>
+            <td><span style="font-family: 'Tiro Devanagari Hindi', serif; font-size: 18px;">तिरो देवनागरी</span></td>
+            <td><span style="font-family: 'Noto Sans Devanagari', sans-serif; font-size: 15px; font-weight: 500;">नोटो सान्स</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="footnote">
+        <strong>Why these.</strong> For Latin and Cyrillic we use independent
+        families — they happen to harmonise. For CJK, Arabic, and Devanagari we
+        use families designed expressly for those scripts by people who write
+        in them. Falling back to a "universal" sans here would erase the
+        difference between <em>reading</em> and <em>decoding</em>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── PRINCIPLE 3 ───────────────────────────────────────── -->
+  <section class="principle">
+    <div class="principle__num">03</div>
+    <div class="principle__body">
+      <div class="kicker">Principle three</div>
+      <h2>Metrics travel with the script.</h2>
+      <p class="lede">
+        Choosing a typeface is half the work. The other half is letting that
+        typeface breathe: leading, tracking, and reading size are part of the
+        pairing, not constants to be shared across languages.
+      </p>
+
+      <div class="metrics">
+        <div class="metric" data-lang="en">
+          <div class="kicker">Latin</div>
+          <div class="metric__num">1.65</div>
+          <div class="metric__lbl">line-height</div>
+          <div class="metric__lbl">−0.005em tracking</div>
+        </div>
+        <div class="metric" data-lang="ru">
+          <div class="kicker">Cyrillic</div>
+          <div class="metric__num">1.60</div>
+          <div class="metric__lbl">line-height</div>
+          <div class="metric__lbl">0 tracking</div>
+        </div>
+        <div class="metric" data-lang="ja">
+          <div class="kicker">Japanese</div>
+          <div class="metric__num">1.85</div>
+          <div class="metric__lbl">line-height</div>
+          <div class="metric__lbl">+0.02em — kanji need air</div>
+        </div>
+        <div class="metric" data-lang="ko">
+          <div class="kicker">Korean</div>
+          <div class="metric__num">1.75</div>
+          <div class="metric__lbl">line-height</div>
+          <div class="metric__lbl">0 tracking</div>
+        </div>
+        <div class="metric" data-lang="ar">
+          <div class="kicker">Arabic</div>
+          <div class="metric__num">1.95</div>
+          <div class="metric__lbl">line-height</div>
+          <div class="metric__lbl">descenders + dots = generous</div>
+        </div>
+        <div class="metric" data-lang="hi">
+          <div class="kicker">Devanagari</div>
+          <div class="metric__num">1.85</div>
+          <div class="metric__lbl">line-height</div>
+          <div class="metric__lbl">शिरोरेखा needs space above</div>
+        </div>
+      </div>
+
+      <p class="footnote">
+        These are not aesthetic preferences — they are required for legibility.
+        Setting Japanese at Latin's 1.65 makes kanji collide; setting Arabic
+        at 1.6 chokes the descenders. The metric is part of the font choice.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── PRINCIPLE 4 ───────────────────────────────────────── -->
+  <section class="principle">
+    <div class="principle__num">04</div>
+    <div class="principle__body">
+      <div class="kicker">Principle four</div>
+      <h2>Mixed scripts get mixed type.</h2>
+      <p class="lede">
+        When a Japanese word appears next to its Russian translation, each side
+        is set in its own pairing. The translation sheet is not "one font with
+        a fallback" — it is two carefully composed columns, sharing only color,
+        rhythm, and the moment of meaning between them.
+      </p>
+
+      <div class="mixed">
+        <div class="mixed__half" data-lang="ja">
+          <div class="kicker">日本語</div>
+          <div class="mixed__word">波止場</div>
+          <div class="mixed__ipa">は · と · ば</div>
+          <div class="mixed__caption">Shippori Mincho B1 · 44px · letter-spacing 0</div>
+        </div>
+        <div class="mixed__div"></div>
+        <div class="mixed__half" data-lang="ru">
+          <div class="kicker">Русский</div>
+          <div class="mixed__word">пристань</div>
+          <div class="mixed__ipa">сущ. ж.р. · CEFR B1</div>
+          <div class="mixed__caption">Lora · 36px · letter-spacing 0</div>
+        </div>
+      </div>
+
+      <div class="mixed">
+        <div class="mixed__half" data-lang="ar" style="text-align: right;">
+          <div class="kicker">العربية</div>
+          <div class="mixed__word" style="direction: rtl;">رصيف</div>
+          <div class="mixed__ipa" style="direction: rtl;">اسم · مذكر</div>
+          <div class="mixed__caption" style="direction: ltr;">Amiri · 44px · RTL</div>
+        </div>
+        <div class="mixed__div"></div>
+        <div class="mixed__half" data-lang="ru">
+          <div class="kicker">Русский</div>
+          <div class="mixed__word">пристань</div>
+          <div class="mixed__ipa">сущ. ж.р. · CEFR B2</div>
+          <div class="mixed__caption">Lora · 36px · LTR</div>
+        </div>
+      </div>
+
+      <p class="footnote">
+        Direction flips with the script (Arabic right-to-left, Russian
+        left-to-right). The font flips with the script. The layout grid stays.
+        Familiarity comes from the system, not from forcing one shape onto all.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── PRINCIPLE 5 ───────────────────────────────────────── -->
+  <section class="principle">
+    <div class="principle__num">05</div>
+    <div class="principle__body">
+      <div class="kicker">Principle five</div>
+      <h2>One attribute switches everything.</h2>
+      <p class="lede">
+        The whole system is driven by a single declarative hook:
+        <code>data-lang="ja"</code> on any element. CSS custom properties
+        cascade down — reading font, UI font, line-height, tracking, direction.
+        A designer never picks a font by name; they pick a language.
+      </p>
+
+      <pre class="code"><span class="cm">/* tokens.css */</span>
+<span class="sel">[data-lang="ja"]</span> {
+  <span class="prop">--font-reading</span>: <span class="val">"Shippori Mincho B1", serif</span>;
+  <span class="prop">--font-ui</span>:      <span class="val">"Noto Sans JP", sans-serif</span>;
+  <span class="prop">--reading-leading</span>:        <span class="val">1.85</span>;
+  <span class="prop">--reading-letter-spacing</span>: <span class="val">0.02em</span>;
+}
+
+<span class="sel">[data-lang="ar"]</span> {
+  <span class="prop">--font-reading</span>: <span class="val">"Amiri", serif</span>;
+  <span class="prop">--font-ui</span>:      <span class="val">"Noto Sans Arabic", sans-serif</span>;
+  <span class="prop">--reading-leading</span>:        <span class="val">1.95</span>;
+  <span class="prop">direction</span>:                <span class="val">rtl</span>;
+}</pre>
+
+      <pre class="code"><span class="cm">&lt;!-- usage --&gt;</span>
+&lt;<span class="tag">article</span> <span class="attr">data-lang</span>=<span class="val">"ja"</span>&gt;
+  &lt;<span class="tag">h1</span>&gt;八岐の園&lt;/<span class="tag">h1</span>&gt;
+  &lt;<span class="tag">p</span>&gt;蒼白い十月の朝、潮は…&lt;/<span class="tag">p</span>&gt;
+&lt;/<span class="tag">article</span>&gt;</pre>
+
+      <p class="footnote">
+        Components consume the variables — never a font name. A translation
+        sheet that shows a Japanese word above a Russian gloss is literally
+        two nested elements with different <code>data-lang</code>; the system
+        handles the rest.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── PRINCIPLE 6 ───────────────────────────────────────── -->
+  <section class="principle">
+    <div class="principle__num">06</div>
+    <div class="principle__body">
+      <div class="kicker">Principle six</div>
+      <h2>What we will not do.</h2>
+      <ul class="dont">
+        <li>
+          <strong>No webfont everywhere.</strong> We will not load 14&nbsp;MB of
+          fonts on every screen "just in case." A screen requests the fonts for
+          the languages it actually shows.
+        </li>
+        <li>
+          <strong>No fallback chains pretending to be design.</strong>
+          <code>font-family: "Inter", system-ui</code> for Japanese is a bug,
+          not a design choice. Either we have the right font, or we say so.
+        </li>
+        <li>
+          <strong>No transliteration in body text.</strong> Russian books stay
+          Cyrillic. Japanese stays kanji + kana. The user is learning a
+          language; we do not pre-Latinise it for them.
+        </li>
+        <li>
+          <strong>No mixing a serif with a different studio's "sans" sibling
+          on a whim.</strong> Pairings are chosen and tested together.
+          Substitutions go through a typographer, not a settings panel.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── COLOPHON ──────────────────────────────────────────── -->
+  <footer class="colophon">
+    <div class="colophon__grid">
+      <div>
+        <div class="kicker">Document</div>
+        <div>Fluera Typography Principles ƒ.01</div>
+      </div>
+      <div>
+        <div class="kicker">Tokens</div>
+        <div>tokens.css · <code>[data-lang]</code></div>
+      </div>
+      <div>
+        <div class="kicker">Related</div>
+        <div><a href="Fluera.html">→ Live examples in Fluera.html</a></div>
+      </div>
+      <div>
+        <div class="kicker">Last updated</div>
+        <div>May 2026</div>
+      </div>
+    </div>
+    <div class="colophon__mark">F</div>
+  </footer>
+
+</main>
+
+</body>
+</html>

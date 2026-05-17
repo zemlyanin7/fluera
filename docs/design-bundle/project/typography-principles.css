@@ -1,0 +1,449 @@
+/* Fluera — Typography Principles document styles.
+   Editorial layout: long-form, single-column, generous margins.
+   Uses Inter for chrome, Source Serif 4 for headings/quotes,
+   and per-script samples activated by [data-lang=".."] from tokens.css. */
+
+html, body {
+  margin: 0; padding: 0;
+  background: #F5EFE4;
+  color: #1F1A14;
+  font-family: "Inter", -apple-system, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Document scaffold */
+.doc {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 80px 32px 120px;
+}
+
+/* Shared editorial primitives */
+.kicker {
+  font-family: "Inter", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8A8170;
+}
+.kicker.good { color: #4A7A5A; }
+.kicker.bad  { color: #B85138; }
+
+.lede {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 22px;
+  line-height: 1.5;
+  color: #1F1A14;
+  margin: 18px 0 0;
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+}
+.lede em {
+  font-style: italic;
+  color: #1F1A14;
+}
+
+.footnote {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.55;
+  color: #564E42;
+  margin-top: 28px;
+  padding: 18px 22px;
+  background: #EDE5D5;
+  border-radius: 14px;
+  text-wrap: pretty;
+}
+.footnote strong {
+  font-style: normal;
+  font-weight: 600;
+  color: #1F1A14;
+}
+
+/* ── Cover ─────────────────────────────────────────────── */
+.cover {
+  padding: 24px 0 56px;
+  border-bottom: 1px solid color-mix(in oklab, #1F1A14 14%, transparent);
+}
+.cover__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: #8A8170;
+  letter-spacing: 0.06em;
+}
+.cover__date { font-family: "Geist Mono", monospace; }
+.cover__title {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 72px;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  margin: 32px 0 0;
+  color: #1F1A14;
+  text-wrap: balance;
+}
+.cover__title em {
+  font-style: italic;
+  color: #C96442;
+}
+.cover__lede {
+  font-family: "Source Serif 4", serif;
+  font-size: 22px;
+  line-height: 1.55;
+  color: #564E42;
+  margin: 32px 0 0;
+  max-width: 600px;
+  text-wrap: pretty;
+}
+.cover__lede em {
+  font-style: italic;
+  color: #1F1A14;
+}
+
+.cover__pairs {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-top: 56px;
+  padding: 24px 0 4px;
+  border-top: 1px solid color-mix(in oklab, #1F1A14 10%, transparent);
+}
+.cover__pairs > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 0;
+  border-radius: 12px;
+  background: color-mix(in oklab, #1F1A14 4%, transparent);
+  font-feature-settings: "ss01";
+}
+.cover__pairs .serif {
+  font-family: var(--font-reading);
+  font-size: 30px;
+  line-height: 1.05;
+  color: #1F1A14;
+}
+.cover__pairs .sans {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  color: #8A8170;
+  letter-spacing: -0.005em;
+}
+.cover__pairs [data-lang="ar"] .serif,
+.cover__pairs [data-lang="ar"] .sans { direction: rtl; }
+
+/* ── Principle blocks ──────────────────────────────────── */
+.principle {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 24px;
+  padding: 72px 0 8px;
+  border-bottom: 1px solid color-mix(in oklab, #1F1A14 10%, transparent);
+}
+.principle__num {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #C96442;
+  letter-spacing: 0.1em;
+  padding-top: 10px;
+}
+.principle__body h2 {
+  font-family: "Source Serif 4", serif;
+  font-size: 40px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin: 14px 0 0;
+  color: #1F1A14;
+  text-wrap: balance;
+}
+
+/* ── Principle 01 — bad vs good callout ────────────────── */
+.callout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 32px;
+}
+.callout__bad,
+.callout__good {
+  padding: 22px;
+  border-radius: 16px;
+  background: #EDE5D5;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.callout__bad   { border: 1px solid color-mix(in oklab, #B85138 25%, transparent); }
+.callout__good  { border: 1px solid color-mix(in oklab, #4A7A5A 30%, transparent); }
+.callout__sample {
+  font-size: 22px;
+  line-height: 1.7;
+  color: #1F1A14;
+  letter-spacing: 0;
+  min-height: 100px;
+  text-wrap: pretty;
+}
+.callout__good .callout__sample {
+  font-family: var(--font-reading);
+  letter-spacing: var(--reading-letter-spacing);
+  line-height: var(--reading-leading);
+}
+.callout .note {
+  font-family: "Source Serif 4", serif;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.5;
+  color: #564E42;
+  margin-top: auto;
+}
+.callout .note strong {
+  font-style: normal;
+  font-weight: 600;
+  color: #1F1A14;
+}
+
+/* ── Principle 02 — pairs table ────────────────────────── */
+.pairs {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 32px;
+  font-family: "Inter", sans-serif;
+}
+.pairs th {
+  text-align: left;
+  font-family: "Inter", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8A8170;
+  padding: 0 16px 10px 0;
+  border-bottom: 1px solid color-mix(in oklab, #1F1A14 18%, transparent);
+}
+.pairs td {
+  padding: 18px 16px 18px 0;
+  border-bottom: 1px solid color-mix(in oklab, #1F1A14 8%, transparent);
+  vertical-align: baseline;
+  font-size: 14px;
+  color: #1F1A14;
+}
+.pairs tr[data-lang="ar"] .pairs__native { direction: rtl; }
+.pairs__native {
+  font-family: var(--font-reading);
+  font-size: 17px;
+  color: #1F1A14;
+  letter-spacing: 0;
+}
+.pairs td:nth-child(2) {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  color: #8A8170;
+  letter-spacing: 0.04em;
+}
+
+/* ── Principle 03 — metrics grid ───────────────────────── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 32px;
+}
+.metric {
+  background: #EDE5D5;
+  border-radius: 14px;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.metric__num {
+  font-family: var(--font-reading);
+  font-size: 56px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: #1F1A14;
+  font-feature-settings: "tnum" 1;
+  margin: 6px 0 2px;
+}
+.metric__lbl {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  color: #564E42;
+  line-height: 1.4;
+}
+.metric__lbl + .metric__lbl { color: #8A8170; }
+
+/* ── Principle 04 — mixed translation sample ───────────── */
+.mixed {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 28px;
+  align-items: flex-start;
+  margin-top: 28px;
+  padding: 28px 24px;
+  background: #EDE5D5;
+  border-radius: 18px;
+}
+.mixed__half {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mixed__div {
+  width: 1px;
+  height: 100%;
+  background: color-mix(in oklab, #1F1A14 14%, transparent);
+}
+.mixed__word {
+  font-family: var(--font-reading);
+  font-size: 44px;
+  font-weight: 500;
+  letter-spacing: var(--reading-letter-spacing);
+  line-height: 1.1;
+  color: #1F1A14;
+  margin: 4px 0;
+  text-wrap: balance;
+}
+.mixed__ipa {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: #564E42;
+}
+.mixed__caption {
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: #8A8170;
+  margin-top: 6px;
+}
+
+/* ── Principle 05 — code blocks ────────────────────────── */
+.code {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  background: #1F1A14;
+  color: #EDE6D6;
+  padding: 22px 24px;
+  border-radius: 14px;
+  margin-top: 24px;
+  overflow-x: auto;
+  white-space: pre;
+}
+.code .cm   { color: #8A8170; font-style: italic; }
+.code .sel  { color: #E5B85F; }
+.code .prop { color: #B5D7F0; }
+.code .val  { color: #C96442; }
+.code .tag  { color: #B5D7F0; }
+.code .attr { color: #E5B85F; }
+
+p code, li code, .footnote code {
+  font-family: "Geist Mono", monospace;
+  font-size: 0.88em;
+  background: color-mix(in oklab, #1F1A14 8%, transparent);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #1F1A14;
+  font-style: normal;
+}
+
+/* ── Principle 06 — dont list ──────────────────────────── */
+.dont {
+  list-style: none;
+  padding: 0;
+  margin: 32px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.dont li {
+  font-family: "Source Serif 4", serif;
+  font-size: 17px;
+  line-height: 1.55;
+  color: #564E42;
+  padding: 18px 22px 18px 48px;
+  background: #EDE5D5;
+  border-radius: 14px;
+  position: relative;
+  text-wrap: pretty;
+}
+.dont li::before {
+  content: "✗";
+  position: absolute;
+  left: 22px;
+  top: 18px;
+  font-family: "Inter", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: #B85138;
+}
+.dont li strong {
+  font-weight: 600;
+  font-style: normal;
+  color: #1F1A14;
+}
+
+/* ── Colophon ──────────────────────────────────────────── */
+.colophon {
+  margin-top: 96px;
+  padding: 48px 0 0;
+  border-top: 1px solid color-mix(in oklab, #1F1A14 14%, transparent);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 48px;
+  align-items: flex-end;
+}
+.colophon__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px 24px;
+}
+.colophon__grid > div > div:last-child {
+  font-family: "Source Serif 4", serif;
+  font-size: 16px;
+  color: #1F1A14;
+  margin-top: 6px;
+  letter-spacing: -0.005em;
+}
+.colophon__grid a {
+  color: #C96442;
+  text-decoration: none;
+}
+.colophon__grid a:hover { text-decoration: underline; }
+.colophon__mark {
+  font-family: "Source Serif 4", serif;
+  font-size: 96px;
+  font-weight: 500;
+  line-height: 1;
+  color: #C96442;
+  letter-spacing: -0.04em;
+}
+
+/* ── Responsiveness ─────────────────────────────────────── */
+@media (max-width: 720px) {
+  .doc { padding: 48px 22px 80px; }
+  .cover__title { font-size: 48px; }
+  .principle { grid-template-columns: 1fr; gap: 6px; }
+  .principle__num { padding-top: 0; }
+  .principle__body h2 { font-size: 30px; }
+  .callout, .metrics { grid-template-columns: 1fr; }
+  .mixed {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .mixed__div { width: 100%; height: 1px; }
+  .pairs { font-size: 12px; }
+  .pairs td:nth-child(2) { display: none; }
+  .colophon { grid-template-columns: 1fr; }
+  .colophon__mark { font-size: 64px; }
+}
