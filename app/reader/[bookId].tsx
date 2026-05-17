@@ -1,6 +1,6 @@
 // Reader screen — continuous-scroll model (sub-project #3).
 // Все chapters рендерятся в одном FlatList. TOC sheet вместо prev/next.
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUnistyles } from 'react-native-unistyles';
@@ -23,7 +23,11 @@ import {
   useDictionaryLoader,
 } from '@/services/translation/TranslationServiceContext';
 import { tokenize } from '@/services/translation/dictionaries/tokenize';
+import { extractContextForWord } from '@/services/reader/extractContextForWord';
+import { WordStatusRepository } from '@/db/repositories/WordStatusRepository';
+import { useDatabase } from '@/db/DatabaseContext';
 import type { BookLanguage, NativeLanguage } from '@/types/settings';
+import type { InlineNode } from '@/types/content';
 
 export default function ReaderScreen() {
   const router = useRouter();
@@ -37,6 +41,11 @@ export default function ReaderScreen() {
   const dictionaryLoader = useDictionaryLoader();
   const { state, jumpToChapter, setCurrentChapter, savePosition } = useReaderEngine(bookId);
   const bookLang: BookLanguage = (state.book?.language as BookLanguage) ?? 'en';
+  const generationRef = useRef(0);
+  const db = useDatabase();
+  const wordStatusRepo = useMemo(() => new WordStatusRepository(db), [db]);
+  const savedToDeckHintShown = useSettingsStore((s) => s.savedToDeckHintShown);
+  const markSavedToDeckHintShown = useSettingsStore((s) => s.markSavedToDeckHintShown);
 
   // Lazy-load MWE/false-friend dictionaries для пары bookLang→nativeLanguage.
   // Per #4.5 §4.4: seed на book open. Дешёво — async no-op если pair уже loaded.
@@ -61,6 +70,10 @@ export default function ReaderScreen() {
     coverageHint: false,
     bookLanguage: 'en',
     nativeLanguage: 'ru',
+    savedToDeck: false,
+    hasMultipleSenses: false,
+    falseFriendInfo: null,
+    generation: 0,
   });
   const lastFlatIndexRef = useRef(0);
   // Veil прячет content пока scroll-jump (TOC tap или initial restore) идёт.
@@ -71,38 +84,34 @@ export default function ReaderScreen() {
   // v2.2.2: single-tap → sentence translation с выделением выражения.
   // Если слово часть MWE (idiom/phrasal_verb) — выделяем всю фразу.
   // Иначе — выделяем одно слово. Long-press и drag-selection убраны.
+  // Task 38: extractContextForWord из InlineNode[] для preserved formatting.
+  // Task 39: generation token для race-safe rapid taps.
+  // Task 41: принимает inlines + charOffset от ParagraphRender каскада.
   const onWordTap = useCallback(
-    async (word: string, sentence: string) => {
-      // Position тапнутого слова в предложении. indexOf простой эвристический —
-      // если слово встречается несколько раз в предложении, найдёт первое
-      // вхождение. Для MWE-lookup достаточно, т.к. matcher проверяет соседние
-      // токены тоже.
-      const wordCharOffset = Math.max(0, sentence.toLowerCase().indexOf(word.toLowerCase()));
+    async (word: string, _sentence: string, inlines: InlineNode[], charOffset: number) => {
+      const gen = ++generationRef.current;
 
-      // Lookup MWE — может вернуть фразу типа "kick the bucket" если тапнули
-      // на любом слове внутри.
-      const mweHit = mweDictionary.lookup(sentence, wordCharOffset);
+      const ctx = extractContextForWord(inlines, word, charOffset, bookLang);
 
-      // Compute expression: либо MWE-фраза, либо одно слово.
-      let expressionStart = wordCharOffset;
+      // MWE lookup использует plain text
+      const mweHit = mweDictionary.lookup(ctx.plainText, ctx.wordOffsetInPlain);
+
+      let expressionStart = ctx.wordOffsetInPlain;
       let expressionText = word;
       if (mweHit) {
-        // Найти char-границы matched-span в оригинальном sentence (без лоуэркейс).
-        const tokens = tokenize(sentence);
+        const tokens = tokenize(ctx.plainText);
         const startTokenIdx = mweHit.matchStartTokenIdx;
-        const endTokenIdx = startTokenIdx + mweHit.matchedTokens; // exclusive
+        const endTokenIdx = startTokenIdx + mweHit.matchedTokens;
         const startTokenText = tokens[startTokenIdx];
         const endTokenText = tokens[endTokenIdx - 1];
         if (startTokenText && endTokenText) {
-          // Найти позицию первого токена в оригинале (case-insensitive).
-          const sLower = sentence.toLowerCase();
+          const sLower = ctx.plainText.toLowerCase();
           const sStart = sLower.indexOf(startTokenText);
           if (sStart >= 0) {
-            // Найти конец последнего токена.
             const sEnd = sLower.indexOf(endTokenText, sStart) + endTokenText.length;
             if (sEnd > sStart) {
               expressionStart = sStart;
-              expressionText = sentence.slice(sStart, sEnd);
+              expressionText = ctx.plainText.slice(sStart, sEnd);
             }
           }
         }
@@ -112,8 +121,13 @@ export default function ReaderScreen() {
         visible: true,
         mode: 'sentence',
         word: expressionText,
-        sourceSentence: sentence,
+        sourceSentence: ctx.plainText,
+        sourceInlines: ctx.inlines,
+        sourcePlainText: ctx.plainText,
         wordOffsetInSentence: expressionStart,
+        wordOffsetInPlain: expressionStart,
+        wordLength: expressionText.length,
+        wasCapped: ctx.wasCapped,
         status: 'loading',
         placement: { mode: 'modalSheet', arrowDirection: 'right' },
         anchorRect: { x: 0, y: 0, width: 0, height: 0 },
@@ -122,16 +136,25 @@ export default function ReaderScreen() {
         coverageHint: false,
         bookLanguage: bookLang,
         nativeLanguage: nativeLanguage as NativeLanguage,
+        savedToDeck: false,
+        hasMultipleSenses: false,
+        falseFriendInfo: null,
+        generation: gen,
       };
       setPopup(base);
 
       const res = await translation.translateSentence({
-        sentence,
+        sentence: ctx.plainText,
+        sourceInlines: ctx.inlines,
         bookLanguage: bookLang,
         nativeLanguage: nativeLanguage as NativeLanguage,
         wordOffset: expressionStart,
         sourceWord: expressionText,
+        generation: gen,
       });
+
+      // Stale check: другой тап пришёл пока ждали результат
+      if (gen !== generationRef.current) return;
 
       if (res.status === 'ok' && res.translatedSentence) {
         setPopup({
@@ -139,7 +162,7 @@ export default function ReaderScreen() {
           status: 'ready',
           result: {
             status: 'ok',
-            sourceSentence: res.sourceSentence ?? sentence,
+            sourceSentence: res.sourceSentence ?? ctx.plainText,
             translatedSentence: res.translatedSentence,
             translatedWordOffset: res.translatedWordOffset,
             experimental: true,
@@ -154,6 +177,24 @@ export default function ReaderScreen() {
     },
     [translation, mweDictionary, bookLang, nativeLanguage],
   );
+
+  const handleSheetClose = useCallback(() => {
+    translation.abortSentence(generationRef.current);
+    setPopup((p) => ({ ...p, visible: false }));
+  }, [translation]);
+
+  const handleHeartToggle = useCallback(async () => {
+    const word = popup.word;
+    if (!word) return;
+    const isSaved = popup.savedToDeck ?? false;
+    if (isSaved) {
+      await wordStatusRepo.unsave({ word, bookLanguage: bookLang });
+    } else {
+      await wordStatusRepo.save({ word, bookLanguage: bookLang });
+      if (!savedToDeckHintShown) markSavedToDeckHintShown();
+    }
+    setPopup((p) => ({ ...p, savedToDeck: !isSaved }));
+  }, [popup, wordStatusRepo, bookLang, savedToDeckHintShown, markSavedToDeckHintShown]);
 
   const onTopFlatItemChange = useCallback(
     (flatIndex: number) => {
@@ -303,9 +344,10 @@ export default function ReaderScreen() {
       />
       <TranslationPopup
         state={popup}
-        onClose={() => setPopup((prev) => ({ ...prev, visible: false }))}
+        onClose={handleSheetClose}
         onTranslateSentence={() => {}}
         onDislike={() => {}}
+        onHeartToggle={handleHeartToggle}
       />
     </PhoneShell>
   );
