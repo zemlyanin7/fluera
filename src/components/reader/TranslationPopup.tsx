@@ -97,10 +97,22 @@ export function TranslationPopup({
   const reduceMotion = useReducedMotion();
   const reduceTransparency = useReducedTransparency();
 
-  if (!state.visible) return null;
+  // Sheet mounts всегда — управление open/close через ref.expand()/close().
+  // Hooks ДОЛЖНЫ быть до conditional return (rules of hooks).
+  const isModalSheet = state.placement.mode === 'modalSheet';
 
-  // Modal sheet mode
-  if (state.placement.mode === 'modalSheet') {
+  React.useEffect(() => {
+    if (!isModalSheet) return;
+    if (state.visible) {
+      sheetRef.current?.expand();
+    } else {
+      sheetRef.current?.close();
+    }
+  }, [isModalSheet, state.visible]);
+
+  // Modal sheet mode — ВСЕГДА mounted, чтобы open/close через ref работало.
+  // Foundation Sheet primitive стартует с index=-1 (closed), expand() двигает к 0.
+  if (isModalSheet) {
     return (
       <Sheet ref={sheetRef} snapPoints={['50%']} onClose={onClose}>
         <View style={{ padding: 18 }}>
@@ -120,9 +132,9 @@ export function TranslationPopup({
     );
   }
 
+  if (!state.visible) return null;
+
   // Top / bottom anchored Popover.
-  // Popover handles reduceMotion internally via useReducedMotion() (Phase 11).
-  // We pass reduceTransparency down to PopupContents to suppress shadow.
   return (
     <Popover
       visible={state.visible}
