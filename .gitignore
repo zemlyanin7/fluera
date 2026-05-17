@@ -54,6 +54,8 @@ android/app/build/
 .idea/
 coverage/
 .superpowers/
+.claude/scheduled_tasks.lock
+.claude/agents/
 
 # Local sample books for dev/testing (не коммитим — могут быть копирайтные)
 books/

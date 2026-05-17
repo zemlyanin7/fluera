@@ -49,6 +49,32 @@ export class ChapterRepository {
     });
   }
 
+  /**
+   * Batch-create нескольких chapter-записей в одной транзакции.
+   * Используется ImportPipeline после парсинга книги.
+   */
+  async bulkCreate(
+    bookId: string,
+    chapters: {
+      title: string | null;
+      orderIndex: number;
+      startChar: number;
+      endChar: number;
+    }[],
+  ): Promise<void> {
+    return this.db.write(async () => {
+      for (const ch of chapters) {
+        await this.collection.create((c) => {
+          c.bookId = bookId;
+          c.title = ch.title;
+          c.orderIndex = ch.orderIndex;
+          c.startChar = ch.startChar;
+          c.endChar = ch.endChar;
+        });
+      }
+    });
+  }
+
   async listByBook(bookId: string): Promise<ChapterRecord[]> {
     const rows = await this.collection
       .query(Q.where('book_id', bookId), Q.sortBy('order_index', Q.asc))

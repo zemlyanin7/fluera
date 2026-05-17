@@ -140,3 +140,8 @@ jest.mock('expo-crypto', () => {
 
 // react-native-get-random-values — no-op в jest (jsdom поставляет crypto.getRandomValues)
 jest.mock('react-native-get-random-values', () => ({}));
+
+// expo-document-picker — нативный модуль, нужен мок для unit-тестов (#3)
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn(async () => ({ canceled: true, assets: null })),
+}));

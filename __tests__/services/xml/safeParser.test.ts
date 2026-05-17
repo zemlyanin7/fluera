@@ -1,4 +1,4 @@
-import { assertSafeXml } from '@/services/xml/safeParser';
+import { assertSafeXml, assertSafeXmlPermissive } from '@/services/xml/safeParser';
 
 describe('assertSafeXml', () => {
   test('reject ANY DOCTYPE (даже без ENTITY)', () => {
@@ -42,5 +42,40 @@ describe('assertSafeXml', () => {
   test('кастомный maxBytes 5MB для OPDS', () => {
     const big = '<root>' + 'a'.repeat(6 * 1024 * 1024) + '</root>';
     expect(() => assertSafeXml(big, { maxBytes: 5 * 1024 * 1024 })).toThrow(/too large/i);
+  });
+});
+
+describe('assertSafeXmlPermissive', () => {
+  test('allows HTML5 DOCTYPE', () => {
+    expect(() => assertSafeXmlPermissive('<!DOCTYPE html><html><body/></html>')).not.toThrow();
+  });
+
+  test('rejects DOCTYPE with inline ENTITY', () => {
+    expect(() => assertSafeXmlPermissive('<!DOCTYPE foo [<!ENTITY x "y">]><html/>')).toThrow(/Unsafe DOCTYPE/);
+  });
+
+  test('rejects DOCTYPE PUBLIC with inline ENTITY subset', () => {
+    expect(() => assertSafeXmlPermissive(
+      '<!DOCTYPE html PUBLIC "-//W3C" "x.dtd" [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><html/>',
+    )).toThrow(/Unsafe DOCTYPE/);
+  });
+
+  test('allows DOCTYPE PUBLIC без inline ENTITY (XHTML 1.1)', () => {
+    // xmldom не fetch'ит external DTD, безопасно для XHTML stack.
+    expect(() => assertSafeXmlPermissive(
+      '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"><html/>',
+    )).not.toThrow();
+  });
+
+  test('allows DOCTYPE SYSTEM без inline ENTITY', () => {
+    expect(() => assertSafeXmlPermissive('<!DOCTYPE html SYSTEM "x.dtd"><html/>')).not.toThrow();
+  });
+
+  test('rejects xml-stylesheet PI', () => {
+    expect(() => assertSafeXmlPermissive('<?xml-stylesheet href="evil.xsl"?><x/>')).toThrow(/stylesheet/i);
+  });
+
+  test('accepts XHTML без doctype', () => {
+    expect(() => assertSafeXmlPermissive('<html xmlns="http://www.w3.org/1999/xhtml"><body><p>hi</p></body></html>')).not.toThrow();
   });
 });

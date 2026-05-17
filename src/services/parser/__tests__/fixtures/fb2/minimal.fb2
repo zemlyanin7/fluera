@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+  <description>
+    <title-info>
+      <genre>sf</genre>
+      <author><first-name>Test</first-name><last-name>Author</last-name></author>
+      <book-title>Minimal FB2</book-title>
+      <lang>en</lang>
+    </title-info>
+  </description>
+  <body>
+    <section>
+      <title><p>Chapter 1</p></title>
+      <p>First paragraph with <emphasis>italic</emphasis> text.</p>
+      <p>Second paragraph.</p>
+    </section>
+  </body>
+</FictionBook>

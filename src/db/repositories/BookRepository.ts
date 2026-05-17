@@ -93,6 +93,35 @@ export class BookRepository {
     });
   }
 
+  /**
+   * Создание с заранее заданным ID. Нужно для ImportPipeline — bookId
+   * генерируется до записи, чтобы FileSystem-пути привязать к нему атомарно.
+   */
+  async createWithId(input: CreateBookInput & { id: string }): Promise<BookRecord> {
+    return this.db.write(async () => {
+      const now = Date.now();
+      const m = await this.collection.create((b) => {
+        b._raw.id = input.id;
+        b.title = input.title;
+        b.author = input.author ?? null;
+        b.language = input.language;
+        b.format = input.format;
+        b.filePath = input.filePath;
+        b.coverPath = input.coverPath ?? null;
+        b.source = input.source;
+        b.opdsCatalogId = input.opdsCatalogId ?? null;
+        b.totalChars = input.totalChars;
+        b.progress = 0;
+        b.difficulty = null;
+        b.difficultyComputedAt = null;
+        b.addedAt = now;
+        b.lastReadAt = null;
+        b.archived = false;
+      });
+      return toRecord(m);
+    });
+  }
+
   async findById(id: string): Promise<BookRecord | null> {
     try {
       const m = await this.collection.find(id);

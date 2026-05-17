@@ -1,37 +1,53 @@
 import { createTestDatabase } from '@/db/testDatabase';
-import { seedBorgesIfEmpty } from '@/db/seed/borges';
+import { pruneBrokenSeedRecords } from '@/db/seed/borges';
 import { BookRepository } from '@/db/repositories/BookRepository';
-import { ChapterRepository } from '@/db/repositories/ChapterRepository';
 
-describe('seedBorgesIfEmpty', () => {
-  test('добавляет Borges если БД пустая', async () => {
+describe('pruneBrokenSeedRecords', () => {
+  test('deletes books with filePath under /dev/null', async () => {
     const db = createTestDatabase();
-    await seedBorgesIfEmpty(db);
-    const books = await new BookRepository(db).list();
-    expect(books.length).toBe(1);
-    expect(books[0]?.title).toMatch(/Forking Paths/i);
-    expect(books[0]?.author).toBe('J. L. Borges');
-    expect(books[0]?.language).toBe('en');
-    expect(books[0]?.format).toBe('epub');
+    const repo = new BookRepository(db);
+    await repo.create({
+      title: 'Broken seed',
+      author: null,
+      language: 'en',
+      format: 'epub',
+      filePath: '/dev/null/borges.epub',
+      source: 'import',
+      totalChars: 0,
+    });
+    await repo.create({
+      title: 'Real book',
+      author: null,
+      language: 'en',
+      format: 'epub',
+      filePath: '/var/mobile/.../source.epub',
+      source: 'import',
+      totalChars: 100,
+    });
+    const pruned = await pruneBrokenSeedRecords(db);
+    expect(pruned).toBe(1);
+    const remaining = await repo.list();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]?.title).toBe('Real book');
   });
 
-  test('создаёт chapter I с диапазоном 0..5000', async () => {
+  test('returns 0 when no broken records', async () => {
     const db = createTestDatabase();
-    await seedBorgesIfEmpty(db);
-    const books = await new BookRepository(db).list();
-    const chapters = await new ChapterRepository(db).listByBook(books[0]!.id);
-    expect(chapters.length).toBe(1);
-    expect(chapters[0]?.title).toBe('I.');
-    expect(chapters[0]?.startChar).toBe(0);
-    expect(chapters[0]?.endChar).toBe(5000);
+    expect(await pruneBrokenSeedRecords(db)).toBe(0);
   });
 
-  test('idempotent: не дублирует если книга уже есть', async () => {
+  test('idempotent', async () => {
     const db = createTestDatabase();
-    await seedBorgesIfEmpty(db);
-    await seedBorgesIfEmpty(db);
-    await seedBorgesIfEmpty(db);
-    const books = await new BookRepository(db).list();
-    expect(books.length).toBe(1);
+    const repo = new BookRepository(db);
+    await repo.create({
+      title: 'X',
+      language: 'en',
+      format: 'epub',
+      filePath: '/dev/null/x.epub',
+      source: 'import',
+      totalChars: 0,
+    });
+    expect(await pruneBrokenSeedRecords(db)).toBe(1);
+    expect(await pruneBrokenSeedRecords(db)).toBe(0);
   });
 });

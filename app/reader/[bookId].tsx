@@ -1,177 +1,214 @@
-// Reader smoke: топ-бар, ScrollView с параграфами Borges, тап по слову →
-// подсветка accent, Sheet с темой Day/Sepia/Night.
-// Skript-variant: stylesheet.useVariants({ script }) подменяет fontFamily.
-// ВАЖНО (I11): word-tap nested <Text onPress> — Foundation smoke. На Android
-// background рендерится только за глифами. Реальная реализация — в #4
-// (range-based highlight через onTouchStart math на родительском Text).
-import React, { useState, useRef } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { StyleSheet } from 'react-native-unistyles';
-import {
-  PhoneShell,
-  IconBtn,
-  Sheet,
-  SheetRef,
-  Headline,
-  SectionLabel,
-} from '@/components/ui';
-import { IcChevronLeft, IcFontSize } from '@/components/icons';
-import { BORGES_SAMPLE } from '@/fixtures/borges';
+// Reader screen — continuous-scroll model (sub-project #3).
+// Все chapters рендерятся в одном FlatList. TOC sheet вместо prev/next.
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useUnistyles } from 'react-native-unistyles';
+import { PhoneShell, type SheetRef } from '@/components/ui';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { scriptForLang } from '@/theme/scripts';
-import { splitWords } from '@/utils/splitWords';
-import { scriptTypography } from '@/theme/tokens';
-import type { InlineNode, ContentItem, ThemeId } from '@/types';
+import { useReaderEngine } from '@/services/reader/useReaderEngine';
+import {
+  BookRenderer,
+  type BookRendererHandle,
+  ReaderTopBar,
+  ReaderControlsSheet,
+  TableOfContentsSheet,
+  TranslationPopup,
+  type TranslationPopupState,
+} from '@/components/reader';
+import { NoOpTranslationService } from '@/services/translation/NoOpTranslationService';
+import type { BookLanguage, NativeLanguage } from '@/types/settings';
 
-const stylesheet = StyleSheet.create((theme) => ({
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 8 },
-  centerLabel: { textAlign: 'center' as const },
-  chapterNum: { fontFamily: 'Inter-SemiBold', fontSize: 13, color: theme.ink, fontWeight: '600' as const },
-  bookName: { fontFamily: 'SourceSerif4-Italic', fontStyle: 'italic' as const, fontSize: 12, color: theme.ink3 },
-  content: { padding: 28, paddingBottom: 80, flexGrow: 1 },
-  reading: {
-    color: theme.ink,
-    variants: {
-      script: {
-        latin: { fontFamily: 'SourceSerif4-Regular' },
-        cyrillic: { fontFamily: 'Lora-Regular' },
-        cjk_jp: { fontFamily: 'ShipporiMinchoB1-Regular' },
-        cjk_kr: { fontFamily: 'NotoSerifKR-Regular' },
-        arabic: { fontFamily: 'Amiri-Regular', writingDirection: 'rtl' as const, textAlign: 'right' as const },
-        devanagari: { fontFamily: 'TiroDevanagariHindi-Regular' },
-      },
-    },
-  },
-  paragraph: { marginBottom: 14 },
-  word: { paddingHorizontal: 1, borderRadius: 3 },
-  wordActive: { backgroundColor: theme.accent, color: theme.paper },
-  sheetTitle: { marginBottom: 12 },
-  sheetRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  themeChip: { paddingHorizontal: 16, paddingVertical: 14, borderRadius: 14, minWidth: 90, alignItems: 'center', backgroundColor: theme.paper2 },
-  themeChipActive: { borderWidth: 2, borderColor: theme.accent },
-  themeChipText: { fontFamily: 'Inter-SemiBold', fontSize: 13, color: theme.ink },
-  spacer4: { height: 4 }, spacer8: { height: 8 }, spacer14: { height: 14 },
-}));
-
-const THEMES: { id: ThemeId; name: string }[] = [
-  { id: 'light', name: 'Day' },
-  { id: 'sepia', name: 'Sepia' },
-  { id: 'dark', name: 'Night' },
-];
-
-// I2: модульный const — массив больше не пересоздаётся каждый рендер
-// (избегаем лишних ре-рендеров BottomSheet).
-const READER_SHEET_SNAPS: (string | number)[] = ['40%'];
-
-// M2: ThemeSheet вынесен из основного компонента, чтобы [bookId].tsx
-// уместился в лимит 200 строк (CLAUDE.md §«Паттерны компонентов»).
-const ThemeSheet = React.forwardRef<SheetRef, { themeId: ThemeId; onPickTheme: (id: ThemeId) => void }>(
-  ({ themeId, onPickTheme }, ref) => (
-    <Sheet ref={ref} snapPoints={READER_SHEET_SNAPS}>
-      <View style={stylesheet.sheetTitle}>
-        <Headline level={2}>Reading</Headline>
-      </View>
-      <SectionLabel>Paper</SectionLabel>
-      <View style={stylesheet.spacer8} />
-      <View style={stylesheet.sheetRow}>
-        {THEMES.map((t) => {
-          const active = themeId === t.id;
-          return (
-            <Pressable
-              key={t.id}
-              onPress={() => onPickTheme(t.id)}
-              style={[stylesheet.themeChip, active && stylesheet.themeChipActive]}
-            >
-              <Text style={stylesheet.themeChipText}>{t.name}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </Sheet>
-  ),
-);
-ThemeSheet.displayName = 'ThemeSheet';
+const translation = new NoOpTranslationService();
 
 export default function ReaderScreen() {
   const router = useRouter();
-  const bookLang = useSettingsStore((s) => s.bookLanguage);
-  const themeId = useSettingsStore((s) => s.themeId);
-  const setTheme = useSettingsStore((s) => s.setTheme);
+  const params = useLocalSearchParams<{ bookId: string }>();
+  const bookId = params.bookId ?? '';
+  const { theme } = useUnistyles();
   const fontSize = useSettingsStore((s) => s.fontSize);
+  const nativeLanguage = useSettingsStore((s) => s.nativeLanguage);
+  const { state, jumpToChapter, setCurrentChapter, savePosition } = useReaderEngine(bookId);
+  const bookLang: BookLanguage = (state.book?.language as BookLanguage) ?? 'en';
   const script = scriptForLang(bookLang);
+  const controlsRef = useRef<SheetRef>(null);
+  const tocRef = useRef<SheetRef>(null);
+  const bookRendererRef = useRef<BookRendererHandle>(null);
+  const [popup, setPopup] = useState<TranslationPopupState>({ kind: 'closed' });
+  const lastFlatIndexRef = useRef(0);
+  // Veil прячет content пока scroll-jump (TOC tap или initial restore) идёт.
+  // Снимается когда target chapter становится видимым (onViewableItemsChanged).
+  const [veilTarget, setVeilTarget] = useState<number | null>(null);
+  const veilTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  stylesheet.useVariants({ script });
+  const onWordTap = useCallback(
+    async (word: string, sentence: string) => {
+      setPopup({ kind: 'opening', word, sentence });
+      const res = await translation.translate({
+        word,
+        contextWindow: sentence,
+        bookLanguage: bookLang,
+        nativeLanguage: nativeLanguage as NativeLanguage,
+      });
+      if (res.status === 'pending') {
+        setPopup({ kind: 'pending', word, sentence });
+      } else if (res.status === 'ok' && res.translation) {
+        setPopup({ kind: 'success', word, translation: res.translation });
+      } else {
+        setPopup({ kind: 'error', word, reason: res.errorMessage ?? 'unknown' });
+      }
+    },
+    [bookLang, nativeLanguage],
+  );
 
-  const sheetRef = useRef<SheetRef>(null);
-  const [activeWord, setActiveWord] = useState<string | null>(null);
-  const onTap = (id: string) =>
-    setActiveWord((prev) => (prev === id ? null : id));
+  const onTopFlatItemChange = useCallback(
+    (flatIndex: number) => {
+      lastFlatIndexRef.current = flatIndex;
+      // Во время restore (veil активен) не save — иначе промежуточные индексы
+      // от FlatList'a OVERWRITE'ят сохранённую позицию пользователя.
+      if (veilTarget !== null) return;
+      savePosition(state.currentChapterIndex, flatIndex);
+    },
+    [savePosition, state.currentChapterIndex, veilTarget],
+  );
 
-  const renderInline = (node: InlineNode, pi: number, ii: number): React.ReactNode => {
-    if (node.type !== 'text') return null;
-    const tokens = splitWords(node.text);
-    return tokens.map((tok, ti) => {
-      if (tok.kind !== 'word') return <Text key={`${pi}-${ii}-${ti}-x`}>{tok.text}</Text>;
-      const id = `${pi}-${ii}-${ti}`;
-      const isActive = activeWord === id;
-      return (
-        <Text
-          key={id}
-          onPress={() => onTap(id)}
-          style={[stylesheet.word, isActive && stylesheet.wordActive]}
-        >
-          {tok.text}
-        </Text>
-      );
-    });
-  };
+  // TOC tap → scroll to chapter marker.
+  useEffect(() => {
+    if (!state.scrollToChapterRequest) return;
+    const target = state.scrollToChapterRequest.index;
+    setVeilTarget(target);
+    bookRendererRef.current?.scrollToChapter(target);
+    if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
+    veilTimeoutRef.current = setTimeout(() => setVeilTarget(null), 2000);
+    return () => {
+      if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
+    };
+  }, [state.scrollToChapterRequest]);
 
-  const renderItem = (item: ContentItem, pi: number): React.ReactNode => {
-    if (item.type !== 'paragraph') return null;
-    const leading = scriptTypography[script].readingLeading;
+  // Initial restore → exact top-visible flat item index.
+  useEffect(() => {
+    if (!state.scrollToFlatIndexRequest) return;
+    setVeilTarget(state.currentChapterIndex);
+    bookRendererRef.current?.scrollToFlatIndex(state.scrollToFlatIndexRequest.index);
+    if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
+    // 2000ms запас — onScrollToIndexFailed retry может ~150ms.
+    veilTimeoutRef.current = setTimeout(() => setVeilTarget(null), 2000);
+    return () => {
+      if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.scrollToFlatIndexRequest]);
+
+  // Снимаем veil когда target chapter стал текущим (для TOC jump).
+  useEffect(() => {
+    if (veilTarget !== null && state.currentChapterIndex === veilTarget) {
+      if (veilTimeoutRef.current) {
+        clearTimeout(veilTimeoutRef.current);
+        veilTimeoutRef.current = null;
+      }
+      setVeilTarget(null);
+    }
+  }, [state.currentChapterIndex, veilTarget]);
+
+  useEffect(() => {
+    return () => {
+      if (veilTimeoutRef.current) clearTimeout(veilTimeoutRef.current);
+    };
+  }, []);
+
+  if (state.status === 'error') {
     return (
-      <Text
-        key={pi}
-        style={[
-          stylesheet.reading,
-          stylesheet.paragraph,
-          { fontSize, lineHeight: fontSize * leading },
-        ]}
-      >
-        {item.inlines.map((n, ii) => renderInline(n, pi, ii))}
-      </Text>
+      <PhoneShell>
+        <ReaderTopBar
+          chapterIndex={0}
+          chapterTitle={null}
+          onBack={() => router.back()}
+          onOpenSettings={() => {}}
+          onOpenToc={() => {}}
+        />
+        <View
+          style={{ flex: 1, padding: 18, justifyContent: 'center', alignItems: 'center', gap: 12 }}
+        >
+          <Text style={{ color: theme.ink, fontSize: 16, textAlign: 'center' }}>
+            Ошибка: {state.error}
+          </Text>
+          <Text style={{ color: theme.ink3, fontSize: 13, textAlign: 'center' }}>
+            Tap back ↑ или удалите книгу из Library
+          </Text>
+        </View>
+      </PhoneShell>
     );
-  };
+  }
+
+  if (state.status !== 'ready' || state.chapters.length === 0 || !state.book) {
+    return (
+      <PhoneShell>
+        <ReaderTopBar
+          chapterIndex={0}
+          chapterTitle={null}
+          onBack={() => router.back()}
+          onOpenSettings={() => {}}
+          onOpenToc={() => {}}
+        />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator color={theme.accent} />
+        </View>
+      </PhoneShell>
+    );
+  }
+
+  const currentChapter = state.chapters.find((c) => c.index === state.currentChapterIndex);
 
   return (
     <PhoneShell>
-      <View style={stylesheet.topBar}>
-        <IconBtn onPress={() => router.back()} accessibilityLabel="Back">
-          <IcChevronLeft size={18} />
-        </IconBtn>
-        <View>
-          <Text style={[stylesheet.centerLabel, stylesheet.chapterNum]}>
-            Ch. {BORGES_SAMPLE.index + 1}
-          </Text>
-          <Text style={[stylesheet.centerLabel, stylesheet.bookName]}>
-            The Garden of Forking Paths
-          </Text>
-        </View>
-        <IconBtn onPress={() => sheetRef.current?.expand()} accessibilityLabel="Settings">
-          <IcFontSize size={18} />
-        </IconBtn>
+      <ReaderTopBar
+        chapterIndex={state.currentChapterIndex}
+        chapterTitle={currentChapter?.title ?? null}
+        onBack={() => router.back()}
+        onOpenSettings={() => controlsRef.current?.expand()}
+        onOpenToc={() => tocRef.current?.expand()}
+      />
+      <View style={{ flex: 1 }}>
+        <BookRenderer
+          ref={bookRendererRef}
+          chapters={state.chapters}
+          onWordTap={onWordTap}
+          onCurrentChapterChange={setCurrentChapter}
+          onTopFlatItemChange={onTopFlatItemChange}
+          fontSize={fontSize}
+          script={script}
+          bookId={state.book.id}
+        />
+        {veilTarget !== null && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: theme.paper,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <ActivityIndicator color={theme.accent} />
+          </View>
+        )}
       </View>
-
-      <ScrollView contentContainerStyle={stylesheet.content}>
-        <SectionLabel>Chapter</SectionLabel>
-        <View style={stylesheet.spacer4} />
-        <Headline level={1}>{BORGES_SAMPLE.title ?? ''}</Headline>
-        <View style={stylesheet.spacer14} />
-        {BORGES_SAMPLE.items.map((item, pi) => renderItem(item, pi))}
-      </ScrollView>
-
-      <ThemeSheet ref={sheetRef} themeId={themeId} onPickTheme={(id) => setTheme(id, false)} />
+      <ReaderControlsSheet ref={controlsRef} />
+      <TableOfContentsSheet
+        ref={tocRef}
+        chapters={state.chapterMeta.length > 0 ? state.chapterMeta : state.chapters.map((c) => ({ index: c.index, title: c.title }))}
+        currentChapterIndex={state.currentChapterIndex}
+        onPickChapter={(idx) => {
+          tocRef.current?.close();
+          jumpToChapter(idx);
+        }}
+      />
+      <TranslationPopup state={popup} onClose={() => setPopup({ kind: 'closed' })} />
     </PhoneShell>
   );
 }

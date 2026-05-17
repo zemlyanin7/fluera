@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+  <description>
+    <title-info>
+      <book-title>With Cover</book-title>
+      <lang>en</lang>
+      <coverpage><image l:href="#cover.jpg"/></coverpage>
+    </title-info>
+  </description>
+  <body><section><p>Text</p></section></body>
+  <binary id="cover.jpg" content-type="image/jpeg">/9j/4AAQSkZJRg==</binary>
+</FictionBook>

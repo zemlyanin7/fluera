@@ -1,82 +1,159 @@
-// Library — фиксированная карточка Borges, тап → Reader.
-// theme.paper2 читается inline через useUnistyles() — иначе закэшированный
-// StyleSheet.create не подхватывает смену темы (см. PhoneShell.tsx).
-import React, { useMemo } from 'react';
-import { View, Pressable, StyleSheet as RN } from 'react-native';
+// Library — список книг из useBookList + кнопка Import.
+// При пустой коллекции — empty state + CTA «Import a book».
+import React, { useMemo, useCallback } from 'react';
+import { View, Pressable, ScrollView, Text, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUnistyles } from 'react-native-unistyles';
-import {
-  PhoneShell,
-  Headline,
-  SectionLabel,
-  BookCover,
-  Pill,
-  ProgressBar,
-} from '@/components/ui';
+import { PhoneShell, Headline, SectionLabel, Pill, ProgressBar } from '@/components/ui';
+import { CoverThumbnail } from '@/components/reader';
 import { useSettingsStore } from '@/stores/settingsStore';
-
-const staticStyles = RN.create({
-  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 12 },
-  cardWrap: { paddingHorizontal: 18, paddingBottom: 14 },
-  card: {
-    borderRadius: 22,
-    padding: 18,
-    flexDirection: 'row',
-    gap: 16,
-  },
-  meta: { flex: 1, justifyContent: 'space-between' },
-  pills: { flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' },
-  bottom: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
-  progressWrap: { flex: 1 },
-  spacer2: { height: 2 },
-});
+import { useBookList } from '@/hooks/data';
+import { useDatabase } from '@/db/DatabaseContext';
+import { BookRepository } from '@/db/repositories/BookRepository';
 
 export default function LibraryScreen() {
   const router = useRouter();
   const uiLanguage = useSettingsStore((s) => s.uiLanguage);
   const { theme } = useUnistyles();
-  // M3: дата в UI-локали, без хардкода. Зависимость только от смены языка/дня.
+  const db = useDatabase();
+  const { books, isLoading } = useBookList();
+
+  const onLongPressBook = useCallback(
+    (bookId: string, title: string) => {
+      Alert.alert(
+        'Удалить книгу?',
+        `«${title}» будет удалена из библиотеки.`,
+        [
+          { text: 'Отмена', style: 'cancel' },
+          {
+            text: 'Удалить',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await new BookRepository(db).delete(bookId);
+              } catch (e) {
+                Alert.alert('Ошибка', (e as Error).message);
+              }
+            },
+          },
+        ],
+      );
+    },
+    [db],
+  );
   const todayLabel = useMemo(
-    () => new Intl.DateTimeFormat(uiLanguage, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()),
+    () =>
+      new Intl.DateTimeFormat(uiLanguage, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }).format(new Date()),
     [uiLanguage],
   );
+
   return (
     <PhoneShell>
-      <View style={staticStyles.header}>
+      <View style={{ paddingHorizontal: 22, paddingTop: 8, paddingBottom: 12 }}>
         <SectionLabel>{todayLabel}</SectionLabel>
-        <View style={staticStyles.spacer2} />
+        <View style={{ height: 2 }} />
         <Headline level={1}>Library</Headline>
       </View>
-      <View style={staticStyles.cardWrap}>
-        <Pressable
-          onPress={() => router.push('/reader/borges')}
-          style={[staticStyles.card, { backgroundColor: theme.paper2 }]}
-        >
-          <BookCover
-            book={{
-              title: 'The Garden of Forking Paths',
-              author: 'J. L. Borges',
-              gradient: ['#C0392B', '#8B2A1F', '#5C1810'],
-            }}
-            w={92}
-            h={130}
-          />
-          <View style={staticStyles.meta}>
-            <View>
-              <Headline level={3}>The Garden of Forking Paths</Headline>
-              <View style={staticStyles.pills}>
-                <Pill>EN</Pill>
-                <Pill tone="accent">14-day streak</Pill>
-              </View>
-            </View>
-            <View style={staticStyles.bottom}>
-              <View style={staticStyles.progressWrap}>
-                <ProgressBar value={0.13} tone="accent" />
-              </View>
-            </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
+        {!isLoading && books.length === 0 && (
+          <View style={{ padding: 32, alignItems: 'center', gap: 14 }}>
+            <Text style={{ color: theme.ink2, textAlign: 'center' }}>
+              No books yet. Import EPUB or FB2 to start reading.
+            </Text>
+            <Pressable
+              accessibilityLabel="Import a book"
+              onPress={() => router.push('/import')}
+              style={{
+                paddingHorizontal: 24,
+                paddingVertical: 14,
+                borderRadius: 14,
+                backgroundColor: theme.accent,
+              }}
+            >
+              <Text
+                style={{
+                  color: theme.paper,
+                  fontFamily: 'Inter-SemiBold',
+                  fontSize: 16,
+                }}
+              >
+                + Import a book
+              </Text>
+            </Pressable>
           </View>
-        </Pressable>
-      </View>
+        )}
+        {books.map((book) => (
+          <View key={book.id} style={{ paddingHorizontal: 18, paddingBottom: 14 }}>
+            <Pressable
+              accessibilityLabel={`Open ${book.title}`}
+              onPress={() => router.push(`/reader/${book.id}`)}
+              onLongPress={() => onLongPressBook(book.id, book.title)}
+              delayLongPress={500}
+              style={{
+                borderRadius: 22,
+                padding: 18,
+                flexDirection: 'row',
+                gap: 16,
+                backgroundColor: theme.paper2,
+              }}
+            >
+              <CoverThumbnail
+                coverPath={book.coverPath}
+                title={book.title}
+                width={92}
+                height={130}
+              />
+              <View style={{ flex: 1, justifyContent: 'space-between' }}>
+                <View>
+                  <Headline level={3}>{book.title}</Headline>
+                  {book.author && (
+                    <Text style={{ color: theme.ink3, marginTop: 4 }}>{book.author}</Text>
+                  )}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: 6,
+                      marginTop: 8,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <Pill>{book.language.toUpperCase()}</Pill>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <ProgressBar value={book.progress} tone="accent" />
+                  </View>
+                </View>
+              </View>
+            </Pressable>
+          </View>
+        ))}
+        {books.length > 0 && (
+          <View style={{ padding: 18, alignItems: 'center' }}>
+            <Pressable
+              accessibilityLabel="Import a book"
+              onPress={() => router.push('/import')}
+              style={{
+                paddingHorizontal: 20,
+                paddingVertical: 12,
+                borderRadius: 14,
+                backgroundColor: theme.paper2,
+                borderWidth: 1,
+                borderColor: theme.accentLine,
+              }}
+            >
+              <Text style={{ color: theme.ink, fontFamily: 'Inter-SemiBold' }}>
+                + Add another book
+              </Text>
+            </Pressable>
+          </View>
+        )}
+      </ScrollView>
     </PhoneShell>
   );
 }
