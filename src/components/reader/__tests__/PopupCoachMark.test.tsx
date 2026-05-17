@@ -5,7 +5,8 @@ import { PopupCoachMark } from '@/components/reader/PopupCoachMark';
 describe('PopupCoachMark', () => {
   it('renders hint text + 2 buttons', () => {
     const { getByText } = render(<PopupCoachMark onSkip={() => {}} onAcknowledge={() => {}} />);
-    expect(getByText(/long-press|удержание|удержите/i)).toBeTruthy();
+    // EN: "Hold your finger on a word..." / RU: "Удержите палец..."
+    expect(getByText(/hold|long.press|удержание|удержите/i)).toBeTruthy();
     expect(getByText(/Skip|Пропустить/i)).toBeTruthy();
     expect(getByText(/Got it|Понятно/i)).toBeTruthy();
   });

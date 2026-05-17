@@ -9,7 +9,6 @@ describe('ParagraphRender rotor actions', () => {
     const item = { type: 'paragraph', inlines: [{ type: 'text', text: 'Hello world.' }] };
     const { UNSAFE_getAllByType } = render(
       <ParagraphRender
-        item={item as any}
         inlines={item.inlines as any}
         onWordTap={() => {}}
         onWordLongPress={() => {}}

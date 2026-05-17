@@ -67,6 +67,7 @@ describe('TranslationPopup', () => {
         onDislike={() => {}}
       />,
     );
-    expect(getByText(/Экспериментальный/i)).toBeTruthy();
+    // Jest mock returns EN strings from en.json (translation.experimentalBadge = "⚠️ Experimental translation")
+    expect(getByText(/Experimental/i)).toBeTruthy();
   });
 });

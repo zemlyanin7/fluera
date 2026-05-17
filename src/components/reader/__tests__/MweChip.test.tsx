@@ -5,7 +5,8 @@ import { MweChip } from '@/components/reader/MweChip';
 describe('MweChip', () => {
   it('renders phrase type tag', () => {
     const { getByText } = render(<MweChip type="idiom" />);
-    expect(getByText(/идиома/i)).toBeTruthy();
+    // Jest mock returns EN strings from en.json (translation.mweType.idiom = "idiom")
+    expect(getByText(/idiom/i)).toBeTruthy();
   });
 
   it('renders phrasal_verb', () => {

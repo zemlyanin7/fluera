@@ -79,16 +79,21 @@ jest.mock('expo-linear-gradient', () => {
 
 // react-i18next mock — возвращает ключ через простой lookup по en.json,
 // чтобы тесты на TabBar/прочие компоненты не требовали инициализации i18n.
+// Поддерживает базовую интерполяцию {{var}} из opts.
 jest.mock('react-i18next', () => {
   const en = require('./src/i18n/locales/en.json');
   const get = (obj, path) =>
     path.split('.').reduce((acc, k) => (acc == null ? undefined : acc[k]), obj);
+  const interpolate = (str, opts) => {
+    if (!opts || typeof opts !== 'object') return str;
+    return str.replace(/\{\{(\w+)\}\}/g, (_, k) => (k in opts ? String(opts[k]) : `{{${k}}}`));
+  };
   return {
     useTranslation: () => ({
       t: (key, opts) => {
         const v = get(en, key);
-        if (typeof v === 'string') return v;
-        if (opts && typeof opts === 'object' && typeof opts.defaultValue === 'string') return opts.defaultValue;
+        if (typeof v === 'string') return interpolate(v, opts);
+        if (opts && typeof opts === 'object' && typeof opts.defaultValue === 'string') return interpolate(opts.defaultValue, opts);
         return key;
       },
       i18n: { changeLanguage: jest.fn() },

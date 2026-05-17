@@ -5,7 +5,8 @@ import { DislikeButton } from '@/components/reader/DislikeButton';
 describe('DislikeButton', () => {
   it('renders с label', () => {
     const { getByText } = render(<DislikeButton isDisliked={false} onToggle={() => {}} />);
-    expect(getByText(/Плохой перевод/i)).toBeTruthy();
+    // Jest mock returns EN strings from en.json (translation.dislikeLabel)
+    expect(getByText(/Bad translation/i)).toBeTruthy();
   });
 
   it('calls onToggle on press', () => {

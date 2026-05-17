@@ -3,9 +3,10 @@ import { render } from '@testing-library/react-native';
 import { ExperimentalBadge } from '@/components/reader/ExperimentalBadge';
 
 describe('ExperimentalBadge', () => {
-  it('renders с warning icon + russian label', () => {
+  it('renders с warning icon + translation key label', () => {
     const { getByText } = render(<ExperimentalBadge />);
-    expect(getByText(/Экспериментальный/i)).toBeTruthy();
+    // Jest mock returns EN strings from en.json (translation.experimentalBadge)
+    expect(getByText(/Experimental/i)).toBeTruthy();
   });
 
   it('has accessibilityRole=alert', () => {

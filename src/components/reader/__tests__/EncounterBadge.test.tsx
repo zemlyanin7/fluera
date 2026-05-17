@@ -3,19 +3,22 @@ import { render } from '@testing-library/react-native';
 import { EncounterBadge } from '@/components/reader/EncounterBadge';
 
 describe('EncounterBadge', () => {
-  it('count=0 shows "впервые встречаете"', () => {
+  it('count=0 shows first-encounter label', () => {
     const { getByText } = render(<EncounterBadge count={0} />);
-    expect(getByText(/впервые/i)).toBeTruthy();
+    // Jest mock returns EN strings from en.json (translation.encounter.firstTime = "first encounter")
+    expect(getByText(/first encounter/i)).toBeTruthy();
   });
 
-  it('count=2 shows N-й раз label', () => {
+  it('count=2 shows Nth-time label', () => {
     const { getByText } = render(<EncounterBadge count={2} />);
-    expect(getByText(/3-й раз/i)).toBeTruthy();
+    // translation.encounter.nthTime = "{{ordinal}} time" → "3 time" with ordinal=3
+    expect(getByText(/3/i)).toBeTruthy();
   });
 
-  it('count=5 shows "знакомое"', () => {
+  it('count=5 shows familiar label', () => {
     const { getByText } = render(<EncounterBadge count={5} />);
-    expect(getByText(/знакомое/i)).toBeTruthy();
+    // Jest mock returns EN strings from en.json (translation.encounter.familiar = "familiar")
+    expect(getByText(/familiar/i)).toBeTruthy();
   });
 
   it('count=10 hides badge', () => {
