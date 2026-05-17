@@ -13,7 +13,7 @@ import { CacheLayer } from './CacheLayer';
 import { InferenceQueue } from './InferenceQueue';
 import { LlamaContextManager } from './LlamaContextManager';
 import { LlamaTranslationService } from './LlamaTranslationService';
-import { TranslationServiceProvider } from './TranslationServiceContext';
+import { TranslationServiceProvider, DictionaryProvider } from './TranslationServiceContext';
 import { getKernelBuildId } from './kernelBuildId';
 import { MODEL_MANIFEST } from './modelManifest';
 
@@ -66,5 +66,9 @@ export function LlmBootstrap({ children }: { children: React.ReactNode }) {
     });
   }, [db]);
 
-  return <TranslationServiceProvider service={service}>{children}</TranslationServiceProvider>;
+  return (
+    <TranslationServiceProvider service={service}>
+      <DictionaryProvider>{children}</DictionaryProvider>
+    </TranslationServiceProvider>
+  );
 }

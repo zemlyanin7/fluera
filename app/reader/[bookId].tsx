@@ -17,7 +17,12 @@ import {
   TranslationPopup,
   type PopupViewState,
 } from '@/components/reader';
-import { useTranslationService } from '@/services/translation/TranslationServiceContext';
+import {
+  useTranslationService,
+  useMweDictionary,
+  useDictionaryLoader,
+} from '@/services/translation/TranslationServiceContext';
+import { tokenize } from '@/services/translation/dictionaries/tokenize';
 import type { BookLanguage, NativeLanguage } from '@/types/settings';
 
 export default function ReaderScreen() {
@@ -28,8 +33,16 @@ export default function ReaderScreen() {
   const fontSize = useSettingsStore((s) => s.fontSize);
   const nativeLanguage = useSettingsStore((s) => s.nativeLanguage);
   const translation = useTranslationService();
+  const mweDictionary = useMweDictionary();
+  const dictionaryLoader = useDictionaryLoader();
   const { state, jumpToChapter, setCurrentChapter, savePosition } = useReaderEngine(bookId);
   const bookLang: BookLanguage = (state.book?.language as BookLanguage) ?? 'en';
+
+  // Lazy-load MWE/false-friend dictionaries для пары bookLang→nativeLanguage.
+  // Per #4.5 §4.4: seed на book open. Дешёво — async no-op если pair уже loaded.
+  useEffect(() => {
+    void dictionaryLoader.loadPair(bookLang, nativeLanguage);
+  }, [dictionaryLoader, bookLang, nativeLanguage]);
   const script = scriptForLang(bookLang);
   const controlsRef = useRef<SheetRef>(null);
   const tocRef = useRef<SheetRef>(null);
@@ -55,14 +68,52 @@ export default function ReaderScreen() {
   const [veilTarget, setVeilTarget] = useState<number | null>(null);
   const veilTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // v2.2.2: single-tap → sentence translation с выделением выражения.
+  // Если слово часть MWE (idiom/phrasal_verb) — выделяем всю фразу.
+  // Иначе — выделяем одно слово. Long-press и drag-selection убраны.
   const onWordTap = useCallback(
     async (word: string, sentence: string) => {
+      // Position тапнутого слова в предложении. indexOf простой эвристический —
+      // если слово встречается несколько раз в предложении, найдёт первое
+      // вхождение. Для MWE-lookup достаточно, т.к. matcher проверяет соседние
+      // токены тоже.
+      const wordCharOffset = Math.max(0, sentence.toLowerCase().indexOf(word.toLowerCase()));
+
+      // Lookup MWE — может вернуть фразу типа "kick the bucket" если тапнули
+      // на любом слове внутри.
+      const mweHit = mweDictionary.lookup(sentence, wordCharOffset);
+
+      // Compute expression: либо MWE-фраза, либо одно слово.
+      let expressionStart = wordCharOffset;
+      let expressionText = word;
+      if (mweHit) {
+        // Найти char-границы matched-span в оригинальном sentence (без лоуэркейс).
+        const tokens = tokenize(sentence);
+        const startTokenIdx = mweHit.matchStartTokenIdx;
+        const endTokenIdx = startTokenIdx + mweHit.matchedTokens; // exclusive
+        const startTokenText = tokens[startTokenIdx];
+        const endTokenText = tokens[endTokenIdx - 1];
+        if (startTokenText && endTokenText) {
+          // Найти позицию первого токена в оригинале (case-insensitive).
+          const sLower = sentence.toLowerCase();
+          const sStart = sLower.indexOf(startTokenText);
+          if (sStart >= 0) {
+            // Найти конец последнего токена.
+            const sEnd = sLower.indexOf(endTokenText, sStart) + endTokenText.length;
+            if (sEnd > sStart) {
+              expressionStart = sStart;
+              expressionText = sentence.slice(sStart, sEnd);
+            }
+          }
+        }
+      }
+
       const base: PopupViewState = {
         visible: true,
-        mode: 'word',
-        word,
+        mode: 'sentence',
+        word: expressionText,
         sourceSentence: sentence,
-        wordOffsetInSentence: 0,
+        wordOffsetInSentence: expressionStart,
         status: 'loading',
         placement: { mode: 'modalSheet', arrowDirection: 'right' },
         anchorRect: { x: 0, y: 0, width: 0, height: 0 },
@@ -73,21 +124,35 @@ export default function ReaderScreen() {
         nativeLanguage: nativeLanguage as NativeLanguage,
       };
       setPopup(base);
-      const res = await translation.translate({
-        word,
-        contextWindow: sentence,
+
+      const res = await translation.translateSentence({
+        sentence,
         bookLanguage: bookLang,
         nativeLanguage: nativeLanguage as NativeLanguage,
+        wordOffset: expressionStart,
+        sourceWord: expressionText,
       });
-      if (res.status === 'ok' && res.translation) {
-        setPopup({ ...base, status: 'ready', result: { translation: res.translation, source: res.source } as any });
-      } else if (res.status === 'pending' || res.errorCode === 'MODEL_LOADING') {
+
+      if (res.status === 'ok' && res.translatedSentence) {
+        setPopup({
+          ...base,
+          status: 'ready',
+          result: {
+            status: 'ok',
+            sourceSentence: res.sourceSentence ?? sentence,
+            translatedSentence: res.translatedSentence,
+            translatedWordOffset: res.translatedWordOffset,
+            experimental: true,
+            source: res.source,
+          } as any,
+        });
+      } else if (res.errorCode === 'MODEL_LOADING') {
         setPopup({ ...base, status: 'loading' });
       } else {
         setPopup({ ...base, status: 'error' });
       }
     },
-    [translation, bookLang, nativeLanguage],
+    [translation, mweDictionary, bookLang, nativeLanguage],
   );
 
   const onTopFlatItemChange = useCallback(
