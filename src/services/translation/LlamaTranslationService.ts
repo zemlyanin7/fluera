@@ -233,8 +233,12 @@ export class LlamaTranslationService implements ITranslationService {
       const dt = Date.now() - t0;
       if (__DEV__) console.log(`[translateSentence] done ${dt}ms gen=${gen} → "${raw.text.slice(0, 60)}"`);
 
-      if (this.tokens.isStale(gen)) {
-        return { status: 'error', errorCode: 'INFERENCE_FAILED', errorMessage: 'stale', generation: gen, experimental: true };
+      // v4 (#4.5.1 hotfix): когда caller supplies input.generation, service
+      // не владеет counter — caller сам делает stale-check (gen !== ref.current).
+      // Service лишь проверяет explicit abort через abortSentence().
+      const callerControlsGen = input.generation !== undefined;
+      if (callerControlsGen ? this.tokens.isAborted(gen) : this.tokens.isStale(gen)) {
+        return { status: 'error', errorCode: 'INFERENCE_FAILED', errorMessage: 'aborted', generation: gen, experimental: true };
       }
 
       const translatedSentence = cleanSentenceTranslation(raw.text);

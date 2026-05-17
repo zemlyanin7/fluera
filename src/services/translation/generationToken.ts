@@ -13,8 +13,21 @@ export class GenerationTokenManager {
     return this.current;
   }
 
+  /**
+   * Stale если token superseded (current ушёл вперёд) ИЛИ explicit abort.
+   * Используется когда service сам владеет counter (input.generation не передан).
+   */
   isStale(token: number): boolean {
     return token !== this.current || this.aborted.has(token);
+  }
+
+  /**
+   * Только explicit abort. Используется когда caller владеет counter
+   * (input.generation supplied) — caller сам делает stale-check
+   * (`gen !== ref.current`), service лишь проверяет explicit abort.
+   */
+  isAborted(token: number): boolean {
+    return this.aborted.has(token);
   }
 
   abort(token: number): void {
