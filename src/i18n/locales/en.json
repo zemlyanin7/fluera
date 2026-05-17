@@ -48,9 +48,11 @@
     "alternativeSenses": "other meanings ({{count}})",
     "errorGeneric": "Could not translate",
     "encounter": {
-      "firstTime": "first encounter",
-      "nthTime": "{{ordinal}} time",
-      "familiar": "familiar"
+      "firstTime": "впервые встречаете",
+      "nthTime": "{{ordinal}}-й раз",
+      "forming": "{{ordinal}}-й раз, формируется узнавание",
+      "consolidating": "{{ordinal}}-й раз — закрепляется",
+      "wellKnown": "хорошо знакомо"
     },
     "mweType": {
       "idiom": "idiom",

@@ -50,7 +50,9 @@
     "encounter": {
       "firstTime": "впервые встречаете",
       "nthTime": "{{ordinal}}-й раз",
-      "familiar": "знакомое"
+      "forming": "{{ordinal}}-й раз, формируется узнавание",
+      "consolidating": "{{ordinal}}-й раз — закрепляется",
+      "wellKnown": "хорошо знакомо"
     },
     "mweType": {
       "idiom": "идиома",
