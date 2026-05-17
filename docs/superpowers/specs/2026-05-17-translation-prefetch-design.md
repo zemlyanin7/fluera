@@ -1,15 +1,47 @@
-# Sub-project #4.6 — Translation Prefetch + Idle Unload (v2)
+# Sub-project #4.6 — Translation Prefetch + Idle Unload (v2.1)
 
 > Расширение #4 Translation engine: prefetch following pages в фоне, idle
 > unload model из RAM, memory-pressure / battery throttle. Цель — instant
-> translation popup + low resident memory footprint. v2 incorporates 6-way
-> review findings.
+> translation popup + low resident memory footprint. v2.1 incorporates TWO
+> rounds of expert review.
 
 **Дата:** 2026-05-17
-**Версия:** v2 (после review session)
+**Версия:** v2.1 (после round-2 review)
 **Зависимости:** #4 Translation engine, #4.5 Popup redesign (для sentence translation в prefetch batch).
 **Ветка:** `feat/translation-prefetch`
 **Стэк:** поверх `feat/translation-popup` (#4.5).
+
+---
+
+## Changelog v2 → v2.1 (round-2 review)
+
+**Bug fixes**:
+
+- **Priority inversion (ML round-2 BLOCK)**: sentence prefetch 5-15s блокировало user tap (≤3s contract). **Fix**: cap any single batch inference к word-mode budget (max 32 tokens, ~3s) per individual job. Long sentences split к multiple jobs. User tap preempts at job boundary, не mid-decode (acceptable — within 3s).
+- **"Always" в "Keep translator ready" copy contradiction**: "Always" never unloads → conflict с background force-unload rule. **Fix**: dropdown options reduced к "5 min after use (recommended) / Only when needed". Removed "Always" — contradicted §3.2.
+- **Lemmatization scope reduced**: ship heuristic только для 5 languages с precision ≥75% (en, es, fr, it, pt). For ru/uk/pl/de/ar/hi/ja/ko — surface form only (accepted prefetch waste 20-60%). Honest precision claim vs "we tried" theater.
+- **JA/KO prefetch default OFF**: 60% surface variants cached as wrong-form authoritative = learners get poisoned. User can opt in for raw cache speed via Advanced.
+
+**Scope cuts** (contrarian):
+
+- **CUT diagnostic bundle export** — нет backend, no support inbox. Replace с standard React Native console.log access via dev menu (Cmd+D iOS sim, Cmd+M Android emulator). Production users без troubleshooting path acknowledged; if real demand, add back v2.
+- **SIMPLIFY atomic model upgrade** — drop "test-load-before-commit" step. Sequence: download → SHA verify → atomic rename → on next app launch если context fails to load, revert pointer + surface error. Saves one model load на upgrade path.
+
+**Pedagogy refinements** (SLA round-2):
+
+- **`WordStatus.encounters` schema split**: `lookup_count` (popup tap-driven) + `passive_encounters` (viewport-render-driven). Migration handled в #6 Deck. v2.1 #4.6 placeholder reads schema, writes only к `lookup_count` increment via popup. `passive_encounters` increment owned by #6.
+- **Prefetch eviction by `last_user_tap_at` per book** (round-2 SLA finding) — оставляем active reading book's cache, evict by tap recency, not insert time.
+
+**Translation correctness** (translator round-2):
+
+- **Atomic upgrade cache invalidation softer**: keep old cache labeled `model_version_obsolete` (per #4.5 §6.1). User-driven re-translate via Settings, not silent purge.
+- **Per-pair chrF threshold table from #4.5 §11.3** — sentence prefetch honors per-pair thresholds (pair below threshold → skip sentences, words only).
+
+**A11y**:
+
+- **Battery low/LowPower indicator role="alert"** — first appearance announced.
+- **Shimmer LiveRegion debounce 300ms** — only announce если loading >800ms (avoid flicker noise on warm reload).
+- **Permanent disable error в Settings** — `accessibilityRole="alert"` на first appearance, static thereafter.
 
 ---
 
@@ -278,24 +310,29 @@ Visible latency: **5-8s** на cold reload. Shimmer animation + LiveRegion annou
 
 **Reduce Motion**: shimmer → static "Загрузка переводчика…" text.
 
-### 4.4 Atomic model upgrade
+### 4.4 Atomic model upgrade (v2.1 simplified)
 
 ```
 Old model: Documents/llm/Hy-MT1.5-1.8B-1.25bit.gguf (current)
 
-Upgrade process:
+Upgrade process (simplified per contrarian round-2):
 1. Download new model → Documents/llm/Hy-MT1.6.gguf.partial
 2. Verify SHA-256 (size + bytes match new manifest)
 3. If verify passes:
    a. Atomic rename: .partial → Hy-MT1.6.gguf
    b. Update model manifest pointer
-   c. Test load: instantiate context, run "Hello." inference
-   d. If load succeeds: delete old Hy-MT1.5-1.8B-1.25bit.gguf
-   e. If load fails: revert pointer, keep both, surface error
-4. If verify fails: delete .partial, keep current
+   c. Mark old cache rows `model_version_obsolete` (не purge)
+   d. Schedule old file deletion на next app launch
+4. On next app launch:
+   a. Try load new model.
+   b. Success → delete old Hy-MT1.5 file.
+   c. Failure → revert pointer (manifest fallback), keep old file, surface error.
+5. If step 2 verify fails: delete .partial, keep current.
 ```
 
-Power-off mid-upgrade → either old model intact (если step 3a не дошёл) OR new model OK and pointer updated. Никогда bricked state.
+**v2.1 change**: removed "test-load-before-commit" step. Saves one model load on upgrade path. Acceptable: на next-launch failure user gets one error, falls back к prev model. Не bricked state.
+
+**Cache invalidation softer** (translator round-2): old cache labeled `model_version_obsolete`, не silent purge. User sees per-book "translated by older model — re-translate?" prompt. Avoids 150MB+ data loss surprise.
 
 ---
 
@@ -395,52 +432,52 @@ async function findCandidateWords(
 
 `knownWords` = WordStatus rows с `state IN ('known', 'mastered', 'learning')`.
 
-### 6.3 Lemmatization heuristic per-language
+### 6.3 Lemmatization heuristic — 5 languages only (v2.1 scope cut)
+
+Per contrarian round-2 finding: lemmatization heuristic для langs с precision <75% = engineer pride + battery cost без user value. **v2.1 ships heuristic ТОЛЬКО для 5 languages**. Остальные 8 — surface form fallback с documented acceptance of prefetch waste.
 
 ```typescript
 function lemmatizeHeuristic(word: string, lang: BookLanguage): string {
   const lower = word.toLowerCase();
   switch (lang) {
     case 'en':
-      // English: strip common suffixes (-ing, -ed, -s, -es, -ies)
+      // English: strip common suffixes (-ing, -ed, -s, -es, -ies). Precision ~85%.
       return stripEnglishSuffix(lower);
-    case 'ru':
-    case 'uk':
-    case 'pl':
-      // Slavic: aggressive suffix-stripping (~15-25% false-positive)
-      return stripSlavicSuffix(lower);
     case 'es':
     case 'fr':
     case 'it':
     case 'pt':
-      // Romance: strip conjugation/plural
+      // Romance: strip conjugation/plural. Precision ~80%.
       return stripRomanceSuffix(lower);
+
+    // v2.1: NO heuristic для следующих langs — surface form only.
+    // Rationale: precision <75% wastes battery without meaningful improvement.
+    // Future v2 path: lightweight per-lang lemmatizer (hunspell affixtable, etc).
+    case 'ru':
+    case 'uk':
+    case 'pl':
     case 'de':
-      // German: split compounds (basic) + strip
-      return germanLemma(lower);
     case 'ar':
     case 'hi':
-      // Prefix-stripping (definite article, prefixed prepositions)
-      return stripPrefix(lower, lang);
     case 'ja':
     case 'ko':
-      // Surface form only (accept 2-3x prefetch waste)
-      return lower;
     default:
       return lower;
   }
 }
 ```
 
-**Documented precision**:
+**Documented precision** (only shipped langs):
 - en: ~85% (well-known suffix patterns)
 - es/fr/it/pt: ~80% (regular conjugation)
-- ru/uk/pl: ~70% (complex morphology, false positives)
-- de: ~65% (compounds tricky)
-- ar/hi: ~60% (multi-prefix forms)
-- ja/ko: ~40% (no real lemmatization — surface forms only)
 
-These %s mean: of words found in candidate set, X% are correctly-lemmatized; rest are duplicates or wrong forms. Result: prefetch waste at low-precision langs (translate variants we wouldn't need).
+**Surface-form-only langs** (documented prefetch waste estimate):
+- ru/uk/pl: 2-3x waste (rich morphology)
+- de: 2x waste (compounds + plural)
+- ar/hi: 2-3x waste (multi-prefix)
+- ja/ko: 3-4x waste (no whitespace, agglutinative)
+
+**JA/KO prefetch default OFF** v2.1: 60% surface variants cache as wrong-form authoritative для learners. User can opt-in via Advanced settings flag `enableJaKoPrefetch: false` (default false).
 
 ### 6.4 Proper noun filter
 
@@ -477,8 +514,8 @@ Size: 20k × ~10 bytes × 13 langs ≈ 2.6MB. Bundle.
 ### 6.7 Cancellation
 
 User tap → user-priority job inserted at queue head. Current prefetch:
-- **V1 simpler**: wait for current word's tokens (≤3s), then user job. Reload UX confirms blocked tap show shimmer.
-- **V2 better**: `llama_decode` interrupt mid-token (investigate llama.rn API).
+- **V2.1 capped jobs**: every batch inference job capped к **word-mode budget** (max 32 tokens, ~3s warm). Long sentence prefetch (~10-15s) split к multiple jobs (one per sentence). User tap preempts at job boundary, не mid-decode — within 3s SLA.
+- **V2+ ideal**: `llama_decode` interrupt mid-token (investigate llama.rn API).
 
 Cancelled prefetch word **requeued** at end of queue (not lost).
 
@@ -561,60 +598,11 @@ Prompt + sentence (200 chars max) + 200 output tokens ≈ 800 tokens. `n_ctx 204
 
 ---
 
-## 9. Diagnostic bundle (replaces telemetry)
+## 9. Diagnostic — v1 dev console only
 
-### 9.1 Export action
+**v2.1 scope cut** (contrarian): diagnostic bundle export action removed. Нет backend, no support inbox → zero usage anticipated.
 
-В Settings → Translation → Advanced:
-
-```
-[Экспорт diagnostic bundle]
-```
-
-Tap → generates redacted JSON в shareable file:
-
-```json
-{
-  "exportedAt": "2026-05-17T22:30:00Z",
-  "model": {
-    "name": "Hy-MT1.5-1.8B-1.25bit",
-    "version": 1,
-    "sha256": "987121bc...",
-    "kernelBuildId": "stq1_0-pr22836-applied-fdcf36f5"
-  },
-  "lifecycle": {
-    "currentState": "ready",
-    "loadedAt": 1747521234567,
-    "consecutiveLoadFailures": 0,
-    "lastUnloadAt": null
-  },
-  "system": {
-    "thermal": "nominal",
-    "batteryPct": 67,
-    "charging": false,
-    "lowPowerMode": false,
-    "diskFreeBytes": 14523000000
-  },
-  "recentEvents": [
-    { "t": 1747521000000, "event": "user_tap", "wordHash": "abc123", "latencyMs": 1842, "inferenceContext": "warm" },
-    { "t": 1747521050000, "event": "prefetch_batch_start", "wordCount": 42 },
-    { "t": 1747521120000, "event": "prefetch_batch_complete", "wordCount": 42, "totalMs": 67432 }
-  ],
-  "cacheStats": {
-    "totalRows": 12340,
-    "prefetchRows": 8901,
-    "onDemandRows": 3439,
-    "lruSize": 487
-  },
-  "errors": [
-    { "t": 1747520000000, "code": "INFERENCE_TIMEOUT", "wordHash": "def456" }
-  ]
-}
-```
-
-**Redacted**: no source text content, no translations, no PII. Hash-only word identifiers.
-
-User can email bundle при support request. Replaces "we'll measure later" of v1.
+**V1 dev diagnostic path**: standard React Native dev menu (Cmd+D iOS sim, Cmd+M Android emulator) gives console access. `__DEV__ console.log` outputs lifecycle/inference events. Production users без troubleshooting path acknowledged — re-evaluate need в v2 если support volume warrants.
 
 ---
 
@@ -813,28 +801,33 @@ interface LlmStatusStore {
 
 ## 14. Settings UI
 
-### 14.1 Production Settings
+### 14.1 Production Settings (v2.1 simplified)
 
 В Settings → Translation Model section:
 
 ```
 Translation Model: [статус]
 ─────────────────────────────────
-Pre-translate following pages: [ON ▾]
-   (auto-pauses on low battery / thermal)
+[✓] Pre-translate following pages
+   (auto-pauses на low battery / thermal)
 
 Keep translator ready: [5 min after use ▾]
    options:
-     Always (uses more battery)
      5 min after use (recommended)
      Only when needed (saves battery, slower first tap)
+
+[Очистить кэш переводов: 47MB]                    ← single-line, no per-book
 ─────────────────────────────────
 ▾ Advanced
-  [Export diagnostic bundle]
-  [Reset gesture hints]
-  [Очистить кэш переводов]
+  [✓] Enable Japanese/Korean prefetch (slower, can cache wrong forms)
+  [Reset coach mark hint]
   [Удалить и скачать заново]
 ```
+
+**Cut from v2.1** (scope per contrarian):
+- "Always" option в "Keep translator ready" — contradicted background force-unload rule.
+- Export diagnostic bundle — нет support backend.
+- Per-book Storage breakdown — replaced "Clear cache 47MB" single line.
 
 **Anti-pattern avoided**: no numeric progress meter in production. Status bar shows binary:
 
@@ -956,7 +949,7 @@ schemaMigrations({
 - [ ] Atomic model upgrade tested (power-off resilient).
 - [ ] Permanent disable after 3 failures (SecureStore flag).
 - [ ] Disk space runtime purge policy implemented (<200MB → auto-purge).
-- [ ] Export diagnostic bundle action working + redacted JSON verified.
+- [x] Diagnostic bundle CUT v2.1 (dev console only).
 - [ ] Kernel verification script + CI workflow.
 - [ ] Settings UI: production binary indicator + advanced disclosure.
 - [ ] Dev overlay hidden behind long-press About.
@@ -976,7 +969,7 @@ schemaMigrations({
 - ❌ Sentence prefetch для chrF-failing pairs.
 - ❌ Pre-decode TTS audio (с TTS sub-project).
 - ❌ Heavy lemmatizers (Hunspell/Sudachi/MeCab — heuristic only).
-- ❌ Whole-book translation — это **#4.7**.
+- ❌ Whole-book translation — **CUT from v1 to v2 backlog** (см. canonical roadmap).
 
 ---
 

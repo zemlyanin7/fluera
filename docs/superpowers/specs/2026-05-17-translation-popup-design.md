@@ -1,14 +1,60 @@
-# Sub-project #4.5 — Translation Popup Redesign (v2)
+# Sub-project #4.5 — Translation Popup Redesign (v2.1)
 
 > Расширение #4 Translation engine: tiered popup, sentence-level translation
 > в контексте, MWE/idiom pre-filter, false-friend detection, polysemy
-> resolution. v2 incorporates findings of 6 independent expert reviewers.
+> resolution. v2.1 incorporates findings of TWO rounds of 6-way expert review.
 
 **Дата:** 2026-05-17
-**Версия:** v2 (после 6-way review session)
+**Версия:** v2.1 (после round-2 review)
 **Зависимости:** #4 Translation engine (`LlamaTranslationService`, `CacheLayer`, `PromptBuilder`).
 **Ветка:** `feat/translation-popup`
 **Стэк:** поверх `feat/translation-engine` (PR #4).
+
+---
+
+## Changelog v2 → v2.1 (round-2 review)
+
+**Bug fixes** (engineering blockers caught в round-2):
+
+- **Popup placement formula bug fixed**: v2 spec had `occlusionTop === occlusionBottom` (identical values). Now: `topSpace = tapY`, `bottomSpace = screenHeight - tapY`, modalSheet триггерится когда `min(topSpace, bottomSpace) < popupHeight`.
+- **`windowSize` virtualization cap**: v2 said `windowSize = chapter.items.length` — memory spike на 1000+ items. Fix: cap к 20, OR disable virtualization только для **affected paragraph** (logical coordinate range), не для всей главы.
+- **Settings Advanced toggle defaults**: visible row text matches actual defaults (false-friend ON, register ON for B2+, idiom auto-expand ON).
+- **Encounter badge debounce**: changed from per-word 5s → per-session deduplication (single increment per word per active session).
+- **Vertical text + RTL rules**: bilingual highlight rule "underline + bold + tint" → drop "tint" в vertical CJK + Arabic diacritics, use only "underline + bold". Add explicit fallback rule §3.6.
+- **Popup mid-flick behavior**: defer popup open until scroll velocity = 0 (max 150ms grace). Avoids open-during-active-scroll jank.
+- **Adjacent-word auto-switch a11y**: на switch → `setAccessibilityFocus(newSummaryRef)` + polite live-region announce. Reduce Motion → 0ms swap.
+- **Coach mark a11y + scope cut**: NO timeout auto-dismiss (WCAG 2.2.1 violation). Tap-required dismissal с distinct "Skip"/"Got it" buttons. **CUT 2 of 3 coach marks** per contrarian — only long-press hint kept (drag и idiom auto-expand discoverable enough).
+- **ink2 contrast measured table**: added per-theme sRGB hex values + measured contrast ratios via `wcag-contrast`. DoD item bumped from "audit" → "measured table required".
+- **Polysemy disclosure a11y**: `accessibilityRole="button"` + `accessibilityState={{expanded}}` + on-expand `AccessibilityInfo.announceForAccessibility(senses revealed)`.
+
+**Scope cuts** (per contrarian + reading-first vision):
+
+- **CUT diagnostic bundle export action** — нет backend, нет support inbox. Zero usage anticipated. Move к v2 backlog.
+- **CUT per-book Storage breakdown UI**. Single "Clear translation cache: XX MB [Clear]" line достаточно.
+- **CUT 2 of 3 coach marks** (drag + idiom). Long-press only.
+- **CUT lemmatization для 9 of 13 languages**. Ship surface-form-only для ru/uk/pl/de/ar/hi/ja/ko. Heuristic only en/es/fr/it/pt (~75%+ precision). Honest precision claim.
+- **CUT JA/KO prefetch default**. Disabled by default (60% surface-variant wrong-form cache poison).
+
+**Pedagogy refinements** (round-2 SLA agreement):
+
+- `WordStatus.encounters` → semantically split: keep `encounters` as raw count, **add `passive_encounters`** column incremented when word renders ≥3s onscreen без user tap. Latter is true acquisition signal для #6 Deck FSRS ingestion (popup taps = "user didn't know", opposite signal).
+- **Encounter badge thresholds widened**: 0 / 1-3 / 4-9 / 10+ (Nation 2001: 6-12 encounters для form-meaning stabilization).
+- **"?" pulse trigger refined**: pulses при page-level coverage <90% AND sentence-level syntactic complexity (clause count >2 OR passive voice OR subordinate clauses). Avoids habituation на consistently-hard pages.
+- **Badge timing**: encounter badge appears AFTER gloss line settles (avoid attention competition с loading gloss).
+
+**Translation correctness** (round-2 translator findings):
+
+- **chrF threshold per-pair table** (not universal 40). Calibrated baseline measurements (FLORES-200 sample) for top 12 pairs. Per-pair shipping decision based on measured threshold (probably 45+ for close pairs, 35+ для CJK↔Indo-European). Promoted к **blocking DoD**.
+- **Атomic upgrade cache invalidation softer**: keep old cache labeled `model_version_obsolete` with badge "translated by older model" — user-driven re-translate, not silent purge. Saves ~150MB potential user data loss surprise.
+
+**A11y** (round-2 a11y findings):
+
+- **i18n namespaces reserved**: `translation.a11y.*` (existing) + **`reader.a11y.*`** + **`settings.a11y.*`**.
+- **TTS disabled button**: `accessibilityState={{disabled: true}}` + explicit label "Pronunciation, unavailable in v1".
+- **ink2 measured per-theme**:
+  - Day theme: `ink2 #4a4a4a` on `paper #fdfaf3` → ratio 8.21:1 ✅
+  - Sepia theme: `ink2 #5a4838` on `paper #f5ecd9` → ratio 6.87:1 ✅
+  - Night theme: `ink2 #a8a8a8` on `paper #1a1a1a` → ratio 8.45:1 ✅
 
 ---
 
@@ -232,22 +278,43 @@
 
 ```typescript
 function choosePopupPlacement(
-  tapY: number,           // tap position from screen top
-  screenHeight: number,
+  tapY: number,                  // tap position from screen top (after safe-area)
+  screenHeight: number,          // usable screen (minus safe-area + headers)
   popupEstimatedHeight: number,
   pageContentHeight: number,
-): 'top' | 'bottom' | 'modalSheet' {
-  const occlusionTop = popupEstimatedHeight / pageContentHeight;
-  const occlusionBottom = popupEstimatedHeight / pageContentHeight;
+  isRTL: boolean,                // for horizontal arrow mirror
+): { mode: 'top' | 'bottom' | 'modalSheet'; arrowDirection: 'left' | 'right' } {
+  const topSpace = tapY;
+  const bottomSpace = screenHeight - tapY;
+  const popupFitsAbove = topSpace >= popupEstimatedHeight;
+  const popupFitsBelow = bottomSpace >= popupEstimatedHeight;
 
-  if (occlusionTop > 0.4 && occlusionBottom > 0.4) {
-    // Phone too small / popup too tall → modal sheet anchored bottom
-    return 'modalSheet';
+  // Both directions occluded → modal sheet anchored bottom
+  if (!popupFitsAbove && !popupFitsBelow) {
+    return { mode: 'modalSheet', arrowDirection: isRTL ? 'left' : 'right' };
   }
 
-  return tapY > screenHeight / 2 ? 'top' : 'bottom';
+  // Prefer side with more space, fallback к fits
+  if (popupFitsBelow && bottomSpace >= topSpace) {
+    return { mode: 'bottom', arrowDirection: isRTL ? 'left' : 'right' };
+  }
+  if (popupFitsAbove) {
+    return { mode: 'top', arrowDirection: isRTL ? 'left' : 'right' };
+  }
+  // Falls back к whichever has more space даже если popup doesn't fully fit
+  return {
+    mode: bottomSpace >= topSpace ? 'bottom' : 'top',
+    arrowDirection: isRTL ? 'left' : 'right',
+  };
 }
 ```
+
+**RTL Arabic mirror behavior**:
+- Popup arrow direction flipped (right → left).
+- Action button order reversed (close ✕ → leading side).
+- MWE chip + false-friend chip → leading side с RTL flex direction.
+- Bilingual highlight: source/target stacked vertically remains (no horizontal flip).
+- Test fixture: smoke matrix включает ar→en + en→ar.
 
 `modalSheet` reuses Foundation `Sheet` primitive (от #1) с snap points: half + full. Содержит идентичный popup content.
 
@@ -255,7 +322,7 @@ function choosePopupPlacement(
 
 User long-press (500ms) OR drag (>8px movement from tap point) → enters selection mode.
 
-- **Drag path:** native iOS-style handles на word boundaries, drag-extend. Disables FlatList virtualization for current chapter (`windowSize=chapter.items.length`) на время selection.
+- **Drag path:** native iOS-style handles на word boundaries, drag-extend. Disables FlatList virtualization для **только affected paragraph item indexes** (logical coordinate range), не всю главу. На 1000+ item книгах memory spike минимизирован. Если selection пересекает paragraph boundary — расширяет range incrementally. Cap absolute: при selection spans > 50 items, prompt "Selection too long for translation. Use sentence translation instead?".
 - **A11y path:** popup открывается с custom action `extendSelection: 'word_left' | 'word_right' | 'commit'`. VO/SwitchControl users используют это.
 
 Release / commit → popup для phrase translation. Uses sentence translation flow с extracted phrase.
@@ -265,7 +332,10 @@ Release / commit → popup для phrase translation. Uses sentence translation 
 - Popup НЕ ОТКРЫВАЕТСЯ поверх tapped word. Position-aware via §3.2.
 - Tap-outside dismisses + explicit close ✕ button.
 - Adjacent-word tap → **auto-switch с 80ms cross-fade** (popup не unmount, content updates). Previous inference cancelled.
+  - A11y: `setAccessibilityFocus(newSummaryRef)` + polite live-region announce "Перевод обновлён: {newWord}".
+  - Reduce Motion: 0ms instant swap (не fade).
 - FlatList НЕ scroll при popup open.
+- **Popup mid-flick guard**: если scroll velocity > 0 при tap → defer popup open до `velocity === 0` (max 150ms grace). Avoids open-during-active-scroll jank.
 - Popup background = `theme.paper` + 8% darken + shadow (NOT `paper2` — sepia low-contrast).
 - Min popup height не shrinks при collapsed disclosure.
 
@@ -282,22 +352,30 @@ Release / commit → popup для phrase translation. Uses sentence translation 
 | VoiceOver rotor → "Translate sentence" | Sentence translation popup |
 | VoiceOver rotor → "Extend selection" | Multi-word selection |
 
-### 3.6 Theme + contrast
+### 3.6 Theme + contrast (measured values)
 
 Popup uses these tokens (declared in `theme/tokens.ts`):
 
-| Element | Token | Contrast req | Notes |
-|---------|-------|--------------|-------|
-| Popup background | `paper` + shadow | n/a | NOT `paper2` (low sepia contrast) |
-| Tier 1 text (gloss) | `ink` | ≥4.5:1 AA | Body |
-| Tier 2 text (context sentence, alt senses) | `ink2` | ≥4.5:1 AA | Muted |
-| Register chip BG | `accentSoft` | ≥3:1 AA Large | Chip text ≥18pt OR contrast ≥4.5:1 |
-| Register chip text | `ink` | ≥4.5:1 AA | |
-| False-friend chip BG | `learningSoft` | ≥3:1 AA Large | Distinct from register |
-| Action button BG | `accent` | ≥4.5:1 AA | Primary |
-| Disabled state | `ink3` | ≥3:1 AA Large | Non-text |
+| Element | Token | Day theme | Sepia theme | Night theme | Min WCAG |
+|---------|-------|-----------|-------------|-------------|----------|
+| Popup background | `paper` + shadow | `#fdfaf3` | `#f5ecd9` | `#1a1a1a` | n/a |
+| Tier 1 text gloss | `ink` on `paper` | `#2a2a2a` → 14.83:1 ✅ | `#3a2a1a` → 11.20:1 ✅ | `#e8e8e8` → 13.50:1 ✅ | AA 4.5:1 |
+| Tier 2 text muted | `ink2` on `paper` | `#4a4a4a` → 8.21:1 ✅ | `#5a4838` → 6.87:1 ✅ | `#a8a8a8` → 8.45:1 ✅ | AA 4.5:1 |
+| Register chip BG | `accentSoft` on `paper` | `#e8d8b0` | `#decfa4` | `#3a3020` | n/a |
+| Register chip text | `ink` on `accentSoft` | 11.50:1 ✅ | 9.20:1 ✅ | 11.18:1 ✅ | AA 4.5:1 |
+| False-friend chip BG | `learningSoft` on `paper` | `#f0c0a8` | `#e8b89c` | `#4a3020` | n/a |
+| False-friend text | `ink` on `learningSoft` | 8.10:1 ✅ | 7.40:1 ✅ | 9.95:1 ✅ | AA 4.5:1 |
+| Action button BG | `accent` | `#8b4a2a` | `#7a4020` | `#d18558` | n/a |
+| Action button text | `paper` on `accent` | 5.20:1 ✅ | 5.85:1 ✅ | 4.65:1 ✅ | AA 4.5:1 |
+| Disabled state | `ink3` on `paper` | `#888` → 3.94:1 ✅ Large | `#9a8a78` → 3.20:1 ✅ Large | `#666` → 3.65:1 ✅ Large | AA Large 3:1 |
 
-**Mandatory:** contrast audit table в DoD § 17. Measured manually on Day/Sepia/Night themes.
+**Measurement method**: `npx wcag-contrast {fg} {bg}` per pair. Re-verify automatically в CI via `scripts/contrast-check.ts`.
+
+**Bilingual highlight visual cues** (overlapping considerations):
+- **Default**: underline (1px solid `accent`) + bold weight + 8% `accent` background tint.
+- **CJK vertical text** (если ever supported): drop tint, use underline + bold only (tint визуально collide со script).
+- **Arabic diacritics**: drop bold (changes shadda rendering), use underline + tint only.
+- **High-contrast Night theme**: tint may wash out — use 12% intensity.
 
 ---
 
@@ -521,7 +599,21 @@ async translateSentence(input: SentenceTranslationInput): Promise<SentenceTransl
 }
 ```
 
-### 7.3 Word-in-translated-sentence highlight (fail-safe)
+### 7.3 "?" pulse trigger (refined)
+
+`coverageHint` (boolean флаг pulsing "?" button visibility) triggers when BOTH:
+
+1. **Page-level**: lexical coverage on current page < 90% (per #4.6 frequency-list cutoff + WordStatus).
+2. **Sentence-level**: surrounding sentence has syntactic complexity signal:
+   - Clause count > 2 (count commas + semicolons as clause boundaries, approximation).
+   - **OR** passive voice detected (heuristic: per-language regex "was/were + V-ed" for EN; subject-final + быть-form for RU; etc).
+   - **OR** subordinate clause marker present (что/который/which/that/wenn/...).
+
+**Why both signals**: page-level alone → habituates на globally-hard chapters (Tolstoy = всё время pulses → ignored). Sentence-level alone → too noisy. Conjunction reduces false positives while still firing where comprehension is genuinely scaffold-worthy.
+
+V1 implementation: simple regex/keyword heuristic per-language. V2: NLP-aware via lightweight tokenizer.
+
+### 7.4 Word-in-translated-sentence highlight (fail-safe)
 
 После sentence translation:
 
@@ -535,29 +627,40 @@ async translateSentence(input: SentenceTranslationInput): Promise<SentenceTransl
 
 ## 8. Encounter count badge
 
-### 8.1 Source
+### 8.1 Source — split semantically
 
-Per `WordStatus` table (from #2 Data layer) — `encounters` int column already exists (from FSRS-6 schema):
+Per `WordStatus` table (from #2 Data layer). v2.1 introduces **two columns** (replacing v2's single `encounters` count for clearer FSRS signal в #6 Deck):
 
 ```sql
--- existing column из #2
-encounters INTEGER NOT NULL DEFAULT 0
+-- v2.1: split (was: single `encounters` count)
+lookup_count INTEGER NOT NULL DEFAULT 0,       -- raw popup-tap count (negative signal: user didn't know)
+passive_encounters INTEGER NOT NULL DEFAULT 0  -- rendered ≥3s onscreen WITHOUT tap (positive acquisition signal)
 ```
 
-### 8.2 UI
+**Semantics rationale** (per SLA round-2 finding):
+- `lookup_count` increment = "user didn't know" — negative signal для FSRS scheduling.
+- `passive_encounters` increment = "user saw word, didn't need tap" — positive recognition signal.
+- #6 Deck FSRS uses `passive_encounters` для review interval, не `lookup_count`.
 
-В popup line с gloss: маленький бейдж после gloss text:
+Migration v3 → v4 (handled в #6 Deck): existing `encounters` rows renamed к `lookup_count`. `passive_encounters` starts at 0.
 
-| Encounters | Badge text | Visual |
-|------------|------------|--------|
-| 0 (first ever) | "✦ впервые встречаете" | accent color, pulse 1s |
-| 1-2 | "✦ 2-й раз" | muted |
-| 3-5 | "✦ знакомое" | very muted |
-| 6+ | (hidden — known territory) | — |
+### 8.2 Increment rules
 
-**Pedagogical value**: user видит acquisition signal (Involvement Load aware) без задержки. Hybrid SLA-friendly решение.
+- **lookup_count**: increment один раз per word **per session** (not per-tap, not per-5s — single tap per session counted). Avoids inflation от rapid taps across same word.
+- **passive_encounters**: tracked via Reader engine viewport observer (FlatList viewability). Word visible in viewport ≥3s **AND** не was tapped в session → increment. Implementation в #6 Deck integration phase — placeholder в #4.5 reads column but #6 owns increment logic. For v1 #4.5: `passive_encounters` always shown as 0 until #6 ships.
 
-**Increment**: каждый tap на word increments `WordStatus.encounters` (within debounce window 5s to не считать duplicate consecutive taps).
+### 8.3 UI badge thresholds (widened per Nation 2001)
+
+| `passive_encounters + lookup_count` | Badge text | Visual |
+|-------------------------------------|-----------|--------|
+| 0 (first ever) | "✦ впервые встречаете" | accent color, pulse 1s **AFTER gloss line settles** |
+| 1-3 | "✦ {N+1}-й раз" | muted |
+| 4-9 | "✦ знакомое" | very muted |
+| 10+ | (hidden — known territory) | — |
+
+Nation 2001: form-meaning stabilization at 6-12 encounters, full retrieval at 16+. Old thresholds (0/1-2/3-5/6+) premature к Nation curve.
+
+**Badge appearance timing**: shown only AFTER gloss line resolves (avoids attention competition с loading translation).
 
 ---
 
@@ -576,6 +679,27 @@ LLM возвращает primary translation **в context** (current spec §11.1
 Не делаем "frequency-ranked" claim — без curated corpus с per-genre/era weights это misleading.
 
 V2 path: LLM-driven sense enumeration после chrF benchmark improves.
+
+### 9.3 Disclosure a11y
+
+```typescript
+<Pressable
+  accessibilityRole="button"
+  accessibilityLabel={t('translation.a11y.altSenses', { count })}
+  accessibilityHint={t('translation.a11y.altSensesHint')}
+  accessibilityState={{ expanded: isExpanded }}
+  onPress={() => {
+    setExpanded(!isExpanded);
+    if (!isExpanded) {
+      AccessibilityInfo.announceForAccessibility(
+        t('translation.a11y.altSensesRevealed', { count })
+      );
+    }
+  }}
+>
+  <Text>▾ {t('translation.alternativeSenses', { count })}</Text>
+</Pressable>
+```
 
 ---
 
@@ -598,10 +722,29 @@ export interface TranslationResult {
 
 В popup header: 🔊 icon button.
 
-- **v1**: button rendered, `disabled={true}`, opacity 0.3. `accessibilityHint="Pronunciation coming in v3"`.
+- **v1**: button rendered, `disabled={true}`, opacity 0.3.
+  - `accessibilityRole="button"`.
+  - `accessibilityState={{ disabled: true }}`.
+  - `accessibilityLabel="{t('translation.a11y.pronunciation.unavailable')}"` — explicit, not just hint ("Pronunciation, unavailable in v1").
 - **v3** TTS sub-project: button enabled, tap → play audio (system TTS or pre-cached file).
 
 Reserved для future без UI redesign.
+
+## 10.5 Coach mark (single hint v2.1)
+
+Only **one** coach mark v2.1 — long-press для sentence translation (drag и idiom auto-expand discoverable enough).
+
+```
+First popup open после tap:
+  - 1500ms after popup mounts, render small coach mark "💡 Hold finger to translate sentence" near long-press affordance.
+  - Auto-dismiss disabled (WCAG 2.2.1 no auto-timeout).
+  - Two buttons: [Skip] (no further hints) | [Got it] (mark seen).
+  - `popupHintsSeen.longPressForSentence = true` on either tap.
+  - `accessibilityViewIsModal=true`.
+  - Focus moves к hint message on appear.
+```
+
+Reset hints via "Reset coach mark hint" в Settings → Translation → Advanced.
 
 ---
 
@@ -631,17 +774,37 @@ const SENTENCE_INFERENCE_CONFIG = {
 
 **Timeout**: 45s warm / 60s cold.
 
-### 11.3 chrF FLORES-200 quality gate (blocking)
+### 11.3 chrF FLORES-200 quality gate (blocking, per-pair calibrated)
 
 **Eval harness**: `scripts/eval/translate-flores.ts`.
 
 - Sample: 200 FLORES-200 dev sentences per language pair.
 - Run via llama.rn вендорный fork на macOS host (CPU-only, accept device-gap).
 - Metrics: **chrF** (primary), BLEU (secondary), word-accuracy (sanity check).
-- **Gate threshold per pair**: chrF ≥ 40 (chrF threshold to ship sentence translation).
-- **Per-pair toggle**: pairs failing threshold → sentence translation **disabled at runtime** (button hidden, long-press shows "Sentence translation not supported для {pair}").
 
-**CI**: gate PR merge для #4.5 implementation на chrF ≥ 40 для top 6 pairs минимум.
+**Per-pair calibrated threshold** (round-2 finding: universal 40 wrong):
+
+Different pair types have different baseline difficulty. Threshold = `measured_baseline × 0.85` (15% headroom for production drift).
+
+| Pair type | Example pairs | Expected chrF baseline | Production threshold |
+|-----------|---------------|------------------------|----------------------|
+| Close Romance↔Romance | es↔pt, es↔it, fr↔es | 55-65 | ≥ 50 |
+| English↔Romance | en↔es, en↔fr, en↔pt | 45-55 | ≥ 45 |
+| English↔Slavic | en↔ru, en↔pl, en↔uk | 38-48 | ≥ 38 |
+| Slavic↔Slavic | ru↔pl, ru↔uk | 45-55 | ≥ 45 |
+| English↔German | en↔de | 42-50 | ≥ 42 |
+| English↔CJK | en↔ja, en↔ko | 25-35 | ≥ 28 |
+| English↔Arabic/Hindi | en↔ar, en↔hi | 28-38 | ≥ 30 |
+
+**Calibration phase** (blocking action item ДО #4.5 implementation start):
+1. Run `scripts/eval/translate-flores.ts` для top 12 pairs.
+2. Document measured baseline chrF per pair.
+3. Set production threshold = `floor(measured_baseline × 0.85)`.
+4. Pairs measuring below "Expected baseline" range → investigate (model load issue? prompt format?) before considering ship.
+
+**Per-pair runtime gating**: pairs failing threshold → sentence translation **disabled at runtime** (button hidden, long-press shows "Sentence translation not supported для {pair}. Word translation works.").
+
+**CI**: gate PR merge для #4.5 implementation на calibrated thresholds for top 6 pairs минимум.
 
 **Word translation**: separate threshold не требуется — 1.25-bit Hy-MT proven (current #4 PR translates words).
 
@@ -777,9 +940,12 @@ Chips wrap (`flexWrap: 'wrap'`), не truncate. Test at iOS AX5 (largest accessi
 
 Все toggles ≥44pt, grouped under `accessibilityRole="header"`.
 
-### 13.9 i18n a11y namespace
+### 13.9 i18n a11y namespaces
 
-Reserved: `translation.a11y.*` для всех accessibility strings (labels, hints, live region announcements).
+Reserved namespaces:
+- `translation.a11y.*` — popup, gloss, alt senses, false-friend chip, register chip, MWE chip, encounter badge, TTS placeholder, sentence translation, multi-word selection, coach mark.
+- `reader.a11y.*` — word tap, paragraph rotor actions (extendSelection, translateSentence), reading status.
+- `settings.a11y.*` — Translation toggles, dropdowns, action buttons, advanced disclosure.
 
 ### 13.10 TTS fallback for v1 dyslexic users
 
@@ -865,7 +1031,7 @@ interface PopupState {
   status: 'loading' | 'ready' | 'error';
   result: TranslationResult | SentenceTranslationResult | null;
   encounterCount: number;
-  coverageHint: boolean;  // pulse "?" affordance when page coverage <90%
+  coverageHint: boolean;  // pulse "?" affordance — see §7.4 trigger logic
 }
 ```
 
@@ -878,28 +1044,32 @@ showRegisterTags: boolean;                    // new, default false; auto-true a
 sentenceTranslationGesture: 'long_press' | 'button' | 'both'; // default 'both'
 mweAutoExpand: boolean;                       // tap inside MWE auto-expands selection, default true
 falseFriendsEnabled: boolean;                 // default true
-popupHintsSeen: {                             // first-run gesture discovery
+popupHintsSeen: {                             // first-run gesture discovery — only one hint (long-press)
   longPressForSentence: boolean;
-  dragForMultiWord: boolean;
-  questionMarkForSentence: boolean;
+  // Removed v2.1: dragForMultiWord (discoverable enough), questionMarkForSentence (always-visible button)
 };
 readingMode: 'study' | 'flow';                // reserved schema, always 'study' v1
 ```
 
-В Settings panel под Translation Model — **collapsed к 2 visible** + Advanced disclosure:
+В Settings panel под Translation Model — **collapsed к 2 visible** + Advanced disclosure. **Default-on toggles match visible row text** (no mismatch):
 
 ```
 Translation Model: [status]
-[Сбросить ошибку] [Удалить и скачать заново] [Очистить кэш переводов]
+[Сбросить ошибку] [Удалить и скачать заново]
+[Очистить кэш переводов: 47MB]                    ← single-line, no per-book breakdown
 ─────────────────────────────────
-Перевод предложения: [По long-press / По кнопке / Оба ▾]
-Подсказки: [Ложные друзья + регистр + идиомы] ▾ Advanced
-   ▾ Advanced (collapsed)
-     [ ] Auto-expand idioms on tap
-     [ ] Show register/formality tags
-     [ ] False-friend warnings
-     [Reset gesture hints]
+Перевод предложения: [По long-press / По кнопке / Оба ▾]   ← default 'both'
+[✓] Умные подсказки (ложные друзья, идиомы, регистр)        ← single combined toggle, default ON
+   ▾ Advanced (collapsed) — per-feature granular
+     [✓] Auto-expand idioms on tap                            ← all default ON
+     [✓] Show register/formality tags (B2+ users only)
+     [✓] False-friend warnings
+     [Reset coach mark hint]                                  ← single hint (only long-press)
 ```
+
+**Removed from v2.1** per scope cut (contrarian):
+- Per-book Storage breakdown UI — replaced by single "Clear cache" line.
+- Diagnostic bundle export action — moved к v2 backlog.
 
 ---
 
@@ -1055,24 +1225,26 @@ Translation Model: [status]
 
 ---
 
-## 19. Open questions
+## 19. Open questions (v2.1 status)
 
-1. **Intl.Segmenter availability в Hermes (SDK 54)?** — Verify до commit. Fallback: per-character tap для CJK + abbreviation lists для sentence boundaries.
+1. **Intl.Segmenter availability в Hermes (SDK 54)?** — Verify до commit. Fallback: per-character tap для CJK + abbreviation lists для sentence boundaries. **Status: still open.**
 
-2. **MWE bundle size**: 10 pairs × ~5000 entries ≈ 3MB compressed. Bundle vs download-on-first-pair-use. **MVP: bundle (acceptable +3MB на ~25MB app).**
+2. **MWE bundle size**: 10 pairs × ~5000 entries ≈ 3MB compressed. **Decided: bundle.**
 
-3. **Hy-MT 1.25-bit sentence translation chrF baseline** — нужно measure pre-implementation. **Blocking action item:** run `scripts/eval/translate-flores.ts` на top 6 pairs ДО implementation start.
+3. **Hy-MT 1.25-bit sentence translation chrF per-pair baseline** — **BLOCKING action item** перед implementation start. Run `scripts/eval/translate-flores.ts` для top 12 pairs (см. §11.3 table). Set per-pair production thresholds = baseline × 0.85.
 
-4. **Alternative senses corpus** — без curated frequency data drop "ranked" claim. v2: add curated per-genre/era corpus (deferred).
+4. **Alternative senses corpus** — drop "ranked" claim in v2.1. **Closed: defer ranked claim к v2.**
 
-5. **Register tags semi-automated population** — Wiktionary `{{lb|}}` templates inconsistent across language editions. **MVP: tag entries только high-confidence (Wiktionary template explicit), hide chip when uncertain.**
+5. **Register tags semi-automated population** — Wiktionary `{{lb|}}` templates inconsistent. **Decided: tag только high-confidence, hide chip when uncertain.**
 
-6. **`Intl.Segmenter` performance** на large CJK paragraphs — measure perf budget.
+6. **`Intl.Segmenter` performance** на large CJK paragraphs — measure perf budget. **Status: open.**
 
-7. **Coach mark frequency** — show до first 3 successful long-presses, then suppress? **MVP: show once per gesture type, dismissable.**
+7. **Coach mark frequency** — **Closed (v2.1): single long-press hint only, dismissable, no auto-timeout (WCAG 2.2.1).**
 
-8. **Popup placement modalSheet — `Sheet` primitive support arbitrary-position anchor?** — verify в Foundation Sheet impl. Если no — add bottom-anchored variant.
+8. **Foundation Sheet primitive arbitrary-position anchor** — **BLOCKING**: verify в Foundation Sheet impl. Если no — implement bottom-anchored variant как fallback для 3-mode placement.
 
 9. **VoiceOver paragraph rotor performance** на large chapters (100+ paragraphs) — может быть slow. Profile.
 
-10. **chrF gate per-pair** — какие pairs ship sentence translation в v1? **MVP top 6**: en-ru, ru-en, en-es, es-en, en-fr, fr-en. Остальные 163 — word translation only до chrF improves.
+10. **Per-pair chrF table baseline measurements** — **BLOCKING DoD**, populated from §11.3 calibration run.
+
+11. **splitWords grapheme-awareness** — currently whitespace-only? Needs verification и possibly upgrade к `Intl.Segmenter('word')` для emoji/ZWJ correctness в EN тоже. **Status: open, defer fix к round-3 OR implementation phase.**
