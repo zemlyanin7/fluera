@@ -10,7 +10,7 @@ import type { ScriptId } from '@/theme/scripts';
 interface Props {
   inlines: InlineNode[];
   style?: ParagraphStyle;
-  onWordTap: (word: string, sentence: string) => void;
+  onWordTap: (word: string, sentence: string, inlines: InlineNode[], charOffset: number) => void;
   onWordLongPress?: (word: string, sentence: string) => void;
   onTranslateSentence?: (sentence: string) => void;
   onEnterSelectionMode?: () => void;
@@ -30,7 +30,8 @@ const SCRIPT_FONT: Record<ScriptId, string> = {
 
 interface RenderCtx {
   fullText: string;
-  onWordTap: (word: string, sentence: string) => void;
+  inlines: InlineNode[];
+  onWordTap: (word: string, sentence: string, inlines: InlineNode[], charOffset: number) => void;
   onWordLongPress?: (word: string, sentence: string) => void;
   buildSentence: NonNullable<Props['buildSentence']>;
   accent: string;
@@ -42,10 +43,14 @@ function renderInline(node: InlineNode, keyPrefix: string, ctx: RenderCtx): Reac
     return tokens.map((tok, ti) => {
       if (tok.kind !== 'word') return <Text key={`${keyPrefix}-${ti}`}>{tok.text}</Text>;
       const sentence = ctx.buildSentence(tok.text, ctx.fullText);
+      const charOffset = Math.max(
+        0,
+        ctx.fullText.toLowerCase().indexOf(tok.text.toLowerCase()),
+      );
       return (
         <Text
           key={`${keyPrefix}-${ti}`}
-          onPress={() => ctx.onWordTap(tok.text, sentence)}
+          onPress={() => ctx.onWordTap(tok.text, sentence, ctx.inlines, charOffset)}
           onLongPress={
             ctx.onWordLongPress ? () => ctx.onWordLongPress!(tok.text, sentence) : undefined
           }
@@ -163,6 +168,7 @@ export const ParagraphRender = React.memo(function ParagraphRender({
         {inlines.map((n, i) =>
           renderInline(n, `i-${i}`, {
             fullText,
+            inlines,
             onWordTap,
             onWordLongPress,
             buildSentence: sentenceFn,

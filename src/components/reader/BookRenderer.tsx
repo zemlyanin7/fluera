@@ -9,7 +9,7 @@
 // virtualized lists с unmeasured items.
 import React, { useCallback, useImperativeHandle, useMemo, useRef } from 'react';
 import { FlatList, View } from 'react-native';
-import type { BookChapter, ContentItem } from '@/types/content';
+import type { BookChapter, ContentItem, InlineNode } from '@/types/content';
 import type { ScriptId } from '@/theme/scripts';
 import { ContentItemRenderer } from './ContentItemRenderer';
 
@@ -28,7 +28,7 @@ export interface BookRendererHandle {
 
 interface Props {
   chapters: BookChapter[];
-  onWordTap: (word: string, sentence: string) => void;
+  onWordTap: (word: string, sentence: string, inlines: InlineNode[], charOffset: number) => void;
   /** Срабатывает при изменении видимой chapter (для TopBar). */
   onCurrentChapterChange: (chapterIndex: number) => void;
   /** Срабатывает при изменении top-visible flat item (для save position). */

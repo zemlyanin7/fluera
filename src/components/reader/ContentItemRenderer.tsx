@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ContentItem } from '@/types/content';
+import type { ContentItem, InlineNode } from '@/types/content';
 import type { ScriptId } from '@/theme/scripts';
 import { ParagraphRender } from './ParagraphRender';
 import { HeadingRender } from './HeadingRender';
@@ -11,7 +11,7 @@ import { TableRowRender } from './TableRowRender';
 
 interface Props {
   item: ContentItem;
-  onWordTap: (word: string, sentence: string) => void;
+  onWordTap: (word: string, sentence: string, inlines: InlineNode[], charOffset: number) => void;
   fontSize: number;
   script: ScriptId;
   bookId?: string;

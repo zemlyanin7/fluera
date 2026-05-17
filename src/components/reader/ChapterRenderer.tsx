@@ -1,12 +1,12 @@
 import React, { useCallback } from 'react';
 import { FlatList } from 'react-native';
-import type { BookChapter, ContentItem } from '@/types/content';
+import type { BookChapter, ContentItem, InlineNode } from '@/types/content';
 import type { ScriptId } from '@/theme/scripts';
 import { ContentItemRenderer } from './ContentItemRenderer';
 
 interface Props {
   chapter: BookChapter;
-  onWordTap: (word: string, sentence: string) => void;
+  onWordTap: (word: string, sentence: string, inlines: InlineNode[], charOffset: number) => void;
   onScroll: (offsetY: number) => void;
   fontSize: number;
   script: ScriptId;
