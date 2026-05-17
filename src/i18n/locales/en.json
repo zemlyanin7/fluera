@@ -1,5 +1,5 @@
 {
-  "common": { "continue": "Continue", "skip": "Skip", "next": "Next", "back": "Back", "close": "Close", "gotIt": "Got it" },
+  "common": { "continue": "Continue", "skip": "Skip", "next": "Next", "back": "Back", "close": "Close", "gotIt": "Got it", "undo": "Undo" },
   "tabs": { "read": "READ", "deck": "DECK", "stats": "STATS", "you": "YOU" },
   "onboarding": {
     "step1": { "title": "Welcome to Fluera" },
@@ -47,12 +47,40 @@
     "translateSentenceLabel": "Translate full sentence",
     "alternativeSenses": "other meanings ({{count}})",
     "errorGeneric": "Could not translate",
+    "wordLabel": "Word:",
+    "sourceLabel2": "SOURCE",
+    "translationLabel2": "TRANSLATION",
+    "loading": {
+      "short": "Translating...",
+      "medium": "Refining translation...",
+      "long": "Long sentence, just a moment...",
+      "veryLong": "Taking longer than usual"
+    },
+    "cancelLabel": "Cancel",
+    "tryAgain": "Try again",
+    "heart": {
+      "label": "Save to Deck",
+      "firstTimeHint": "Tap ♡ to save word to Deck"
+    },
+    "polysemy": {
+      "chip": "polysemy",
+      "explainer": "This word has multiple meanings. The translation above is primary in this context."
+    },
+    "falseFriend": {
+      "chip": "false friend"
+    },
+    "mweExplainer": {
+      "idiom": { "fallback": "Idiom — meaning doesn't decompose by word. Learn as a whole." },
+      "phrasal_verb": { "fallback": "The preposition changes the verb's meaning. Learn as one unit." },
+      "collocation": { "fallback": "Words frequently used together." },
+      "proverb": { "fallback": "Proverb — fixed expression of folk wisdom." }
+    },
     "encounter": {
-      "firstTime": "впервые встречаете",
-      "nthTime": "{{ordinal}}-й раз",
-      "forming": "{{ordinal}}-й раз, формируется узнавание",
-      "consolidating": "{{ordinal}}-й раз — закрепляется",
-      "wellKnown": "хорошо знакомо"
+      "firstTime": "first time",
+      "nthTime": "{{ordinal}}th time",
+      "forming": "{{ordinal}}th time, recognition forming",
+      "consolidating": "{{ordinal}}th time — consolidating",
+      "wellKnown": "well known"
     },
     "mweType": {
       "idiom": "idiom",
