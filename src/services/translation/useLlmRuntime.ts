@@ -23,11 +23,20 @@ export function useLlmRuntime(opts: UseLlmRuntimeOptions): UseLlmRuntimeResult {
     if (cur !== 'installed') return;
     setStatus('loading');
     try {
+      const tLoad = Date.now();
+      if (__DEV__) console.log('[llm] load start');
       const ctx = await LlamaContextManager.instance().load(opts.loader);
+      if (__DEV__) console.log(`[llm] load done ${Date.now() - tLoad}ms`);
       setStatus('warming_up');
       // Warm-up: короткий dummy inference. Прогревает KV-cache + GPU pipeline.
+      const tWarm = Date.now();
+      if (__DEV__) console.log('[llm] warmup start');
       await ctx
         .completion('Hello.', { temperature: 0.2, max_tokens: 8, stop: ['\n'] })
+        .then((r) => {
+          if (__DEV__)
+            console.log(`[llm] warmup done ${Date.now() - tWarm}ms text="${r.text}"`);
+        })
         .catch((e) => {
           if (__DEV__) console.warn('[llm] warmup failed', e);
         });

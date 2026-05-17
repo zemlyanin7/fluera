@@ -14,6 +14,7 @@ export interface UseModelLifecycleResult {
   resumeDownload: () => Promise<void>;
   cancelDownload: () => Promise<void>;
   wipeAndRedownload: () => Promise<void>;
+  resetError: () => Promise<void>;
 }
 
 export function useModelLifecycle(): UseModelLifecycleResult {
@@ -67,9 +68,28 @@ export function useModelLifecycle(): UseModelLifecycleResult {
 
   const wipeAndRedownload = useCallback(async () => {
     await new ModelStore().wipe();
+    setError(null);
     setStatus('not_installed');
     await startDownload();
-  }, [setStatus, startDownload]);
+  }, [setError, setStatus, startDownload]);
 
-  return { refreshStatus, startDownload, pauseDownload, resumeDownload, cancelDownload, wipeAndRedownload };
+  /**
+   * Soft reset из error state. Не удаляет файл — просто перепроверяет
+   * disk + clears error. Полезно когда load failed но файл OK
+   * (например stale compiled binary без поддержки quant'а).
+   */
+  const resetError = useCallback(async () => {
+    setError(null);
+    await refreshStatus();
+  }, [refreshStatus, setError]);
+
+  return {
+    refreshStatus,
+    startDownload,
+    pauseDownload,
+    resumeDownload,
+    cancelDownload,
+    wipeAndRedownload,
+    resetError,
+  };
 }

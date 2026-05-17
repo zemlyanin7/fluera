@@ -6,8 +6,12 @@ import type {
 } from './ITranslationService';
 
 export class NoOpTranslationService implements ITranslationService {
-   
+
   async translate(_input: TranslationInput): Promise<TranslationResult> {
     return { status: 'pending' };
+  }
+
+  async clearCache(): Promise<void> {
+    // NoOp: нет cache.
   }
 }

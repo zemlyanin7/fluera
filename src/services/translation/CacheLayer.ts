@@ -81,4 +81,8 @@ export class CacheLayer {
   clearMemory(): void {
     this.lru.clear();
   }
+
+  async clearPersistent(): Promise<void> {
+    await this.repo.clearAll();
+  }
 }

@@ -59,3 +59,14 @@ coverage/
 
 # Local sample books for dev/testing (не коммитим — могут быть копирайтные)
 books/
+
+# vendor/llama.rn fork: коммитим только bootstrapped cpp/ + scripts/ + native
+# bindings. Submodule llama.cpp source (third_party/) и dev sandbox (example/)
+# исключены — third_party восстанавливается через `git submodule init` при
+# re-bootstrap, example/ для maintainers llama.rn а не для нас.
+vendor/llama.rn/third_party/
+vendor/llama.rn/example/
+vendor/llama.rn/node_modules/
+
+# Lefthook config (если есть — это dev tool)
+lefthook.yml

@@ -5,8 +5,7 @@ import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { useUnistyles } from 'react-native-unistyles';
 import { useLlmStatusStore } from '@/stores/llmStatusStore';
 import { useModelLifecycle } from '@/services/translation/useModelLifecycle';
-import { useDatabase } from '@/db/DatabaseContext';
-import { TranslationCacheRepository } from '@/db/repositories/TranslationCacheRepository';
+import { useTranslationService } from '@/services/translation/TranslationServiceContext';
 import { SectionLabel } from '@/components/ui';
 
 export function TranslationSection() {
@@ -14,11 +13,16 @@ export function TranslationSection() {
   const status = useLlmStatusStore((s) => s.status);
   const progress = useLlmStatusStore((s) => s.progress);
   const errorMessage = useLlmStatusStore((s) => s.errorMessage);
-  const { startDownload, wipeAndRedownload, cancelDownload } = useModelLifecycle();
-  const db = useDatabase();
+  const { startDownload, wipeAndRedownload, cancelDownload, resetError } = useModelLifecycle();
+  const translation = useTranslationService();
+  const [cacheCleared, setCacheCleared] = React.useState(false);
 
   const clearCache = async () => {
-    await new TranslationCacheRepository(db).clearAll();
+    // Через service: DB wipe + in-memory LRU reset. Иначе старые entries
+    // продолжали возвращаться из memory cache.
+    await translation.clearCache();
+    setCacheCleared(true);
+    setTimeout(() => setCacheCleared(false), 2000);
   };
 
   const labelByStatus: Record<string, string> = {
@@ -56,6 +60,34 @@ export function TranslationSection() {
         )}
         {errorMessage && (
           <Text style={{ color: theme.accent, fontSize: 12 }}>{errorMessage}</Text>
+        )}
+        {status === 'error' && (
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Pressable
+              onPress={resetError}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                backgroundColor: `${theme.ink}10`,
+                borderRadius: 999,
+              }}
+            >
+              <Text style={{ color: theme.ink }}>Сбросить ошибку</Text>
+            </Pressable>
+            <Pressable
+              onPress={wipeAndRedownload}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                backgroundColor: theme.accent,
+                borderRadius: 999,
+              }}
+            >
+              <Text style={{ color: theme.paper, fontFamily: 'Inter-SemiBold' }}>
+                Удалить и скачать заново
+              </Text>
+            </Pressable>
+          </View>
         )}
         {status === 'not_installed' && (
           <Pressable
@@ -97,7 +129,9 @@ export function TranslationSection() {
             alignSelf: 'flex-start',
           }}
         >
-          <Text style={{ color: theme.ink }}>Очистить кэш переводов</Text>
+          <Text style={{ color: theme.ink }}>
+            {cacheCleared ? 'Кэш очищен ✓' : 'Очистить кэш переводов'}
+          </Text>
         </Pressable>
       </View>
     </View>

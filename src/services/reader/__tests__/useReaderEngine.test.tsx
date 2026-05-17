@@ -11,6 +11,7 @@ jest.mock('expo-file-system/legacy', () => ({
   documentDirectory: '/mock/',
   EncodingType: { Base64: 'base64' },
   readAsStringAsync: jest.fn(async () => btoa('fake bytes')),
+  getInfoAsync: jest.fn(async () => ({ exists: true })),
 }));
 
 const fakeParseBook = jest.fn(async () => ({

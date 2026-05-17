@@ -22,4 +22,8 @@ export class MockTranslationService implements ITranslationService {
     const translation = direct ?? `${input.word}-translated-${input.nativeLanguage}`;
     return { status: 'ok', translation, source: 'inference' };
   }
+
+  async clearCache(): Promise<void> {
+    // Mock: no-op.
+  }
 }

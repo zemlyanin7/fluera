@@ -34,4 +34,10 @@ export interface TranslationResult {
 
 export interface ITranslationService {
   translate(input: TranslationInput): Promise<TranslationResult>;
+  /**
+   * Полная очистка cache: DB rows + in-memory LRU. Используется кнопкой
+   * "Очистить кэш переводов" в Settings. Без LRU clear старые entries
+   * возвращались бы из памяти даже после DB wipe.
+   */
+  clearCache(): Promise<void>;
 }

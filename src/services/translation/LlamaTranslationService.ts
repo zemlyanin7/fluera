@@ -19,15 +19,24 @@ import { InferenceQueue } from './InferenceQueue';
 import { buildPrompt } from './PromptBuilder';
 import { cleanTranslation } from './cleanTranslation';
 
-const DEFAULT_TIMEOUT_MS = 5000;
+// 30s допуск: cold first inference (cache miss + STQ kernel прогрев Metal
+// pipeline) может занять 10-20s даже на M-series. Cached lookups instant.
+// CLAUDE.md SLA <3s применяется для warm cache hits, не cold start.
+const DEFAULT_TIMEOUT_MS = 30000;
 
+// Sampling tuned для 1.25-bit Sherry quant. На сильной компрессии logits
+// noisy → требуется deterministic decoding + агрессивный repeat penalty
+// чтобы не залипало в "ууууу"-loop.
+// - temp 0.0 + top_k 1 = greedy (одинаковый top-1 token каждый шаг)
+// - repeat_penalty 1.3 — bump чтобы кокнуть последовательные дубликаты
+// - max_tokens 64 — Hy-MT может выдавать sentence-level перевод для phrase input
 const INFERENCE_CONFIG = {
-  temperature: 0.2,
-  top_p: 0.9,
-  top_k: 40,
-  repeat_penalty: 1.1,
-  max_tokens: 32,
-  stop: ['\n', '.', ',', '«', '»', '"', ':', ';', '」'],
+  temperature: 0.0,
+  top_p: 1.0,
+  top_k: 1,
+  repeat_penalty: 1.3,
+  max_tokens: 64,
+  stop: ['\n'],
   n_threads: 4,
 };
 
@@ -63,6 +72,11 @@ export class LlamaTranslationService implements ITranslationService {
     this.timeoutMs = deps.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
+  async clearCache(): Promise<void> {
+    this.deps.cache.clearMemory();
+    await this.deps.cache.clearPersistent();
+  }
+
   async translate(input: TranslationInput): Promise<TranslationResult> {
     const status = useLlmStatusStore.getState().status;
     if (status !== 'ready') {
@@ -96,9 +110,13 @@ export class LlamaTranslationService implements ITranslationService {
     });
 
     try {
+      const t0 = Date.now();
+      if (__DEV__) console.log(`[translate] start "${input.word}" prompt=${prompt.length}ch`);
       const raw = await this.deps.queue.run(() =>
         withTimeout(ctx.completion(prompt, INFERENCE_CONFIG), this.timeoutMs),
       );
+      const dt = Date.now() - t0;
+      if (__DEV__) console.log(`[translate] done "${input.word}" ${dt}ms → "${raw.text.slice(0, 60)}"`);
       const cleaned = cleanTranslation(raw.text);
       if (!cleaned) {
         return {

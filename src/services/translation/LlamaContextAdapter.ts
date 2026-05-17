@@ -19,8 +19,13 @@ export class LlamaContextAdapter implements LlamaContext {
   constructor(private native: MinimalNativeCtx | NativeLlamaContext) {}
 
   async completion(prompt: string, config: InferenceConfig): Promise<InferenceResult> {
+    // Hy-MT обучена под chat template из GGUF metadata. Передаём prompt
+    // как `messages: [{role:'user', content}]` + `jinja: true` чтобы
+    // llama.rn применила model's chat template (с system/user/assistant
+    // markers). Без template raw prompt → пустой output.
     const params: Record<string, unknown> = {
-      prompt,
+      messages: [{ role: 'user', content: prompt }],
+      jinja: true,
       temperature: config.temperature ?? 0.2,
       top_p: config.top_p ?? 0.9,
       top_k: config.top_k ?? 40,

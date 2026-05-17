@@ -12,6 +12,24 @@ import { createDefaultParserRegistry, type ParsedBook } from '@/services/parser'
 import { detectFormatFromBytes } from '@/services/import/detectFormat';
 import { readerReducer, initialReaderState, type ReaderState } from './ReaderEngine';
 
+/**
+ * Resolve stored absolute Documents path against current `documentDirectory`.
+ *
+ * iOS Container UUID меняется при reinstall / dev rebuild → absolute path
+ * в БД становится мёртвым. Если файл не существует по сохранённому пути,
+ * пытаемся извлечь часть после `Documents/` и склеить с актуальным
+ * `FileSystem.documentDirectory`.
+ */
+async function resolveBookFilePath(storedPath: string): Promise<string> {
+  const info = await FileSystem.getInfoAsync(storedPath);
+  if (info.exists) return storedPath;
+  const idx = storedPath.indexOf('/Documents/');
+  if (idx === -1) return storedPath;
+  const relative = storedPath.slice(idx + '/Documents/'.length);
+  const resolved = `${FileSystem.documentDirectory ?? ''}${relative}`;
+  return resolved;
+}
+
 export interface UseReaderEngineOptions {
   parseBook?: (bytes: Uint8Array, filename: string) => Promise<ParsedBook>;
 }
@@ -96,11 +114,12 @@ export function useReaderEngine(
           initialFlatIndex,
         });
 
-        const base64 = await FileSystem.readAsStringAsync(book.filePath, {
+        const resolvedPath = await resolveBookFilePath(book.filePath);
+        const base64 = await FileSystem.readAsStringAsync(resolvedPath, {
           encoding: FileSystem.EncodingType.Base64,
         });
         const bytes = base64Decode(base64);
-        const parsed = await parseBook(bytes, book.filePath);
+        const parsed = await parseBook(bytes, resolvedPath);
         if (cancelled) return;
 
         if (parsed.totalChars === 0) {
