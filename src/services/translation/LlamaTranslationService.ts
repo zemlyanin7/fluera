@@ -38,13 +38,15 @@ const DEFAULT_TIMEOUT_MS = 30000;
 
 // Sentence inference: более мягкий sampling для natural sentence output.
 // temp 0.3 + top_k 40 вместо greedy — более natural sentences, допустимые
-// варианты перевода. max_tokens 200 для длинных предложений.
+// варианты перевода. max_tokens 120 — большинство предложений ≤80 tokens,
+// раннее EOS-stop ускоряет ~20% vs 200. Длинные предложения уже capped
+// в extractContextForWord per-language HARD_CAP.
 const SENTENCE_INFERENCE_CONFIG = {
   temperature: 0.3,
   top_p: 0.95,
   top_k: 40,
   repeat_penalty: 1.15,
-  max_tokens: 200,
+  max_tokens: 120,
   stop: ['\n\n'],
   n_threads: 4,
 };
@@ -58,13 +60,16 @@ const DEFAULT_SENTENCE_TIMEOUT_MS = 45000;
 // чтобы не залипало в "ууууу"-loop.
 // - temp 0.0 + top_k 1 = greedy (одинаковый top-1 token каждый шаг)
 // - repeat_penalty 1.3 — bump чтобы кокнуть последовательные дубликаты
-// - max_tokens 64 — Hy-MT может выдавать sentence-level перевод для phrase input
+// - max_tokens 16 — word translation rarely >3 tokens. Hy-MT иногда плодит
+//   объяснения "spring — это весна или источник..." — cap'аем cleanTranslation
+//   возьмёт первую строку. 16 даёт запас для составных переводов
+//   ("phrasal verb" → "набрасываться на", 3-4 cyrillic tokens).
 const INFERENCE_CONFIG = {
   temperature: 0.0,
   top_p: 1.0,
   top_k: 1,
   repeat_penalty: 1.3,
-  max_tokens: 64,
+  max_tokens: 16,
   stop: ['\n'],
   n_threads: 4,
 };

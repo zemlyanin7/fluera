@@ -143,47 +143,36 @@ export default function ReaderScreen() {
       };
       setPopup(base);
 
-      // Параллельно: word translation в контексте + sentence translation.
-      // Word result даёт contextual translation ("spring" в контексте → "источник",
-      // не "весна"). Используем для alignment в sentence (highlight в переводе).
-      const [wordRes, sentRes] = await Promise.all([
-        translation.translate({
-          word: expressionText,
-          contextWindow: ctx.plainText,
-          bookLanguage: bookLang,
-          nativeLanguage: nativeLanguage as NativeLanguage,
-        }),
-        translation.translateSentence({
-          sentence: ctx.plainText,
-          sourceInlines: ctx.inlines,
-          bookLanguage: bookLang,
-          nativeLanguage: nativeLanguage as NativeLanguage,
-          wordOffset: expressionStart,
-          sourceWord: expressionText,
-          generation: gen,
-        }),
-      ]);
+      // Progressive UI (v3.1): InferenceQueue serializes completions
+      // (один llama context = один inference). Promise.all не даёт parallelism.
+      // Strategy: sentence FIRST — самое важное для юзера, показываем popup
+      // как только готово. word AFTER — заполняет primary contextual card
+      // вторым setPopup. Total latency = sent + word (как и было), но
+      // perceived latency = sent (юзер видит результат раньше).
+      const sentRes = await translation.translateSentence({
+        sentence: ctx.plainText,
+        sourceInlines: ctx.inlines,
+        bookLanguage: bookLang,
+        nativeLanguage: nativeLanguage as NativeLanguage,
+        wordOffset: expressionStart,
+        sourceWord: expressionText,
+        generation: gen,
+      });
 
-      // Stale check: другой тап пришёл пока ждали результат
+      // Stale check после sentence
       if (gen !== generationRef.current) {
-        if (__DEV__) console.log(`[onWordTap] gen=${gen} stale (current=${generationRef.current}), discard`);
+        if (__DEV__) console.log(`[onWordTap] gen=${gen} stale after sent, discard`);
         return;
       }
 
       if (__DEV__) {
         console.log(
-          `[onWordTap] gen=${gen} word="${wordRes.translation}" sent="${sentRes.translatedSentence?.slice(0, 30)}" errors=word:${wordRes.errorCode}/sent:${sentRes.errorCode}`,
+          `[onWordTap] gen=${gen} sent="${sentRes.translatedSentence?.slice(0, 30)}" err=${sentRes.errorCode}`,
         );
       }
 
-      // Recompute word offset в sentence translation используя contextual word translation.
-      let alignedOffset = sentRes.translatedWordOffset;
-      if (sentRes.translatedSentence && wordRes.translation) {
-        const idx = sentRes.translatedSentence.toLowerCase().indexOf(wordRes.translation.toLowerCase());
-        if (idx >= 0) alignedOffset = idx;
-      }
-
       if (sentRes.status === 'ok' && sentRes.translatedSentence) {
+        // Step 1: показать popup с sentence translation (без contextual word yet)
         setPopup({
           ...base,
           status: 'ready',
@@ -191,14 +180,52 @@ export default function ReaderScreen() {
             status: 'ok',
             sourceSentence: sentRes.sourceSentence ?? ctx.plainText,
             translatedSentence: sentRes.translatedSentence,
-            translatedWordOffset: alignedOffset,
-            // Contextual word translation для primary line. Если word translate упал
-            // (error), используем undefined — в UI primary line будет скрыта.
-            translation: wordRes.status === 'ok' ? wordRes.translation : undefined,
+            translatedWordOffset: sentRes.translatedWordOffset,
+            translation: undefined,
             experimental: true,
             source: sentRes.source,
           } as any,
         });
+
+        // Step 2: word translation в фоне → обновляем primary card + alignment.
+        // max_tokens 16 → ~250ms warm на M-series. Юзер уже видит sentence.
+        translation
+          .translate({
+            word: expressionText,
+            contextWindow: ctx.plainText,
+            bookLanguage: bookLang,
+            nativeLanguage: nativeLanguage as NativeLanguage,
+          })
+          .then((wordRes) => {
+            // Stale check: пользователь мог тапнуть другое слово
+            if (gen !== generationRef.current) return;
+            if (wordRes.status !== 'ok' || !wordRes.translation) return;
+
+            // Recompute alignment с известным word translation
+            let alignedOffset = sentRes.translatedWordOffset;
+            if (sentRes.translatedSentence) {
+              const idx = sentRes.translatedSentence
+                .toLowerCase()
+                .indexOf(wordRes.translation.toLowerCase());
+              if (idx >= 0) alignedOffset = idx;
+            }
+
+            setPopup((p) => {
+              // Защита: popup мог быть закрыт пока word грузился
+              if (!p.visible || p.generation !== gen) return p;
+              return {
+                ...p,
+                result: {
+                  ...(p.result as any),
+                  translation: wordRes.translation,
+                  translatedWordOffset: alignedOffset,
+                } as any,
+              };
+            });
+          })
+          .catch((e) => {
+            if (__DEV__) console.warn('[onWordTap] word translate failed:', e);
+          });
       } else if (sentRes.errorCode === 'MODEL_LOADING') {
         setPopup({ ...base, status: 'loading' });
       } else {
