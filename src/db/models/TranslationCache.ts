@@ -18,4 +18,8 @@ export class TranslationCacheModel extends Model {
   @field('inference_context') inferenceContext!: string;
   @field('model_version') modelVersion!: string;
   @field('kernel_build_id') kernelBuildId!: string | null;
+  // #4.6 Translation Prefetch + Lifecycle — provenance + TTL по source
+  @field('source') source!: 'on_demand' | 'prefetch';
+  @field('ttl_days') ttlDays!: number;
+  @field('chrf_score') chrfScore!: number | null;
 }
