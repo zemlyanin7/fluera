@@ -20,6 +20,7 @@
     "@react-navigation/native": "^7.2.4",
     "@xmldom/xmldom": "^0.9.10",
     "expo": "~54.0.33",
+    "expo-battery": "~10.0.8",
     "expo-blur": "~15.0.8",
     "expo-constants": "~18.0.13",
     "expo-crypto": "~15.0.9",
