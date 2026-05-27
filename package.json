@@ -36,6 +36,7 @@
     "expo-status-bar": "~3.0.9",
     "fflate": "^0.8.3",
     "i18next": "^26.2.0",
+    "js-sha256": "^0.11.1",
     "llama.rn": "file:vendor/llama.rn",
     "react": "19.1.0",
     "react-i18next": "^17.0.8",
