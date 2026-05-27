@@ -156,6 +156,20 @@ jest.mock('expo-crypto', () => {
 // react-native-get-random-values — no-op в jest (jsdom поставляет crypto.getRandomValues)
 jest.mock('react-native-get-random-values', () => ({}));
 
+// expo-battery — нативный модуль, мок для unit-тестов (#4.6).
+// Мокаем три independent calls + три listeners; getPowerStateAsync removed
+// in SDK 54 (BatteryBridge composes via Promise.all).
+jest.mock('expo-battery', () => ({
+  __esModule: true,
+  BatteryState: { UNKNOWN: 0, UNPLUGGED: 1, CHARGING: 2, FULL: 3 },
+  getBatteryLevelAsync: jest.fn().mockResolvedValue(0.8),
+  getBatteryStateAsync: jest.fn().mockResolvedValue(2),
+  isLowPowerModeEnabledAsync: jest.fn().mockResolvedValue(false),
+  addBatteryLevelListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+  addBatteryStateListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+  addLowPowerModeListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+}));
+
 // expo-document-picker — нативный модуль, нужен мок для unit-тестов (#3)
 jest.mock('expo-document-picker', () => ({
   getDocumentAsync: jest.fn(async () => ({ canceled: true, assets: null })),
