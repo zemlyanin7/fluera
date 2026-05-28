@@ -21,11 +21,11 @@ GGUF в квантизации 1.25-bit.
 | # | Sub-project | Статус | Заметки |
 |---|-------------|--------|---------|
 | 1 | Foundation | ✅ готов | Темы (3 темы × 6 script-вариантов), 12 UI-примитивов, 26 иконок, Expo Router, embedded шрифты. |
-| 2 | Data layer | ✅ готов | WatermelonDB 0.28 schema (v3), repositories, Zustand persist для preferences. |
+| 2 | Data layer | ✅ готов | WatermelonDB 0.28 schema (v4), repositories, Zustand persist для preferences. |
 | 3 | Reader engine | ✅ готов | EPUB и FB2 парсеры написаны с нуля — без WebView. Native render через `ContentItem[]` / `InlineNode[]`. |
 | 4 | Translation core | ✅ готов | On-device LLM (Hy-MT1.5-1.8B-1.25bit) через vendored llama.rn форк. Покрывает все 13 × 13 = 169 языковых пар. |
 | 4.5 | Popup redesign | ✅ готов | Многоуровневый попап (слово / фраза / предложение), MWE-детекция, false friends, polysemy, race-safe таппинг. |
-| **4.6** | **Prefetch + Lifecycle** | 🚧 в работе | Idle unload, lazy reload, page-ahead prefetch с battery / thermal-гейтами. |
+| **4.6** | **Prefetch + Lifecycle** | 🚧 в работе | Phase 0+1 в main (DB v4 с `source`/`ttl_days`/`chrf_score` на `translation_cache`, cache provenance/TTL по source, `js-sha256` для chunked SHA-верификации модели, `expo-battery` установлен). Осталось: `ModelLifecycleManager` state machine, `PrefetchScheduler`, Settings UI, kernel-verify CI. |
 | 5 | Library | ⏳ планируется | OPDS-каталоги + локальный импорт файлов. |
 | 6 | Deck | ⏳ планируется | FSRS-6 интервальное повторение на основе encounters из reading sessions. |
 | 7 | Stats | ⏳ планируется | Reading streak, выученные слова, графики. |

@@ -21,11 +21,11 @@ Roadmap status:
 | # | Sub-project | Status | Notes |
 |---|-------------|--------|-------|
 | 1 | Foundation | ✅ done | Theming (3 themes × 6 script variants), 12 UI primitives, 26 icons, Expo Router, embedded fonts. |
-| 2 | Data layer | ✅ done | WatermelonDB 0.28 schema (currently v3), repositories, Zustand persist for preferences. |
+| 2 | Data layer | ✅ done | WatermelonDB 0.28 schema (currently v4), repositories, Zustand persist for preferences. |
 | 3 | Reader engine | ✅ done | EPUB and FB2 parsers written from scratch — no WebView. Native render via `ContentItem[]` / `InlineNode[]`. |
 | 4 | Translation core | ✅ done | On-device LLM (Hy-MT1.5-1.8B-1.25bit) via vendored llama.rn fork. Covers all 13 × 13 = 169 language pairs. |
 | 4.5 | Popup redesign | ✅ done | Tiered popup (word / phrase / sentence), MWE detection, false friends, polysemy, race-safe taps. |
-| **4.6** | **Prefetch + Lifecycle** | 🚧 in progress | Idle unload, lazy reload, page-ahead prefetch with battery / thermal gates. |
+| **4.6** | **Prefetch + Lifecycle** | 🚧 in progress | Phase 0+1 shipped (DB v4 with `source`/`ttl_days`/`chrf_score` on `translation_cache`, cache provenance/TTL by source, `js-sha256` for chunked model SHA verification, `expo-battery` installed). Remaining: `ModelLifecycleManager` state machine, `PrefetchScheduler`, Settings UI, kernel-verify CI. |
 | 5 | Library | ⏳ planned | OPDS catalogues + local file import. |
 | 6 | Deck | ⏳ planned | FSRS-6 spaced repetition, driven by reading-session encounters. |
 | 7 | Stats | ⏳ planned | Reading streak, words learned, charts. |
