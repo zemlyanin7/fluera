@@ -104,7 +104,7 @@ kernel-fidelity check на каждый llama.rn bump.
 рендерились офлайн без FOUT/FOIT. Сознательный trade-off в пользу
 офлайн-чтения. APK splits и lazy script loading в v2 backlog.
 
-GGUF-модель Hy-MT (~720 MB) **скачивается на первом запуске**, не
+GGUF-модель Hy-MT (~462 MB) **скачивается на первом запуске**, не
 бандлится, поэтому бинарь в App Store / Play Store остаётся компактным.
 
 ---

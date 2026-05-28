@@ -104,7 +104,7 @@ The bundle contains ~38 fonts (~15–25 MB) so all 6 script variants render
 offline without FOUT/FOIT. This is a deliberate trade-off in favour of
 offline reading. APK splits and lazy script loading are on the v2 backlog.
 
-The Hy-MT GGUF model (~720 MB) is downloaded **on first launch**, not
+The Hy-MT GGUF model (~462 MB) is downloaded **on first launch**, not
 bundled, so the App Store / Play Store binary stays small.
 
 ---
