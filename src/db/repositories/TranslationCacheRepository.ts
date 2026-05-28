@@ -3,6 +3,8 @@
 import { Database, Q } from '@nozbe/watermelondb';
 import { TranslationCacheModel } from '@/db/models';
 
+export type TranslationSource = 'on_demand' | 'prefetch';
+
 export interface TranslationCacheRecord {
   id: string;
   cacheKey: string;
@@ -18,6 +20,10 @@ export interface TranslationCacheRecord {
   inferenceContext: string;
   modelVersion: string;
   kernelBuildId: string | null;
+  // #4.6 Translation Prefetch + Lifecycle
+  source: TranslationSource;
+  ttlDays: number;
+  chrfScore: number | null;
 }
 
 export interface UpsertCacheInput {
@@ -34,6 +40,10 @@ export interface UpsertCacheInput {
   inferenceContext?: string;
   modelVersion?: string;
   kernelBuildId?: string | null;
+  // #4.6 — provenance + TTL по source
+  source?: TranslationSource;
+  ttlDays?: number;
+  chrfScore?: number | null;
 }
 
 export interface UpsertSentenceCacheInput {
@@ -46,6 +56,10 @@ export interface UpsertSentenceCacheInput {
   modelVersion?: string;
   kernelBuildId?: string | null;
   createdAt?: number;
+  // #4.6 — provenance + TTL по source (P1-I mirror)
+  source?: TranslationSource;
+  ttlDays?: number;
+  chrfScore?: number | null;
 }
 
 function toRecord(m: TranslationCacheModel): TranslationCacheRecord {
@@ -64,6 +78,10 @@ function toRecord(m: TranslationCacheModel): TranslationCacheRecord {
     inferenceContext: m.inferenceContext ?? 'warm',
     modelVersion: m.modelVersion ?? '',
     kernelBuildId: m.kernelBuildId ?? null,
+    // #4.6 — defaults for legacy v3 rows (NULL → on_demand/90/null)
+    source: (m.source as TranslationSource) ?? 'on_demand',
+    ttlDays: m.ttlDays ?? 90,
+    chrfScore: m.chrfScore ?? null,
   };
 }
 
@@ -86,6 +104,8 @@ export class TranslationCacheRepository {
 
   async upsertByKey(input: UpsertCacheInput): Promise<TranslationCacheRecord> {
     const now = input.createdAt ?? Date.now();
+    const source: TranslationSource = input.source ?? 'on_demand';
+    const ttlDays = input.ttlDays ?? (source === 'prefetch' ? 30 : 90);
     return this.db.write(async () => {
       try {
         const existing = await this.collection.find(input.cacheKey);
@@ -98,6 +118,10 @@ export class TranslationCacheRepository {
           if (input.inferenceContext !== undefined) m.inferenceContext = input.inferenceContext;
           if (input.modelVersion !== undefined) m.modelVersion = input.modelVersion;
           if (input.kernelBuildId !== undefined) m.kernelBuildId = input.kernelBuildId ?? null;
+          // #4.6 — refresh provenance/TTL on re-write
+          m.source = source;
+          m.ttlDays = ttlDays;
+          if (input.chrfScore !== undefined) m.chrfScore = input.chrfScore ?? null;
         });
         return toRecord(existing);
       } catch {
@@ -116,6 +140,10 @@ export class TranslationCacheRepository {
           m.inferenceContext = input.inferenceContext ?? 'warm';
           m.modelVersion = input.modelVersion ?? '';
           m.kernelBuildId = input.kernelBuildId ?? null;
+          // #4.6 — provenance + TTL
+          m.source = source;
+          m.ttlDays = ttlDays;
+          m.chrfScore = input.chrfScore ?? null;
         });
         return toRecord(created);
       }
@@ -136,6 +164,8 @@ export class TranslationCacheRepository {
   /** Upsert sentence-level перевода. */
   async upsertSentenceByKey(input: UpsertSentenceCacheInput): Promise<TranslationCacheRecord> {
     const now = input.createdAt ?? Date.now();
+    const source: TranslationSource = input.source ?? 'on_demand';
+    const ttlDays = input.ttlDays ?? (source === 'prefetch' ? 30 : 90);
     return this.db.write(async () => {
       try {
         const existing = await this.collection.find(input.cacheKey);
@@ -146,6 +176,10 @@ export class TranslationCacheRepository {
           if (input.inferenceContext !== undefined) m.inferenceContext = input.inferenceContext;
           if (input.modelVersion !== undefined) m.modelVersion = input.modelVersion;
           if (input.kernelBuildId !== undefined) m.kernelBuildId = input.kernelBuildId ?? null;
+          // #4.6 P1-I mirror — sentence provenance + TTL
+          m.source = source;
+          m.ttlDays = ttlDays;
+          if (input.chrfScore !== undefined) m.chrfScore = input.chrfScore ?? null;
         });
         return toRecord(existing);
       } catch {
@@ -165,8 +199,47 @@ export class TranslationCacheRepository {
           m.inferenceContext = input.inferenceContext ?? 'warm';
           m.modelVersion = input.modelVersion ?? '';
           m.kernelBuildId = input.kernelBuildId ?? null;
+          // #4.6 P1-I mirror — sentence provenance + TTL
+          m.source = source;
+          m.ttlDays = ttlDays;
+          m.chrfScore = input.chrfScore ?? null;
         });
         return toRecord(created);
+      }
+    });
+  }
+
+  /**
+   * #4.6 P1-G: TTL-based purge. Deletes rows where (now - createdAt) > ttlDays.
+   * Returns count of purged rows. Idempotent under concurrent calls (delete-if-exists).
+   */
+  async purgeExpiredBySource(): Promise<number> {
+    const now = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+    return this.db.write(async () => {
+      const all = await this.collection.query().fetch();
+      const expired = all.filter((m) => {
+        const ttl = m.ttlDays ?? 90;
+        return now - m.createdAt > ttl * dayMs;
+      });
+      for (const m of expired) {
+        await m.destroyPermanently();
+      }
+      return expired.length;
+    });
+  }
+
+  /**
+   * #4.6 P1-G: lazy single-row delete called by CacheLayer.lookup on TTL miss.
+   * Safe to call when row already absent (find throws, swallowed).
+   */
+  async deleteByKey(cacheKey: string): Promise<void> {
+    await this.db.write(async () => {
+      try {
+        const m = await this.collection.find(cacheKey);
+        await m.destroyPermanently();
+      } catch {
+        // already gone — no-op
       }
     });
   }
