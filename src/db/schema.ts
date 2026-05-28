@@ -5,7 +5,7 @@
 // прошлые миграции.
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -134,6 +134,10 @@ export const schema = appSchema({
         { name: 'inference_context', type: 'string' },
         { name: 'model_version', type: 'string' },
         { name: 'kernel_build_id', type: 'string', isOptional: true },
+        // #4.6 Translation prefetch — provenance + TTL по source
+        { name: 'source', type: 'string', isIndexed: true },
+        { name: 'ttl_days', type: 'number' },
+        { name: 'chrf_score', type: 'number', isOptional: true },
       ],
     }),
     tableSchema({

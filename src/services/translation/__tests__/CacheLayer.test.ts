@@ -36,12 +36,15 @@ describe('CacheLayer', () => {
       nativeLanguage: 'ru',
       translation: 'кошка',
       grammar: null,
-      createdAt: 0,
+      createdAt: Date.now(),
       sentenceTranslation: null,
       translatedWordOffset: null,
       inferenceContext: 'warm',
       modelVersion: 'mv1',
       kernelBuildId: null,
+      source: 'on_demand',
+      ttlDays: 90,
+      chrfScore: null,
     });
     const cache = new CacheLayer(repo, 10, () => 'mv1', () => 'kb1');
     const res = await cache.lookup('cat', 'ctx', 'en', 'ru');

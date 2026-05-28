@@ -11,6 +11,7 @@ import type { BookLanguage, NativeLanguage } from '@/types/settings';
 import type { InferenceContext } from './inferenceContext';
 
 export type CacheSource = 'memory' | 'db';
+export type TranslationSource = 'on_demand' | 'prefetch';
 
 export interface CacheLookupResult {
   value: string;
@@ -19,7 +20,16 @@ export interface CacheLookupResult {
 
 export interface WriteOptions {
   inferenceContext: InferenceContext;
+  // #4.6 Translation Prefetch + Lifecycle — provenance + TTL по source.
+  // Default 'on_demand' (TTL 90d). 'prefetch' → TTL 30d (shorter — lower
+  // quality risk + faster eviction if user never visits these pages).
+  source?: TranslationSource;
 }
+
+const TTL_BY_SOURCE: Record<TranslationSource, number> = {
+  on_demand: 90,
+  prefetch: 30,
+};
 
 export interface SentenceLookupResult {
   sentenceTranslation: string;
@@ -83,6 +93,15 @@ export class CacheLayer {
 
     const fromDb = await this.repo.findByKey(key);
     if (fromDb) {
+      // #4.6 P1-G: lazy TTL purge. If row expired по ttl_days, delete inline +
+      // treat as miss. Bulk sweep via repo.purgeExpiredBySource() happens on
+      // schedule elsewhere; this catches expired-but-not-yet-swept rows on
+      // hot path.
+      const ttlMs = (fromDb.ttlDays ?? 90) * 24 * 60 * 60 * 1000;
+      if (Date.now() - fromDb.createdAt > ttlMs) {
+        void this.repo.deleteByKey(key).catch(() => {});
+        return null;
+      }
       this.lru.set(key, fromDb.translation);
       return { value: fromDb.translation, source: 'db' };
     }
@@ -104,6 +123,7 @@ export class CacheLayer {
     if (opts.inferenceContext === 'cold') return;
 
     // Fire-and-forget DB write — не блокируем popup на disk I/O
+    const source: TranslationSource = opts.source ?? 'on_demand';
     this.repo
       .upsertByKey({
         cacheKey: key,
@@ -115,6 +135,8 @@ export class CacheLayer {
         inferenceContext: opts.inferenceContext,
         modelVersion: this.getModelVersion(),
         kernelBuildId: this.getKernelBuildId(),
+        source,
+        ttlDays: TTL_BY_SOURCE[source],
       })
       .catch((e) => {
         if (__DEV__) console.warn('[translation] cache DB write failed:', e);
@@ -162,6 +184,7 @@ export class CacheLayer {
     // Cold inference: не персистируем в DB
     if (opts.inferenceContext === 'cold') return;
 
+    const source: TranslationSource = opts.source ?? 'on_demand';
     this.repo
       .upsertSentenceByKey({
         cacheKey: key,
@@ -172,6 +195,8 @@ export class CacheLayer {
         inferenceContext: opts.inferenceContext,
         modelVersion: this.getModelVersion(),
         kernelBuildId: this.getKernelBuildId(),
+        source,
+        ttlDays: TTL_BY_SOURCE[source],
       })
       .catch((e) => {
         if (__DEV__) console.warn('[translation] sentence cache DB write failed:', e);

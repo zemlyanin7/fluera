@@ -4,9 +4,12 @@
 //   2. Никогда не редактировать прошлые миграции — они в проде у пользователей.
 //   3. Запустить unit-тест миграции перед коммитом.
 import { schemaMigrations, createTable, addColumns } from '@nozbe/watermelondb/Schema/migrations';
+import { migration0004 } from './migrations/0004-prefetch-source-ttl';
 
 export const migrations = schemaMigrations({
   migrations: [
+    // #4.6 Translation Prefetch + Lifecycle — schema v4
+    migration0004,
     {
       // #4.5 Translation Popup Redesign:
       // - Новые таблицы: mwe_phrases, false_friends, translation_feedback
